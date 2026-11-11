@@ -1038,6 +1038,8 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 }
 .tsk-link:hover { color: #cfe0ff; text-decoration: underline; }
 .tsk-module-card { cursor: default; }
+.tsk-issue-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tsk-hint-clear { margin-left: 8px; }
 @media (max-width: 1100px) {
   .tsk-grid { grid-template-columns: 1fr; }
 }

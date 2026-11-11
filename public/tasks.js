@@ -11,7 +11,9 @@ const TSK = {
   filter: '',
   flag: 'all',
   selected: '',
-  searchTimer: null
+  searchTimer: null,
+  focusIds: null,
+  focusLabel: ''
 };
 
 const TSK_TAB_LABEL = { detail: '详情', modules: '模块总览', health: '配置体检' };
@@ -158,12 +160,15 @@ function tskRenderList() {
   const hint = tskEl('taskListHint');
   if (!ul) return;
   tskClear(ul);
+  if (hint) hint.innerHTML = '';
   if (!TSK.data) {
     if (hint) hint.textContent = TSK.stale ? '正在加载任务数据...' : '正在加载...';
     return;
   }
+  const focus = TSK.focusIds;
   const q = TSK.filter.trim().toLowerCase();
   const filtered = TSK.data.tasks.filter((t) => {
+    if (focus) return focus.has(String(t.id));
     if (!tskFlagMatch(t)) return false;
     if (!q) return true;
     const hay = [
@@ -180,7 +185,10 @@ function tskRenderList() {
       .toLowerCase();
     return hay.includes(q);
   });
-  if (hint) {
+  if (hint && focus) {
+    hint.textContent = '仅显示「' + (TSK.focusLabel || '筛选结果') + '」' + filtered.length + ' 个任务';
+    hint.appendChild(tskButton('清除筛选', 'btn btn-sm tsk-hint-clear', () => tskClearFocus()));
+  } else if (hint) {
     hint.textContent = filtered.length ? '显示 ' + filtered.length + ' 个任务' : '没有匹配的任务';
   }
   for (const t of filtered) {
@@ -268,6 +276,120 @@ async function tskGotoNpc(script) {
   if (input) {
     input.value = script;
     input.dispatchEvent(new Event('input'));
+  }
+}
+
+async function tskFocusTasks(ids, label) {
+  TSK.focusIds = new Set((ids || []).map(String));
+  TSK.focusLabel = label || '';
+  TSK.filter = '';
+  const input = tskEl('taskFilter');
+  if (input) input.value = '';
+  TSK.tab = 'detail';
+  tskRenderTabs();
+  tskRenderList();
+}
+
+function tskClearFocus() {
+  TSK.focusIds = null;
+  TSK.focusLabel = '';
+  tskRenderList();
+}
+
+async function tskAfterWrite() {
+  await tskLoad(true);
+  TSK.detailId = '';
+  if (TSK.focusIds) {
+    const known = new Set(TSK.data.tasks.map((t) => String(t.id)));
+    TSK.focusIds = new Set([...TSK.focusIds].filter((id) => known.has(id)));
+    if (!TSK.focusIds.size) TSK.focusIds = null;
+  }
+  if (TSK.selected) await tskLoadDetail(TSK.selected);
+  tskRenderAll();
+  tskSetHash(TSK.selected);
+  if (S.configs && S.configs.tasks && TSK.data) S.configs.tasks.tasks = TSK.data.stats.enabled;
+}
+
+function tskBackupNames(files) {
+  return (files || []).map((f) => f.backup).filter(Boolean).map((b) => String(b).split(/[\\/]/).pop());
+}
+
+async function tskCleanupOrphans(switches) {
+  const list = switches || [];
+  if (!list.length) return;
+  const sample = list.slice(0, 20).join(', ') + (list.length > 20 ? ' …' : '');
+  if (
+    !confirm(
+      '将从所有模块的 TaskSwitchOnList 中移除 ' + list.length + ' 个没有对应任务定义的开关：\n' +
+        sample +
+        '\n\n写入前会自动备份，重启或重载服务端后生效。继续？'
+    )
+  )
+    return;
+  try {
+    const res = await api('/api/config/task/cleanup-orphans', { method: 'POST' });
+    const backups = tskBackupNames(res.files);
+    toast(
+      res.changed
+        ? '已清理 ' + (res.ids || []).length + ' 个孤儿开关' +
+            (backups.length ? '，已备份 ' + backups.join('、') : '') +
+            '；重启或重载服务端后生效'
+        : '没有可清理的孤儿开关',
+      'ok'
+    );
+    await tskAfterWrite();
+  } catch (e) {
+    toast('清理失败：' + e.message, 'err');
+  }
+}
+
+async function tskBatchModule(m, enabled) {
+  if (!m) return;
+  const count = enabled ? m.disabled : m.enabled;
+  if (!count) return;
+  const detail = enabled
+    ? '会在 ' + m.file + ' 的 TaskSwitchOnList 中追加 ' + count + ' 个任务 ID。'
+    : '会从所有模块的 TaskSwitchOnList 中移除 ' + count + ' 个任务 ID；若仍被其它任务或 NPC 引用，相关任务链可能中断。';
+  if (
+    !confirm(
+      '将' + (enabled ? '启用' : '停用') + '模块 ' + m.id + ' 的 ' + count + ' 个任务。\n' +
+        detail +
+        '\n\n写入前自动备份，重启或重载服务端后生效。继续？'
+    )
+  )
+    return;
+  try {
+    let res;
+    try {
+      res = await api('/api/config/task/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ module: m.id, enabled, force: !enabled })
+      });
+    } catch (e) {
+      const deps = e.data && e.data.dependents;
+      if (enabled || e.status !== 409 || !deps || !deps.total) throw e;
+      const parts = [];
+      if (deps.preTaskOf.length) parts.push(deps.preTaskOf.length + ' 个任务的前置条件');
+      if (deps.prizeOf.length) parts.push(deps.prizeOf.length + ' 个任务的奖励跳转');
+      if (deps.npcTasks.length) parts.push(deps.npcTasks.length + ' 个 NPC 任务列表');
+      if (!confirm('部分任务仍被 ' + parts.join('、') + '引用。\n停用后相关任务链可能中断。仍要停用？')) return;
+      res = await api('/api/config/task/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ module: m.id, enabled, force: true })
+      });
+    }
+    const backups = tskBackupNames(res.files);
+    toast(
+      (res.enabled ? '已启用' : '已停用') + '模块 ' + m.id + ' 的 ' + res.count + ' 个任务' +
+        (backups.length ? '，已备份 ' + backups.join('、') : '') +
+        '；重启或重载服务端后生效',
+      'ok'
+    );
+    await tskAfterWrite();
+  } catch (e) {
+    toast('批量操作失败：' + e.message, 'err');
   }
 }
 
@@ -663,6 +785,8 @@ function tskRenderModules() {
     const foot = document.createElement('div');
     foot.className = 'act-foot';
     const open = tskButton('查看该模块任务', 'btn btn-sm', () => {
+      TSK.focusIds = null;
+      TSK.focusLabel = '';
       TSK.filter = m.id;
       const input = tskEl('taskFilter');
       if (input) input.value = m.id;
@@ -671,6 +795,12 @@ function tskRenderModules() {
       tskRenderList();
     });
     foot.appendChild(open);
+    if (m.disabled > 0) {
+      foot.appendChild(tskButton('启用未启用 (' + m.disabled + ')', 'btn btn-sm', () => tskBatchModule(m, true)));
+    }
+    if (m.enabled > 0) {
+      foot.appendChild(tskButton('停用已启用 (' + m.enabled + ')', 'btn btn-sm', () => tskBatchModule(m, false)));
+    }
     card.appendChild(foot);
     box.appendChild(card);
   }
@@ -693,11 +823,24 @@ function tskIssueRow(issue) {
   meta.textContent = [issue.file, issue.line ? '第 ' + issue.line + ' 行' : ''].filter(Boolean).join(' · ');
   if (meta.textContent) body.appendChild(meta);
   row.appendChild(body);
-  if (issue.jump && issue.jump.task != null) {
-    row.appendChild(
-      tskButton('查看任务', 'btn btn-sm', () => tskGotoTask(issue.jump.task))
+  const actions = document.createElement('div');
+  actions.className = 'tsk-issue-actions';
+  if (issue.code === 'task_switch_orphan' && issue.switches && issue.switches.length) {
+    actions.appendChild(
+      tskButton('清理孤儿开关 (' + issue.switches.length + ')', 'btn btn-sm', () => tskCleanupOrphans(issue.switches))
     );
   }
+  if (issue.tasks && issue.tasks.length) {
+    actions.appendChild(
+      tskButton('查看涉及任务 (' + issue.tasks.length + ')', 'btn btn-sm', () =>
+        tskFocusTasks(issue.tasks, TSK_ISSUE_LABELS[issue.code] || issue.code)
+      )
+    );
+  }
+  if (issue.jump && issue.jump.task != null) {
+    actions.appendChild(tskButton('查看任务', 'btn btn-sm', () => tskGotoTask(issue.jump.task)));
+  }
+  if (actions.childNodes.length) row.appendChild(actions);
   return row;
 }
 
@@ -753,6 +896,8 @@ function tskRenderHealth() {
       row.appendChild(body);
       row.appendChild(
         tskButton('筛选异常', 'btn btn-sm', () => {
+          TSK.focusIds = null;
+          TSK.focusLabel = '';
           TSK.flag = 'issues';
           TSK.filter = mod.id;
           const input = tskEl('taskFilter');
@@ -867,6 +1012,10 @@ function tskBindEvents() {
       clearTimeout(TSK.searchTimer);
       TSK.searchTimer = setTimeout(() => {
         TSK.filter = filter.value;
+        if (TSK.focusIds) {
+          TSK.focusIds = null;
+          TSK.focusLabel = '';
+        }
         tskRenderList();
       }, 150);
     });
@@ -874,6 +1023,8 @@ function tskBindEvents() {
   document.querySelectorAll('#taskFlagFilter [data-task-flag]').forEach((btn) => {
     btn.addEventListener('click', () => {
       TSK.flag = btn.dataset.taskFlag;
+      TSK.focusIds = null;
+      TSK.focusLabel = '';
       document.querySelectorAll('#taskFlagFilter [data-task-flag]').forEach((b) => {
         b.classList.toggle('active', b === btn);
       });

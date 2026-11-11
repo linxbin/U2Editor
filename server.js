@@ -684,6 +684,35 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'POST' && pathname === '/api/config/task/batch') {
+    const body = await readBody(req);
+    const moduleId = String(body.module || '').trim();
+    if (!moduleId) {
+      json(res, 400, { error: '缺少模块 ID' });
+      return;
+    }
+    if (typeof body.enabled !== 'boolean') {
+      json(res, 400, { error: '缺少 enabled 参数' });
+      return;
+    }
+    const result = taskWorkbench.setModuleEnabled(moduleId, body.enabled, { force: !!body.force });
+    if (result.notFound) {
+      json(res, 404, { error: '未知模块 ' + moduleId });
+      return;
+    }
+    if (result.blocked) {
+      json(res, 409, { error: '部分任务仍被引用', dependents: result.dependents });
+      return;
+    }
+    json(res, 200, result);
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/task/cleanup-orphans') {
+    json(res, 200, taskWorkbench.cleanOrphanSwitches());
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/monster/list') {
     json(res, 200, monsterWorkbench.list());
     return;

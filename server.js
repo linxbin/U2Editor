@@ -645,6 +645,11 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/config/task/options') {
+    json(res, 200, taskWorkbench.options());
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/config/task') {
     const id = url.searchParams.get('id');
     if (id == null || !/^\d+$/.test(id)) {
@@ -710,6 +715,30 @@ async function handle(req, res) {
 
   if (req.method === 'POST' && pathname === '/api/config/task/cleanup-orphans') {
     json(res, 200, taskWorkbench.cleanOrphanSwitches());
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/task/patch') {
+    const body = await readBody(req);
+    const id = body.id;
+    if (id == null || !/^\d+$/.test(String(id))) {
+      json(res, 400, { error: '任务 ID 无效' });
+      return;
+    }
+    if (!body.kind) {
+      json(res, 400, { error: '缺少修复类型' });
+      return;
+    }
+    try {
+      const result = taskWorkbench.patchTask(id, { kind: body.kind, from: body.from, to: body.to });
+      if (result.notFound) {
+        json(res, 404, { error: '未找到任务 ' + id });
+        return;
+      }
+      json(res, 200, result);
+    } catch (e) {
+      json(res, 400, { error: e.message });
+    }
     return;
   }
 

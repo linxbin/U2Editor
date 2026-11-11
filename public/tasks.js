@@ -13,7 +13,9 @@ const TSK = {
   selected: '',
   searchTimer: null,
   focusIds: null,
-  focusLabel: ''
+  focusLabel: '',
+  options: null,
+  optionsLoading: false
 };
 
 const TSK_TAB_LABEL = { detail: '详情', modules: '模块总览', health: '配置体检' };
@@ -446,6 +448,143 @@ async function tskToggle(enabled) {
   }
 }
 
+function tskEnsureOptions() {
+  if (TSK.options || TSK.optionsLoading) return;
+  TSK.optionsLoading = true;
+  api('/api/config/task/options')
+    .then((opts) => {
+      TSK.options = opts || { monsters: [], items: [] };
+      if (S.mode === 'task' && TSK.tab === 'detail') tskRenderDetail();
+    })
+    .catch(() => {
+      TSK.options = { monsters: [], items: [] };
+    })
+    .finally(() => {
+      TSK.optionsLoading = false;
+    });
+}
+
+function tskFillDatalist(id, values, labels) {
+  let dl = document.getElementById(id);
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = id;
+    document.body.appendChild(dl);
+  }
+  if (dl.dataset.filled) return;
+  values.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(v);
+    if (labels && labels[i]) opt.textContent = labels[i];
+    dl.appendChild(opt);
+  });
+  dl.dataset.filled = '1';
+}
+
+function tskRepairInput(kind, from) {
+  const input = document.createElement('input');
+  input.className = 'tsk-repair-input';
+  if (kind === 'pretask' || kind === 'prize') {
+    input.type = 'number';
+    input.min = '1';
+    input.placeholder = '任务 ID';
+    if (TSK.data) {
+      tskFillDatalist(
+        'tskTaskIdOptions',
+        TSK.data.tasks.map((t) => t.id),
+        TSK.data.tasks.map((t) => '#' + t.id + ' ' + (t.name || ''))
+      );
+    }
+    input.setAttribute('list', 'tskTaskIdOptions');
+  } else {
+    input.type = 'text';
+    input.placeholder = kind === 'monster' ? '输入或选择怪物名' : '输入或选择物品名';
+    const id = kind === 'monster' ? 'tskMonsterOptions' : 'tskItemOptions';
+    if (TSK.options) tskFillDatalist(id, kind === 'monster' ? TSK.options.monsters : TSK.options.items);
+    input.setAttribute('list', id);
+  }
+  return input;
+}
+
+function tskRepairRow(text, kind, from) {
+  const row = document.createElement('div');
+  row.className = 'tsk-repair-row';
+  const label = document.createElement('span');
+  label.className = 'tsk-repair-label';
+  label.textContent = text;
+  row.appendChild(label);
+  const input = tskRepairInput(kind, from);
+  row.appendChild(input);
+  const btn = tskButton('保存', 'btn btn-sm primary', async () => {
+    const to = input.value.trim();
+    if (!to) {
+      toast('请填写新值', 'err');
+      return;
+    }
+    btn.disabled = true;
+    try {
+      await tskPatchDetail(kind, from, to);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  row.appendChild(btn);
+  return row;
+}
+
+function tskRepairSection(d) {
+  const m = d.missing;
+  if (!m) return null;
+  const total =
+    (m.monsters || []).length +
+    (m.items || []).length +
+    (m.preTasks || []).length +
+    (m.prizeTasks || []).length;
+  if (!total) return null;
+  tskEnsureOptions();
+  const sec = tskSection('配置修复', total + ' 项引用需要处理');
+  (m.monsters || []).forEach((name) => {
+    sec.appendChild(tskRepairRow('怪物「' + name + '」不在 Monster.DB，替换为：', 'monster', name));
+  });
+  (m.items || []).forEach((name) => {
+    sec.appendChild(tskRepairRow('物品「' + name + '」不在 stditems.db，替换为：', 'item', name));
+  });
+  (m.preTasks || []).forEach((v) => {
+    const abs = Math.abs(Number(v));
+    sec.appendChild(
+      tskRepairRow(
+        '前置任务 #' + abs + ' 不存在' + (Number(v) < 0 ? '（原为未完成）' : '') + '，替换为：',
+        'pretask',
+        abs
+      )
+    );
+  });
+  (m.prizeTasks || []).forEach((v) => {
+    sec.appendChild(tskRepairRow('奖励跳转任务 #' + v + ' 不存在，替换为：', 'prize', Number(v)));
+  });
+  return sec;
+}
+
+async function tskPatchDetail(kind, from, to) {
+  const id = TSK.selected;
+  if (!id) return;
+  try {
+    const res = await api('/api/config/task/patch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, kind, from, to })
+    });
+    const backup = res.backup ? String(res.backup).split(/[\\/]/).pop() : '';
+    toast(
+      '已修复任务 #' + id + (backup ? '，已备份 ' + backup : '') + '；重启或重载服务端后生效',
+      'ok'
+    );
+    await tskAfterWrite();
+  } catch (e) {
+    toast('修复失败：' + e.message, 'err');
+  }
+}
+
 function tskRenderDetail() {
   const box = tskEl('taskDetail');
   if (!box) return;
@@ -489,6 +628,9 @@ function tskRenderDetail() {
   hint.className = 'act-cat';
   hint.textContent = '启用/停用只改写该模块的 TaskSwitchOnList，写入前自动备份；服务端重启或重载后生效。';
   box.appendChild(hint);
+
+  const repair = tskRepairSection(d);
+  if (repair) box.appendChild(repair);
 
   const grid = document.createElement('div');
   grid.className = 'tsk-grid';
@@ -549,6 +691,7 @@ function tskRenderDetail() {
   });
   box.appendChild(npcSec);
 
+  const missMon = new Set((d.missing && d.missing.monsters) || []);
   const monSec = tskSection('怪物', d.monsters.length + ' 个');
   if (!d.monsters.length && !d.monsterMap.length) monSec.appendChild(tskEmptyLine('未配置'));
   if (d.monsters.length) {
@@ -557,9 +700,9 @@ function tskRenderDetail() {
     d.monsters.forEach((name) => {
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'tsk-chip monster';
+      chip.className = 'tsk-chip monster' + (missMon.has(name) ? ' bad' : '');
       chip.textContent = name;
-      chip.title = '打开怪物工作台';
+      chip.title = missMon.has(name) ? 'Monster.DB 中不存在，可在上方「配置修复」中替换' : '打开怪物工作台';
       chip.addEventListener('click', () => tskGotoMonster(name));
       wrap.appendChild(chip);
     });
@@ -575,8 +718,9 @@ function tskRenderDetail() {
       const nameTd = document.createElement('td');
       const link = document.createElement('button');
       link.type = 'button';
-      link.className = 'tsk-link';
+      link.className = 'tsk-link' + (missMon.has(m.name) ? ' bad' : '');
       link.textContent = m.name;
+      if (missMon.has(m.name)) link.title = 'Monster.DB 中不存在，可在上方「配置修复」中替换';
       link.addEventListener('click', () => tskGotoMonster(m.name));
       nameTd.appendChild(link);
       tr.appendChild(nameTd);
@@ -596,7 +740,12 @@ function tskRenderDetail() {
   if (d.items.length) {
     const wrap = document.createElement('div');
     wrap.className = 'tsk-chips';
-    d.items.forEach((name) => wrap.appendChild(tskChip(name, 'item')));
+    const missItem = new Set((d.missing && d.missing.items) || []);
+    d.items.forEach((name) => {
+      const chip = tskChip(name, missItem.has(name) ? 'item bad' : 'item');
+      if (missItem.has(name)) chip.title = 'stditems.db 中不存在，可在上方「配置修复」中替换';
+      wrap.appendChild(chip);
+    });
     itemSec.appendChild(wrap);
   }
   if (d.itemMap.length) {
@@ -831,10 +980,17 @@ function tskIssueRow(issue) {
     );
   }
   if (issue.tasks && issue.tasks.length) {
+    const repairable = [
+      'task_monster_missing',
+      'task_item_missing',
+      'task_pretask_missing',
+      'task_prize_target_missing'
+    ].includes(issue.code);
     actions.appendChild(
-      tskButton('查看涉及任务 (' + issue.tasks.length + ')', 'btn btn-sm', () =>
-        tskFocusTasks(issue.tasks, TSK_ISSUE_LABELS[issue.code] || issue.code)
-      )
+      tskButton((repairable ? '去修复' : '查看涉及任务') + ' (' + issue.tasks.length + ')', 'btn btn-sm', () => {
+        tskFocusTasks(issue.tasks, TSK_ISSUE_LABELS[issue.code] || issue.code);
+        if (repairable) tskSelect(issue.tasks[0]);
+      })
     );
   }
   if (issue.jump && issue.jump.task != null) {

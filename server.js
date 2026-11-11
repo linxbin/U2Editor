@@ -660,6 +660,30 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'POST' && pathname === '/api/config/task/toggle') {
+    const body = await readBody(req);
+    const id = body.id;
+    if (id == null || !/^\d+$/.test(String(id))) {
+      json(res, 400, { error: '任务 ID 无效' });
+      return;
+    }
+    if (typeof body.enabled !== 'boolean') {
+      json(res, 400, { error: '缺少 enabled 参数' });
+      return;
+    }
+    const result = taskWorkbench.setEnabled(id, body.enabled, { force: !!body.force });
+    if (result.notFound) {
+      json(res, 404, { error: '未找到任务 ' + id });
+      return;
+    }
+    if (result.blocked) {
+      json(res, 409, { error: '任务仍被引用', dependents: result.dependents });
+      return;
+    }
+    json(res, 200, result);
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/monster/list') {
     json(res, 200, monsterWorkbench.list());
     return;

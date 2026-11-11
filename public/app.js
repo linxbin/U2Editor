@@ -13,7 +13,12 @@ const api = async (url, opts) => {
   } catch (e) {
     data = { error: '服务器返回了无效数据' };
   }
-  if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+  if (!res.ok) {
+    const err = new Error(data.error || 'HTTP ' + res.status);
+    err.data = data;
+    err.status = res.status;
+    throw err;
+  }
   return data;
 };
 

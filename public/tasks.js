@@ -271,6 +271,59 @@ async function tskGotoNpc(script) {
   }
 }
 
+async function tskToggle(enabled) {
+  const id = TSK.selected;
+  if (!id) return;
+  const btn = tskEl('btnTaskToggle');
+  if (btn) btn.disabled = true;
+  try {
+    let res;
+    try {
+      res = await api('/api/config/task/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, enabled })
+      });
+    } catch (e) {
+      const deps = e.data && e.data.dependents;
+      if (enabled || !deps || !deps.total) throw e;
+      const parts = [];
+      if (deps.preTaskOf.length) parts.push(deps.preTaskOf.length + ' 个任务的前置条件');
+      if (deps.prizeOf.length) parts.push(deps.prizeOf.length + ' 个任务的奖励跳转');
+      if (deps.npcTasks.length) parts.push(deps.npcTasks.length + ' 个 NPC 任务列表');
+      if (!confirm('#' + id + ' 仍被 ' + parts.join('、') + '引用。\n停用后服务端重载时任务会被删除，相关任务链可能中断。仍要停用？')) return;
+      res = await api('/api/config/task/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, enabled, force: true })
+      });
+    }
+    const backups = res.files
+      ? res.files.map((f) => f.backup).filter(Boolean)
+      : res.backup
+        ? [res.backup]
+        : [];
+    toast(
+      (res.enabled ? '已启用 #' : '已停用 #') +
+        id +
+        (backups.length ? '，已备份 ' + backups.map((b) => b.split(/[\\/]/).pop()).join('、') : '') +
+        '；重启或重载服务端后生效',
+      'ok'
+    );
+    await tskLoad(true);
+    TSK.detailId = '';
+    await tskLoadDetail(id);
+    tskRenderAll();
+    tskSetHash(id);
+    if (S.configs && S.configs.tasks && TSK.data) S.configs.tasks.tasks = TSK.data.stats.enabled;
+  } catch (e) {
+    toast('操作失败：' + e.message, 'err');
+  } finally {
+    const again = tskEl('btnTaskToggle');
+    if (again) again.disabled = false;
+  }
+}
+
 function tskRenderDetail() {
   const box = tskEl('taskDetail');
   if (!box) return;
@@ -302,7 +355,18 @@ function tskRenderDetail() {
   cat.className = 'act-cat';
   cat.textContent = d.module + ' · ' + d.moduleFile + ':' + d.line;
   head.appendChild(cat);
+  const toggle = tskButton(
+    d.enabled ? '停用任务' : '启用任务',
+    d.enabled ? 'btn btn-sm' : 'btn btn-sm primary',
+    () => tskToggle(!d.enabled)
+  );
+  toggle.id = 'btnTaskToggle';
+  head.appendChild(toggle);
   box.appendChild(head);
+  const hint = document.createElement('div');
+  hint.className = 'act-cat';
+  hint.textContent = '启用/停用只改写该模块的 TaskSwitchOnList，写入前自动备份；服务端重启或重载后生效。';
+  box.appendChild(hint);
 
   const grid = document.createElement('div');
   grid.className = 'tsk-grid';

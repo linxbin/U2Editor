@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>传世 DB 编辑器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">DB</span>
+      <div>
+        <h1>传世 DB 编辑器</h1>
+        <div class="sub">传奇世界 1.9.6 · 本地离线编辑 · 自动备份</div>
+      </div>
+    </div>
+    <div class="top-status">
+      <span id="statusText">正在加载...</span>
+      <span class="dot" id="dirtyDot" title="有未保存修改"></span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-tabs" role="tablist">
+        <button class="side-tab" data-side-tab="mon" role="tab">
+          怪物<span class="count" id="monCount">0</span>
+        </button>
+        <button class="side-tab active" data-side-tab="db" role="tab">
+          数据库<span class="count" id="dbCount">0</span>
+        </button>
+        <button class="side-tab" data-side-tab="drop" role="tab">
+          爆率<span class="count" id="dropCount">0</span>
+        </button>
+        <button class="side-tab" data-side-tab="cfg" role="tab">
+          玩法<span class="count" id="cfgCount">12</span>
+        </button>
+      </div>
+
+      <div class="side-pane" data-side-pane="mon">
+        <input id="monFilter" class="filter" placeholder="搜索怪物 / 刷怪地图..." autocomplete="off">
+        <div id="monFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-mon-flag="all">全部</button>
+          <button class="btn small" data-mon-flag="attr">属性</button>
+          <button class="btn small" data-mon-flag="spawn">刷怪</button>
+          <button class="btn small" data-mon-flag="drop">爆率</button>
+          <button class="btn small" data-mon-flag="child">召唤</button>
+          <button class="btn small" data-mon-flag="issues">异常</button>
+        </div>
+        <ul id="monList" class="file-list"></ul>
+        <div id="monListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane active" data-side-pane="db">
+        <input id="dbFilter" class="filter" placeholder="筛选数据库..." autocomplete="off">
+        <ul id="dbList" class="file-list"></ul>
+      </div>
+
+      <div class="side-pane" data-side-pane="drop">
+        <input id="dropFilter" class="filter" placeholder="筛选爆率文件..." autocomplete="off">
+        <ul id="dropList" class="file-list"></ul>
+      </div>
+
+      <div class="side-pane" data-side-pane="cfg">
+        <ul id="cfgList" class="file-list">
+          <li class="file-item" data-cfg="mongen">
+            <div class="fname">刷怪配置</div>
+            <div class="fmeta" id="cfgMeta-mongen">Mongen.txt</div>
+          </li>
+          <li class="file-item" data-cfg="makeitem">
+            <div class="fname">合成配方</div>
+            <div class="fmeta" id="cfgMeta-makeitem">MakeItem.txt</div>
+          </li>
+          <li class="file-item" data-cfg="appellation">
+            <div class="fname">称号配置</div>
+            <div class="fmeta" id="cfgMeta-appellation">appellation.txt</div>
+          </li>
+          <li class="file-item" data-cfg="npc">
+            <div class="fname">NPC 分布</div>
+            <div class="fmeta" id="cfgMeta-npc">NPCList.txt</div>
+          </li>
+          <li class="file-item" data-cfg="shops">
+            <div class="fname">商店货品</div>
+            <div class="fmeta" id="cfgMeta-shops">NPCScript/*.py</div>
+          </li>
+          <li class="file-item" data-cfg="goods">
+            <div class="fname">商城商品</div>
+            <div class="fmeta" id="cfgMeta-goods">goodsconfig · UU订单</div>
+          </li>
+          <li class="file-item" data-cfg="summons">
+            <div class="fname">召唤关系</div>
+            <div class="fmeta" id="cfgMeta-summons">MonsterChain.ini · MonsterChild.ini</div>
+          </li>
+          <li class="file-item" data-cfg="mall">
+            <div class="fname">商城配置</div>
+            <div class="fmeta" id="cfgMeta-mall">PTItems.xml</div>
+          </li>
+          <li class="file-item" data-cfg="mapinfo">
+            <div class="fname">地图规则</div>
+            <div class="fmeta" id="cfgMeta-mapinfo">MapInfo · 跳转 / 安全区 / 属性</div>
+          </li>
+          <li class="file-item" data-cfg="ops">
+            <div class="fname">运营配置</div>
+            <div class="fmeta" id="cfgMeta-ops">公告 · 答题 · 宝盒 · 礼包</div>
+          </li>
+          <li class="file-item" data-cfg="servercfg">
+            <div class="fname">服务器启动</div>
+            <div class="fmeta" id="cfgMeta-servercfg">GameServer.ini · 经验/出生/账号</div>
+          </li>
+          <li class="file-item" data-cfg="extra">
+            <div class="fname">扩展配置</div>
+            <div class="fmeta" id="cfgMeta-extra">服务器 · 地图 · 活动 · 充值 · 事件</div>
+          </li>
+        </ul>
+        <div class="side-note">
+          点击项目打开图形化编辑；保存只改写修改过的行，并自动备份原文件。
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="dbView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong id="dbTitle">未选择数据库</strong>
+            <span id="dbMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <input id="rowSearch" class="filter search" placeholder="搜索名称..." autocomplete="off">
+          <button id="btnAdd" class="btn">新增记录</button>
+          <button id="btnDup" class="btn">复制选中</button>
+          <button id="btnReload" class="btn">重新加载</button>
+          <button id="btnSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="grid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prevPage" class="btn small">上一页</button>
+          <span id="pageInfo" class="muted"></span>
+          <button id="nextPage" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="gridHint" class="muted">点击行后在右侧编辑字段</span>
+        </div>
+      </section>
+
+      <section id="dropView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong id="dropTitle">未选择爆率文件</strong>
+            <span id="dropMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnDropReload" class="btn">重新加载</button>
+          <button id="btnDropSave" class="btn primary">保存</button>
+        </div>
+        <div class="drop-body">
+          <textarea id="dropText" spellcheck="false" placeholder="选择一个爆率文件开始编辑"></textarea>
+          <div class="drop-side">
+            <h3>规则统计</h3>
+            <div id="dropStats" class="stats"></div>
+            <h3>格式说明</h3>
+            <pre class="hint-pre">每行一条：
+1/120  物品名  数量
+
+1/120 表示概率 1/120
+空行、# 或 ; 开头的行会被忽略</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="mongenView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>刷怪配置</strong>
+            <span id="mongenMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <select id="mongenMap" class="filter select" title="按地图筛选"></select>
+          <input id="mongenSearch" class="filter search" placeholder="搜索怪物..." autocomplete="off">
+          <label class="inline-field">数量×
+            <input id="mongenFactor" type="number" min="0.1" max="100" step="0.1" value="2">
+          </label>
+          <button id="btnMongenBatch" class="btn" title="把当前地图所有刷怪数量乘以倍数">批量调整</button>
+          <button id="btnMongenAdd" class="btn">新增刷怪</button>
+          <button id="btnMongenDel" class="btn">删除选中</button>
+          <button id="btnMongenReload" class="btn">重新加载</button>
+          <button id="btnMongenSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="mongenGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="mongenPrev" class="btn small">上一页</button>
+          <span id="mongenPageInfo" class="muted"></span>
+          <button id="mongenNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="mongenHint" class="muted">点击行后在右侧编辑；批量调整按当前地图生效</span>
+        </div>
+      </section>
+
+      <section id="makeitemView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>合成配方</strong>
+            <span id="makeitemMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <input id="makeitemSearch" class="filter search" placeholder="搜索产物或材料..." autocomplete="off">
+          <button id="btnMakeAdd" class="btn">新增配方</button>
+          <button id="btnMakeDup" class="btn">复制选中</button>
+          <button id="btnMakeDel" class="btn">删除选中</button>
+          <button id="btnMakeReload" class="btn">重新加载</button>
+          <button id="btnMakeSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="makeitemGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="appellationView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>称号配置</strong>
+            <span id="appellationMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <select id="appellationClass" class="filter select" title="按职业筛选"></select>
+          <input id="appellationSearch" class="filter search" placeholder="搜索称号或级别..." autocomplete="off">
+          <button id="btnAppAdd" class="btn">新增阶段</button>
+          <button id="btnAppDup" class="btn">复制选中</button>
+          <button id="btnAppDel" class="btn">删除选中</button>
+          <button id="btnAppReload" class="btn">重新加载</button>
+          <button id="btnAppSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="appellationGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="appellationPrev" class="btn small">上一页</button>
+          <span id="appellationPageInfo" class="muted"></span>
+          <button id="appellationNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="appellationHint" class="muted">称号按职业分段，级别/阶段/经验值均为整数</span>
+        </div>
+      </section>
+
+      <section id="npcView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>NPC 分布</strong>
+            <span id="npcMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <select id="npcMap" class="filter select" title="按地图筛选"></select>
+          <input id="npcSearch" class="filter search" placeholder="搜索名称 / 脚本 / 编号..." autocomplete="off">
+          <button id="btnNpcAdd" class="btn">新增 NPC</button>
+          <button id="btnNpcDup" class="btn">复制选中</button>
+          <button id="btnNpcDel" class="btn">删除选中</button>
+          <button id="btnNpcReload" class="btn">重新加载</button>
+          <button id="btnNpcSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="npcGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="npcPrev" class="btn small">上一页</button>
+          <span id="npcPageInfo" class="muted"></span>
+          <button id="npcNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="npcHint" class="muted">点击行后在右侧编辑坐标与名称；脚本内容不会被修改</span>
+        </div>
+      </section>
+
+      <section id="shopView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>商店货品</strong>
+            <span id="shopMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <select id="shopMap" class="filter select" title="按地图筛选"></select>
+          <input id="shopSearch" class="filter search" placeholder="搜索 NPC / 脚本..." autocomplete="off">
+          <button id="btnShopAdd" class="btn">新增货品</button>
+          <button id="btnShopDel" class="btn">删除货品</button>
+          <button id="btnShopReload" class="btn">重新加载</button>
+          <button id="btnShopSave" class="btn primary">保存</button>
+        </div>
+        <div class="shop-body">
+          <div class="shop-list-pane">
+            <div class="table-wrap">
+              <table id="shopGrid">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="pager compact">
+              <button id="shopPrev" class="btn small">上一页</button>
+              <span id="shopPageInfo" class="muted"></span>
+              <button id="shopNext" class="btn small">下一页</button>
+            </div>
+          </div>
+          <div class="goods-pane">
+            <div class="pane-head">
+              <strong>货品清单</strong>
+              <span id="goodsMeta" class="muted">请选择左侧商店 NPC</span>
+            </div>
+            <div class="table-wrap">
+              <table id="goodsGrid">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="goodsView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>商城商品</strong>
+            <span id="goodsCfgMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <input id="goodsSearch" class="filter search" placeholder="搜索商品 ID / 版本 / 名称..." autocomplete="off">
+          <button id="btnGoodsAdd" class="btn">新增商品</button>
+          <button id="btnGoodsDup" class="btn">复制选中</button>
+          <button id="btnGoodsDel" class="btn">删除选中</button>
+          <button id="btnGoodsReload" class="btn">重新加载</button>
+          <button id="btnGoodsSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="goodsNameGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="goodsPrev" class="btn small">上一页</button>
+          <span id="goodsPageInfo" class="muted"></span>
+          <button id="goodsNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="goodsHint" class="muted">UU 商城/订单商品编码；ID + 版本唯一，不含价格与库存</span>
+        </div>
+      </section>
+
+      <section id="summonsView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>召唤关系</strong>
+            <span id="summonsMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <div class="seg">
+            <button id="summonTabChain" class="btn small active">召唤链</button>
+            <button id="summonTabChild" class="btn small">子怪</button>
+          </div>
+          <input id="summonSearch" class="filter search" placeholder="搜索分组 / 怪物..." autocomplete="off">
+          <button id="btnSummonAdd" class="btn">新增</button>
+          <button id="btnSummonDel" class="btn">删除选中</button>
+          <button id="btnSummonReload" class="btn">重新加载</button>
+          <button id="btnSummonSave" class="btn primary">保存</button>
+        </div>
+        <div id="chainWrap" class="table-wrap">
+          <table id="chainGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="childWrap" class="table-wrap hidden">
+          <table id="childGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <span id="summonHint" class="muted">召唤链控制子怪出现的位置偏移、范围和数量；子怪按父怪分组</span>
+        </div>
+      </section>
+
+      <section id="mallView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>商城配置</strong>
+            <span id="mallMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <div class="seg">
+            <button id="mallTabItems" class="btn small active">商品</button>
+            <button id="mallTabHot" class="btn small">热卖 / 公告</button>
+          </div>
+          <select id="mallClass" class="filter select" title="按大类筛选"></select>
+          <select id="mallSub" class="filter select" title="按子类筛选"></select>
+          <input id="mallSearch" class="filter search" placeholder="搜索商品 ID / 名称..." autocomplete="off">
+          <button id="btnMallAdd" class="btn">新增商品</button>
+          <button id="btnMallDup" class="btn">复制选中</button>
+          <button id="btnMallDel" class="btn">删除商品</button>
+          <button id="btnMallReload" class="btn">重新加载</button>
+          <button id="btnMallSave" class="btn primary">保存</button>
+        </div>
+        <div id="mallItemsWrap" class="table-wrap">
+          <table id="mallGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="mallHotWrap" class="mall-hot-wrap hidden">
+          <div class="ops-panel">
+            <div class="pane-head">
+              <strong>滚动公告</strong>
+              <span class="muted">PTItems.xml · scrollmsg · 使用 \\ 分隔不同行</span>
+              <span id="mallHotMeta" class="muted"></span>
+            </div>
+            <textarea id="mallScroll" class="ops-textarea short" spellcheck="false"></textarea>
+          </div>
+          <div class="table-wrap">
+            <table id="mallHotGrid">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="pager">
+          <button id="mallPrev" class="btn small">上一页</button>
+          <span id="mallPageInfo" class="muted"></span>
+          <button id="mallNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="mallHint" class="muted"></span>
+        </div>
+      </section>
+
+      <section id="mapinfoView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>地图规则</strong>
+            <span id="mapinfoMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <select id="mapinfoSection" class="filter select" title="选择 MapInfo 分区"></select>
+          <input id="mapinfoSearch" class="filter search" placeholder="搜索地图 / 坐标 / 属性..." autocomplete="off">
+          <button id="btnMapinfoAdd" class="btn">新增规则</button>
+          <button id="btnMapinfoDup" class="btn">复制选中</button>
+          <button id="btnMapinfoDel" class="btn">删除选中</button>
+          <button id="btnMapinfoReload" class="btn">重新加载</button>
+          <button id="btnMapinfoSave" class="btn primary">保存</button>
+        </div>
+        <div class="table-wrap">
+          <table id="mapinfoGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="mapinfoPrev" class="btn small">上一页</button>
+          <span id="mapinfoPageInfo" class="muted"></span>
+          <button id="mapinfoNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="mapinfoHint" class="muted"></span>
+        </div>
+      </section>
+
+      <section id="opsView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>运营配置</strong>
+            <span id="opsMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <div class="seg">
+            <button id="opsTabNotices" class="btn small active">公告</button>
+            <button id="opsTabQuiz" class="btn small">答题</button>
+            <button id="opsTabBoxes" class="btn small">宝盒</button>
+            <button id="opsTabStarter" class="btn small">新手礼包</button>
+          </div>
+          <input id="opsSearch" class="filter search" placeholder="搜索题目 / 物品..." autocomplete="off">
+          <button id="btnOpsAdd" class="btn">新增</button>
+          <button id="btnOpsDel" class="btn">删除选中</button>
+          <button id="btnOpsReload" class="btn">重新加载</button>
+          <button id="btnOpsSave" class="btn primary">保存</button>
+        </div>
+        <div id="opsNoticesWrap" class="ops-notices">
+          <div class="ops-notice-card">
+            <div class="pane-head"><strong>系统公告</strong><span id="opsNoticeMeta-line" class="muted">LineNotice.txt</span></div>
+            <textarea id="opsNotice-line" class="ops-textarea" spellcheck="false"></textarea>
+          </div>
+          <div class="ops-notice-card">
+            <div class="pane-head"><strong>滚动公告</strong><span id="opsNoticeMeta-float" class="muted">FloatAD.txt</span></div>
+            <textarea id="opsNotice-float" class="ops-textarea" spellcheck="false"></textarea>
+          </div>
+          <div class="ops-notice-card">
+            <div class="pane-head"><strong>健康公告</strong><span id="opsNoticeMeta-bulletin" class="muted">Bullitin.ini</span></div>
+            <textarea id="opsNotice-bulletin" class="ops-textarea" spellcheck="false"></textarea>
+          </div>
+          <div class="ops-notice-card">
+            <div class="pane-head"><strong>祝福语</strong><span id="opsNoticeMeta-bless" class="muted">bless.txt</span></div>
+            <textarea id="opsNotice-bless" class="ops-textarea" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div id="opsQuizWrap" class="table-wrap hidden">
+          <div class="pane-head"><strong>王城答题题库</strong><span id="opsQuizMeta" class="muted"></span></div>
+          <table id="opsQuizGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="opsBoxesWrap" class="table-wrap hidden">
+          <div class="pane-head"><strong>宝盒奖励池</strong><span id="opsBoxesMeta" class="muted"></span></div>
+          <table id="opsBoxesGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="opsStarterWrap" class="table-wrap hidden">
+          <div class="pane-head"><strong>新手礼包</strong><span id="opsStarterMeta" class="muted"></span></div>
+          <table id="opsStarterGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <span id="opsHint" class="muted"></span>
+        </div>
+      </section>
+
+      <section id="extraView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>扩展配置</strong>
+            <span id="extraMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <select id="extraFile" class="filter select" title="选择配置文件"></select>
+          <select id="extraSection" class="filter select hidden" title="选择分组"></select>
+          <input id="extraSearch" class="filter search" placeholder="搜索名称 / 参数 / 属性..." autocomplete="off">
+          <button id="btnExtraAdd" class="btn">新增行</button>
+          <button id="btnExtraDup" class="btn">复制选中</button>
+          <button id="btnExtraDel" class="btn">删除选中</button>
+          <button id="btnExtraReload" class="btn">重新加载</button>
+          <button id="btnExtraSave" class="btn primary">保存</button>
+        </div>
+        <div id="extraTableWrap" class="table-wrap">
+          <table id="extraGrid">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="extraTextWrap" class="extra-text-wrap hidden">
+          <textarea id="extraText" class="extra-textarea" spellcheck="false"></textarea>
+        </div>
+        <div id="extraPager" class="pager">
+          <button id="extraPrev" class="btn small">上一页</button>
+          <span id="extraPageInfo" class="muted"></span>
+          <button id="extraNext" class="btn small">下一页</button>
+          <div class="spacer"></div>
+          <span id="extraHint" class="muted"></span>
+        </div>
+      </section>
+
+      <section id="monsterView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong id="monTitle">怪物工作台</strong>
+            <span id="monMeta" class="muted">请选择左侧怪物</span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnMonReload" class="btn">重新加载</button>
+          <button id="btnMonSave" class="btn primary" disabled>保存当前页</button>
+        </div>
+
+        <div id="monTabs" class="mon-tabs">
+          <button class="mon-tab active" data-mon-tab="attr">属性<span class="tab-dirty" id="monDirty-attr"></span></button>
+          <button class="mon-tab" data-mon-tab="spawn">刷怪点<span class="tab-dirty" id="monDirty-spawn"></span></button>
+          <button class="mon-tab" data-mon-tab="drop">爆率<span class="tab-dirty" id="monDirty-drop"></span></button>
+          <button class="mon-tab" data-mon-tab="child">召唤子怪<span class="tab-dirty" id="monDirty-child"></span></button>
+          <button class="mon-tab" data-mon-tab="health">体检</button>
+        </div>
+
+        <div class="mon-tab-body">
+          <div id="monTabAttr" class="mon-pane">
+            <div id="monAttrBar" class="mon-pane-bar"></div>
+            <div id="monAttrGrid" class="mon-attr-grid"></div>
+          </div>
+
+          <div id="monTabSpawn" class="mon-pane hidden">
+            <div class="mon-pane-bar">
+              <span id="monSpawnMeta" class="muted">请选择怪物</span>
+              <div class="spacer"></div>
+              <button id="btnMonSpawnAdd" class="btn small">新增刷怪点</button>
+              <button id="btnMonSpawnSave" class="btn small primary" disabled>保存刷怪点</button>
+            </div>
+            <div class="table-wrap">
+              <table id="monSpawnGrid" class="mon-grid"><thead></thead><tbody></tbody></table>
+            </div>
+          </div>
+
+          <div id="monTabDrop" class="mon-pane hidden">
+            <div id="monDropBar" class="mon-pane-bar mon-drop-bar"></div>
+            <div class="table-wrap">
+              <table id="monDropGrid" class="mon-grid"><thead></thead><tbody></tbody></table>
+            </div>
+            <div id="monDropInvalid" class="mon-invalid"></div>
+          </div>
+
+          <div id="monTabChild" class="mon-pane hidden">
+            <div class="mon-pane-bar">
+              <span id="monChildMeta" class="muted">请选择怪物</span>
+              <div class="spacer"></div>
+              <button id="btnMonChildAdd" class="btn small">新增子怪</button>
+              <button id="btnMonChildSave" class="btn small primary" disabled>保存子怪</button>
+            </div>
+            <div id="monChildParents" class="mon-parents"></div>
+            <div class="table-wrap">
+              <table id="monChildGrid" class="mon-grid"><thead></thead><tbody></tbody></table>
+            </div>
+          </div>
+
+          <div id="monTabHealth" class="mon-pane hidden">
+            <div id="monHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside id="cfgDetail" class="detail hidden">
+        <div class="detail-head">
+          <div>
+            <strong id="cfgDetailTitle">配置</strong>
+            <div id="cfgDetailSub" class="muted"></div>
+          </div>
+          <button id="btnCfgClose" class="btn ghost small">关闭</button>
+        </div>
+        <div id="cfgForm" class="form"></div>
+        <div id="cfgNote" class="detail-note">
+          修改会先保存在浏览器内存中，点击“保存”后才写入文件；写入前会自动生成备份。
+        </div>
+      </aside>
+
+      <aside id="detail" class="detail hidden">
+        <div class="detail-head">
+          <div>
+            <strong id="detailTitle">记录</strong>
+            <div id="detailSub" class="muted"></div>
+          </div>
+          <button id="btnCloseDetail" class="btn ghost small">关闭</button>
+        </div>
+        <div id="detailForm" class="form"></div>
+        <div class="detail-note">
+          修改会先保存在浏览器内存中，点击“保存”后才写入文件；写入前会自动生成备份。
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <datalist id="monsterList"></datalist>
+  <datalist id="itemList"></datalist>
+  <datalist id="mapList"></datalist>
+  <datalist id="npcScriptList"></datalist>
+  <datalist id="summonGroupList"></datalist>
+  <script src="labels.js"></script>
+  <script src="app.js"></script>
+  <script src="configs.js"></script>
+  <script src="npc.js"></script>
+  <script src="extras.js"></script>
+  <script src="mall.js"></script>
+  <script src="mapinfo.js"></script>
+  <script src="ops.js"></script>
+  <script src="extra.js"></script>
+  <script src="monsters.js"></script>
+</body>
+</html>

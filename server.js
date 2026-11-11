@@ -15,6 +15,7 @@ const opsData = require('./lib/ops');
 const extraData = require('./lib/extra');
 const monsterData = require('./lib/monster');
 const activityData = require('./lib/activity');
+const taskData = require('./lib/tasks');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -56,6 +57,12 @@ const activityWorkbench = activityData.create({
   dbDir: DB_DIR,
   scriptDir: NPC_SCRIPT_DIR,
   npcFile: NPC_FILE
+});
+
+const taskWorkbench = taskData.create({
+  scriptDir: NPC_SCRIPT_DIR,
+  npcFile: NPC_FILE,
+  dbDir: DB_DIR
 });
 
 const DB_NAME_RE = /^[^\\/:*?"<>|]+\.db$/i;
@@ -166,6 +173,7 @@ const STATIC = {
   '/extra.js': { file: 'extra.js', type: 'application/javascript; charset=utf-8' },
   '/monsters.js': { file: 'monsters.js', type: 'application/javascript; charset=utf-8' },
   '/activity.js': { file: 'activity.js', type: 'application/javascript; charset=utf-8' },
+  '/tasks.js': { file: 'tasks.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -286,6 +294,11 @@ function configSummary() {
     out.activity = activityWorkbench.summary();
   } catch (e) {
     out.activity = { error: e.message };
+  }
+  try {
+    out.tasks = taskWorkbench.summary();
+  } catch (e) {
+    out.tasks = { error: e.message };
   }
   return out;
 }
@@ -624,6 +637,26 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && pathname === '/api/config/activity') {
     json(res, 200, activityWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/tasks') {
+    json(res, 200, taskWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/task') {
+    const id = url.searchParams.get('id');
+    if (id == null || !/^\d+$/.test(id)) {
+      json(res, 400, { error: '任务 ID 无效' });
+      return;
+    }
+    const detail = taskWorkbench.detail(id);
+    if (!detail) {
+      json(res, 404, { error: '未找到任务 ' + id });
+      return;
+    }
+    json(res, 200, detail);
     return;
   }
 

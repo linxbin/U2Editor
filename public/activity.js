@@ -545,6 +545,7 @@ async function openActivityView(tab, id) {
   S.mode = 'activity';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();
+  if (window.hideTaskView) window.hideTaskView();
   actEl('dbView').classList.add('hidden');
   actEl('dropView').classList.add('hidden');
   actEl('activityView').classList.remove('hidden');

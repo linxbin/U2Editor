@@ -40,6 +40,9 @@
         <button class="side-tab" data-side-tab="act" role="tab" aria-selected="false">
           <span class="side-tab-label">活动</span><span class="count" id="actCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="tsk" role="tab" aria-selected="false">
+          <span class="side-tab-label">任务</span><span class="count" id="taskCount">0</span>
+        </button>
       </nav>
 
       <div class="side-body">
@@ -132,6 +135,18 @@
         </div>
         <ul id="actList" class="file-list"></ul>
         <div id="actListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="tsk">
+        <input id="taskFilter" class="filter" placeholder="搜索任务 / 怪物 / 物品 / NPC..." autocomplete="off">
+        <div id="taskFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-task-flag="all">全部</button>
+          <button class="btn small" data-task-flag="enabled">已启用</button>
+          <button class="btn small" data-task-flag="disabled">未启用</button>
+          <button class="btn small" data-task-flag="issues">有异常</button>
+        </div>
+        <ul id="taskList" class="file-list"></ul>
+        <div id="taskListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -680,6 +695,33 @@
         </div>
       </section>
 
+      <section id="taskView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>NPC 任务</strong>
+            <span id="taskMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnTaskReload" class="btn">重新检查</button>
+        </div>
+        <div id="taskTabs" class="mon-tabs">
+          <button class="mon-tab active" data-task-tab="detail">详情</button>
+          <button class="mon-tab" data-task-tab="modules">模块总览</button>
+          <button class="mon-tab" data-task-tab="health">配置体检</button>
+        </div>
+        <div class="tsk-body">
+          <div id="taskDetailPane" class="tsk-pane">
+            <div id="taskDetail" class="tsk-detail"></div>
+          </div>
+          <div id="taskModulesPane" class="tsk-pane hidden">
+            <div id="taskModuleCards" class="act-cards"></div>
+          </div>
+          <div id="taskHealthPane" class="tsk-pane hidden">
+            <div id="taskHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <aside id="cfgDetail" class="detail hidden">
         <div class="detail-head">
           <div>
@@ -727,5 +769,6 @@
   <script src="extra.js"></script>
   <script src="monsters.js"></script>
   <script src="activity.js"></script>
+  <script src="tasks.js"></script>
 </body>
 </html>

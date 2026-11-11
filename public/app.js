@@ -438,6 +438,11 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
+  if (S.mode === 'task') {
+    if (window.updateTaskMeta) window.updateTaskMeta();
+    dot.classList.toggle('on', false);
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -485,6 +490,7 @@ async function openDb(name, force) {
     if (window.hideConfigViews) window.hideConfigViews();
     if (window.hideMonsterView) window.hideMonsterView();
     if (window.hideActivityView) window.hideActivityView();
+    if (window.hideTaskView) window.hideTaskView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -516,6 +522,7 @@ async function openDrop(name, force) {
     if (window.hideConfigViews) window.hideConfigViews();
     if (window.hideMonsterView) window.hideMonsterView();
     if (window.hideActivityView) window.hideActivityView();
+    if (window.hideTaskView) window.hideTaskView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -632,6 +639,7 @@ async function refreshState() {
   renderDropList();
   if (window.refreshConfigState) window.refreshConfigState(st);
   if (window.refreshActivityState) window.refreshActivityState(st);
+  if (window.refreshTaskState) window.refreshTaskState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -679,6 +687,10 @@ document.querySelectorAll('.side-tab').forEach((tab) => {
     }
     if (tab.dataset.sideTab === 'act' && window.openActivityView) {
       window.openActivityView();
+      return;
+    }
+    if (tab.dataset.sideTab === 'tsk' && window.openTaskView) {
+      window.openTaskView();
       return;
     }
     showSideTab(tab.dataset.sideTab);

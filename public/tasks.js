@@ -1,0 +1,865 @@
+'use strict';
+
+const TSK = {
+  data: null,
+  detail: null,
+  detailId: '',
+  loading: false,
+  detailLoading: false,
+  stale: true,
+  tab: 'detail',
+  filter: '',
+  flag: 'all',
+  selected: '',
+  searchTimer: null
+};
+
+const TSK_TAB_LABEL = { detail: '详情', modules: '模块总览', health: '配置体检' };
+const TSK_FLAG_LABEL = { all: '全部', enabled: '已启用', disabled: '未启用', issues: '有异常' };
+const TSK_SEV = { error: '错误', warn: '警告', info: '提示' };
+const TSK_ISSUE_LABELS = {
+  task_module_unreadable: '模块不可读',
+  npc_list_unreadable: 'NPCList 不可读',
+  task_parse_error: '解析失败',
+  task_script_missing: '任务脚本缺失',
+  task_switch_orphan: '开关无对应任务',
+  task_disabled: '任务未启用',
+  task_duplicate_id: '任务 ID 重复',
+  task_pretask_missing: '前置任务不存在',
+  task_prize_target_missing: '奖励跳转任务不存在',
+  task_prize_invalid: '奖励格式异常',
+  task_monster_missing: '怪物不存在',
+  task_item_missing: '物品不存在',
+  task_npc_unplaced: '任务 NPC 未落位',
+  task_npc_task_undefined: 'NPC 任务未定义',
+  task_name_empty: '任务名为空'
+};
+
+function tskEl(id) {
+  return document.getElementById(id);
+}
+
+function tskText(id, text) {
+  const el = tskEl(id);
+  if (el) el.textContent = text;
+}
+
+function tskClear(el) {
+  if (el) el.innerHTML = '';
+}
+
+function tskChip(text, cls) {
+  const span = document.createElement('span');
+  span.className = 'tsk-chip' + (cls ? ' ' + cls : '');
+  span.textContent = text;
+  return span;
+}
+
+function tskButton(text, cls, onClick) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = cls || 'btn btn-sm';
+  btn.textContent = text;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function tskHashName() {
+  const hash = location.hash.replace(/^#/, '');
+  if (!hash.startsWith('task=')) return '';
+  return decodeURIComponent(hash.slice('task='.length));
+}
+
+function tskSetHash(id) {
+  const base = location.pathname + location.search;
+  const next = base + (id ? '#task=' + encodeURIComponent(id) : '');
+  try {
+    history.replaceState(null, '', next);
+  } catch (e) {
+  }
+}
+
+function tskFind(id) {
+  if (!TSK.data) return null;
+  return TSK.data.tasks.find((t) => String(t.id) === String(id)) || null;
+}
+
+function tskModules() {
+  return TSK.data ? TSK.data.modules : [];
+}
+
+async function tskLoad(force) {
+  if (TSK.loading) return;
+  if (TSK.data && !force && !TSK.stale) return;
+  TSK.loading = true;
+  try {
+    TSK.data = await api('/api/config/tasks');
+    TSK.stale = false;
+  } finally {
+    TSK.loading = false;
+  }
+}
+
+async function tskLoadDetail(id) {
+  if (!id) {
+    TSK.detail = null;
+    TSK.detailId = '';
+    return;
+  }
+  if (TSK.detailId === String(id) && TSK.detail && !TSK.stale) return;
+  TSK.detailLoading = true;
+  try {
+    TSK.detail = await api('/api/config/task?id=' + encodeURIComponent(id));
+    TSK.detailId = String(id);
+  } catch (e) {
+    TSK.detail = null;
+    TSK.detailId = '';
+    toast('加载任务 ' + id + ' 失败：' + e.message, 'err');
+  } finally {
+    TSK.detailLoading = false;
+  }
+}
+
+function tskRenderMeta() {
+  const el = tskEl('taskMeta');
+  if (!el) return;
+  if (!TSK.data) {
+    el.textContent = TSK.stale ? '数据已变化，点击「重新检查」刷新' : '';
+    return;
+  }
+  const s = TSK.data.stats;
+  const warnTasks = TSK.data.tasks.filter((t) => t.issues.error + t.issues.warn > 0).length;
+  el.textContent =
+    '共 ' + s.tasks + ' 个任务 · 启用 ' + s.enabled + ' · 有异常 ' + warnTasks +
+    ' · 问题 ' + s.issues.error + '/' + s.issues.warn + '/' + s.issues.info +
+    (TSK.stale ? '（数据已变化，建议刷新）' : '');
+}
+
+function tskRenderTabs() {
+  document.querySelectorAll('#taskTabs [data-task-tab]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.taskTab === TSK.tab);
+  });
+  const panes = { detail: 'taskDetailPane', modules: 'taskModulesPane', health: 'taskHealthPane' };
+  Object.entries(panes).forEach(([key, paneId]) => {
+    const pane = tskEl(paneId);
+    if (pane) pane.classList.toggle('hidden', key !== TSK.tab);
+  });
+}
+
+function tskFlagMatch(task) {
+  if (TSK.flag === 'enabled') return task.enabled;
+  if (TSK.flag === 'disabled') return !task.enabled;
+  if (TSK.flag === 'issues') return task.issues.error + task.issues.warn + task.issues.info > 0;
+  return true;
+}
+
+function tskRenderList() {
+  const ul = tskEl('taskList');
+  const hint = tskEl('taskListHint');
+  if (!ul) return;
+  tskClear(ul);
+  if (!TSK.data) {
+    if (hint) hint.textContent = TSK.stale ? '正在加载任务数据...' : '正在加载...';
+    return;
+  }
+  const q = TSK.filter.trim().toLowerCase();
+  const filtered = TSK.data.tasks.filter((t) => {
+    if (!tskFlagMatch(t)) return false;
+    if (!q) return true;
+    const hay = [
+      t.id,
+      t.name,
+      t.module,
+      t.file,
+      t.conditions.join(' '),
+      t.monsters.join(' '),
+      t.items.join(' '),
+      t.npcs.join(' ')
+    ]
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
+  if (hint) {
+    hint.textContent = filtered.length ? '显示 ' + filtered.length + ' 个任务' : '没有匹配的任务';
+  }
+  for (const t of filtered) {
+    const li = document.createElement('li');
+    li.className = 'file-item' + (String(t.id) === String(TSK.selected) ? ' active' : '');
+    li.dataset.taskId = String(t.id);
+    const name = document.createElement('div');
+    name.className = 'fname';
+    name.textContent = '#' + t.id + ' ' + (t.name || '（未命名）');
+    const meta = document.createElement('div');
+    meta.className = 'fmeta';
+    const bad = t.issues.error + t.issues.warn;
+    const level = t.levels ? 'Lv' + t.levels.min + (t.levels.max !== t.levels.min ? '-' + t.levels.max : '') : '无等级';
+    meta.textContent = t.module + ' · ' + level + (t.enabled ? '' : ' · 未启用') + (bad ? ' · 异常 ' + bad : '');
+    li.appendChild(name);
+    li.appendChild(meta);
+    li.addEventListener('click', () => tskSelect(t.id));
+    ul.appendChild(li);
+  }
+}
+
+function tskKv(label, value) {
+  const box = document.createElement('div');
+  box.className = 'tsk-kv';
+  const k = document.createElement('span');
+  k.className = 'tsk-kv-label';
+  k.textContent = label;
+  const v = document.createElement('span');
+  v.className = 'tsk-kv-value';
+  v.textContent = value;
+  box.appendChild(k);
+  box.appendChild(v);
+  return box;
+}
+
+function tskSection(title, note) {
+  const sec = document.createElement('section');
+  sec.className = 'tsk-section';
+  const head = document.createElement('div');
+  head.className = 'tsk-section-head';
+  const h = document.createElement('h4');
+  h.textContent = title;
+  head.appendChild(h);
+  if (note) {
+    const n = document.createElement('span');
+    n.className = 'act-cat';
+    n.textContent = note;
+    head.appendChild(n);
+  }
+  sec.appendChild(head);
+  return sec;
+}
+
+function tskEmptyLine(text) {
+  const div = document.createElement('div');
+  div.className = 'tsk-empty';
+  div.textContent = text;
+  return div;
+}
+
+function tskTime(seconds) {
+  if (!Number.isFinite(seconds)) return '';
+  const min = Math.round(seconds / 60);
+  return seconds + ' 秒' + (min ? '（约 ' + min + ' 分钟）' : '');
+}
+
+function tskGotoTask(id) {
+  const task = tskFind(id);
+  if (!task) {
+    toast('任务 ' + id + ' 未定义', 'err');
+    return;
+  }
+  tskSelect(id);
+}
+
+function tskGotoMonster(name) {
+  if (window.openMonsterWorkbench) window.openMonsterWorkbench(name);
+}
+
+async function tskGotoNpc(script) {
+  if (!window.openNpcConfig) return;
+  await window.openNpcConfig();
+  if (S.mode !== 'cfgNpc') return;
+  const input = tskEl('npcSearch');
+  if (input) {
+    input.value = script;
+    input.dispatchEvent(new Event('input'));
+  }
+}
+
+function tskRenderDetail() {
+  const box = tskEl('taskDetail');
+  if (!box) return;
+  tskClear(box);
+  if (!TSK.selected) {
+    box.appendChild(tskEmptyLine('在左侧选择一个任务查看详情，或用 #task=<ID> 打开。'));
+    return;
+  }
+  if (TSK.detailLoading && String(TSK.detailId) !== String(TSK.selected)) {
+    box.appendChild(tskEmptyLine('正在加载任务 #' + TSK.selected + ' ...'));
+    return;
+  }
+  const d = TSK.detail;
+  if (!d || String(d.id) !== String(TSK.selected)) {
+    box.appendChild(tskEmptyLine('正在加载任务 #' + TSK.selected + ' ...'));
+    return;
+  }
+
+  const head = document.createElement('div');
+  head.className = 'tsk-head';
+  const title = document.createElement('div');
+  title.className = 'tsk-title';
+  title.textContent = '#' + d.id + ' ' + (d.name || '（未命名）');
+  head.appendChild(title);
+  if (d.enabled) head.appendChild(tskChip('已启用', 'ok'));
+  else head.appendChild(tskChip('未启用', 'warn'));
+  if (d.generated) head.appendChild(tskChip('循环生成', 'info'));
+  const cat = document.createElement('span');
+  cat.className = 'act-cat';
+  cat.textContent = d.module + ' · ' + d.moduleFile + ':' + d.line;
+  head.appendChild(cat);
+  box.appendChild(head);
+
+  const grid = document.createElement('div');
+  grid.className = 'tsk-grid';
+  grid.appendChild(tskKv('任务脚本', (d.sourceFile || '未填写') + (d.sourceFile ? (d.scriptExists ? '（存在）' : '（缺失）') : '')));
+  grid.appendChild(tskKv('任务状态', d.fields.TaskState == null ? '—' : String(d.fields.TaskState)));
+  grid.appendChild(tskKv('限时', d.fields.TimeLimit == null ? '—' : tskTime(d.fields.TimeLimit)));
+  grid.appendChild(tskKv('等级', d.fields.LevelList.length ? d.fields.LevelList.join(' / ') : '—'));
+  grid.appendChild(tskKv('唯一 / 存档', (d.fields.UniqueFlag == null ? '—' : d.fields.UniqueFlag) + ' / ' + (d.fields.SaveFlag == null ? '—' : d.fields.SaveFlag)));
+  grid.appendChild(tskKv('条件', d.conditions.length ? d.conditions.map((c) => c.label).join('、') : '—'));
+  if (d.generated && d.baseId != null) {
+    grid.appendChild(tskKv('基任务', '#' + d.baseId));
+  }
+  box.appendChild(grid);
+
+  const pre = tskSection('前置任务', d.preTasks.length + ' 组');
+  if (!d.preTasks.length) pre.appendChild(tskEmptyLine('无前置任务'));
+  d.preTasks.forEach((group, gi) => {
+    const row = document.createElement('div');
+    row.className = 'tsk-pre-row';
+    const tag = document.createElement('span');
+    tag.className = 'tsk-pre-tag';
+    tag.textContent = '组 ' + (gi + 1);
+    row.appendChild(tag);
+    group.forEach((ref) => {
+      const label = '#' + Math.abs(ref.id) + (ref.negative ? ' 未完成' : '');
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tsk-chip task' + (ref.exists ? '' : ' bad') + (ref.negative ? ' neg' : '');
+      chip.textContent = label;
+      chip.title = ref.exists ? '查看任务 #' + Math.abs(ref.id) : '任务未定义';
+      chip.addEventListener('click', () => tskGotoTask(Math.abs(ref.id)));
+      row.appendChild(chip);
+    });
+    pre.appendChild(row);
+  });
+  box.appendChild(pre);
+
+  const npcSec = tskSection('状态 NPC', d.stateNpcMap.length + ' 个状态');
+  if (!d.stateNpcMap.length) npcSec.appendChild(tskEmptyLine('未配置'));
+  d.stateNpcMap.forEach((st) => {
+    const row = document.createElement('div');
+    row.className = 'tsk-state-row';
+    const label = document.createElement('span');
+    label.className = 'tsk-state-label';
+    label.textContent = st.label;
+    row.appendChild(label);
+    st.npcs.forEach((npc) => {
+      if (!npc) return;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tsk-chip npc';
+      chip.textContent = npc;
+      chip.title = '在 NPC 配置中搜索 ' + npc;
+      chip.addEventListener('click', () => tskGotoNpc(npc));
+      row.appendChild(chip);
+    });
+    npcSec.appendChild(row);
+  });
+  box.appendChild(npcSec);
+
+  const monSec = tskSection('怪物', d.monsters.length + ' 个');
+  if (!d.monsters.length && !d.monsterMap.length) monSec.appendChild(tskEmptyLine('未配置'));
+  if (d.monsters.length) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tsk-chips';
+    d.monsters.forEach((name) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tsk-chip monster';
+      chip.textContent = name;
+      chip.title = '打开怪物工作台';
+      chip.addEventListener('click', () => tskGotoMonster(name));
+      wrap.appendChild(chip);
+    });
+    monSec.appendChild(wrap);
+  }
+  if (d.monsterMap.length) {
+    const table = document.createElement('table');
+    table.className = 'tsk-table';
+    table.innerHTML = '<thead><tr><th>怪物</th><th>数量</th><th>掉落</th><th>刷怪点</th><th>目标点</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    d.monsterMap.forEach((m) => {
+      const tr = document.createElement('tr');
+      const nameTd = document.createElement('td');
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'tsk-link';
+      link.textContent = m.name;
+      link.addEventListener('click', () => tskGotoMonster(m.name));
+      nameTd.appendChild(link);
+      tr.appendChild(nameTd);
+      tr.appendChild(document.createElement('td')).textContent = m.num == null ? '—' : String(m.num);
+      tr.appendChild(document.createElement('td')).textContent = m.item || '—';
+      tr.appendChild(document.createElement('td')).textContent = String(m.mobCordList.length);
+      tr.appendChild(document.createElement('td')).textContent = String(m.destCordList.length);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    monSec.appendChild(table);
+  }
+  box.appendChild(monSec);
+
+  const itemSec = tskSection('物品', d.items.length + ' 个');
+  if (!d.items.length && !d.itemMap.length) itemSec.appendChild(tskEmptyLine('未配置'));
+  if (d.items.length) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tsk-chips';
+    d.items.forEach((name) => wrap.appendChild(tskChip(name, 'item')));
+    itemSec.appendChild(wrap);
+  }
+  if (d.itemMap.length) {
+    const table = document.createElement('table');
+    table.className = 'tsk-table';
+    table.innerHTML = '<thead><tr><th>物品</th><th>参数</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    d.itemMap.forEach((it) => {
+      const tr = document.createElement('tr');
+      tr.appendChild(document.createElement('td')).textContent = it.name;
+      tr.appendChild(document.createElement('td')).textContent = JSON.stringify(it.value);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    itemSec.appendChild(table);
+  }
+  box.appendChild(itemSec);
+
+  const prizeSec = tskSection('状态奖励', d.statePrizeMap.length + ' 个状态');
+  if (!d.statePrizeMap.length) prizeSec.appendChild(tskEmptyLine('未配置'));
+  d.statePrizeMap.forEach((st) => {
+    const sub = document.createElement('div');
+    sub.className = 'tsk-sub';
+    const h = document.createElement('div');
+    h.className = 'tsk-sub-title';
+    h.textContent = st.label;
+    sub.appendChild(h);
+    const table = document.createElement('table');
+    table.className = 'tsk-table';
+    table.innerHTML = '<thead><tr><th>几率</th><th>奖励</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    st.entries.forEach((e) => {
+      const tr = document.createElement('tr');
+      tr.appendChild(document.createElement('td')).textContent = e.chance == null ? '异常' : String(e.chance);
+      const td = document.createElement('td');
+      const wrap = document.createElement('div');
+      wrap.className = 'tsk-chips';
+      e.items.forEach((it) => {
+        if (it.pseudo) {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'tsk-chip task' + (it.taskExists ? '' : ' bad');
+          chip.textContent = it.name + ' → #' + it.taskId;
+          chip.title = it.pseudo === 'next' ? '强制跳转任务' : '后置任务';
+          chip.addEventListener('click', () => tskGotoTask(it.taskId));
+          wrap.appendChild(chip);
+        } else {
+          wrap.appendChild(tskChip(it.name + ' ×' + it.count, 'item'));
+        }
+      });
+      td.appendChild(wrap);
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    sub.appendChild(table);
+    prizeSec.appendChild(sub);
+  });
+  box.appendChild(prizeSec);
+
+  const despSec = tskSection('状态对话', d.stateDespMap.length + ' 个状态');
+  if (!d.stateDespMap.length) despSec.appendChild(tskEmptyLine('未配置'));
+  d.stateDespMap.forEach((st) => {
+    const sub = document.createElement('div');
+    sub.className = 'tsk-sub';
+    const h = document.createElement('div');
+    h.className = 'tsk-sub-title';
+    h.textContent = st.label;
+    sub.appendChild(h);
+    const pre = document.createElement('pre');
+    pre.className = 'tsk-desc';
+    pre.textContent = st.text;
+    sub.appendChild(pre);
+    despSec.appendChild(sub);
+  });
+  box.appendChild(despSec);
+
+  const textBlocks = [
+    ['任务描述', d.despList],
+    ['故事背景', d.storyDespList],
+    ['完成对话', d.fulfilDespList]
+  ];
+  textBlocks.forEach(([title, list]) => {
+    if (!list.length) return;
+    const sec = tskSection(title, list.length + ' 页');
+    list.forEach((text, i) => {
+      const pre = document.createElement('pre');
+      pre.className = 'tsk-desc';
+      pre.textContent = text;
+      if (list.length > 1) {
+        const label = document.createElement('div');
+        label.className = 'tsk-sub-title';
+        label.textContent = '第 ' + (i + 1) + ' 页';
+        sec.appendChild(label);
+      }
+      sec.appendChild(pre);
+    });
+    box.appendChild(sec);
+  });
+
+  if (d.callbackList.length || d.callbackMap.length) {
+    const sec = tskSection('回调', d.callbackList.length + ' 项');
+    if (d.callbackList.length) {
+      const wrap = document.createElement('div');
+      wrap.className = 'tsk-chips';
+      d.callbackList.forEach((n) => wrap.appendChild(tskChip(n, 'item')));
+      sec.appendChild(wrap);
+    }
+    if (d.callbackMap.length) {
+      const pre = document.createElement('pre');
+      pre.className = 'tsk-desc';
+      pre.textContent = d.callbackMap.map((c) => c.name + ': ' + JSON.stringify(c.value)).join('\n');
+      sec.appendChild(pre);
+    }
+    box.appendChild(sec);
+  }
+
+  const funcs = [d.fields.CanUTFuncName, d.fields.UTFuncName, d.fields.TrigFuncName, d.fields.FulfilFuncName].filter(Boolean);
+  if (funcs.length || Object.keys(d.extra).length) {
+    const sec = tskSection('脚本函数与其它字段');
+    const wrap = document.createElement('div');
+    wrap.className = 'tsk-chips';
+    funcs.forEach((f) => wrap.appendChild(tskChip(f, 'item')));
+    if (wrap.childNodes.length) sec.appendChild(wrap);
+    if (Object.keys(d.extra).length) {
+      const pre = document.createElement('pre');
+      pre.className = 'tsk-desc';
+      pre.textContent = JSON.stringify(d.extra, null, 1);
+      sec.appendChild(pre);
+    }
+    box.appendChild(sec);
+  }
+}
+
+function tskRenderModules() {
+  const box = tskEl('taskModuleCards');
+  if (!box) return;
+  tskClear(box);
+  if (!TSK.data) {
+    box.appendChild(tskEmptyLine('正在加载任务数据...'));
+    return;
+  }
+  for (const m of tskModules()) {
+    const card = document.createElement('div');
+    card.className = 'act-card tsk-module-card';
+    const head = document.createElement('div');
+    head.className = 'act-card-head';
+    const name = document.createElement('strong');
+    name.textContent = m.id;
+    head.appendChild(name);
+    const badge = document.createElement('span');
+    badge.className = 'act-status ' + (m.error ? 'error' : m.issues.error ? 'error' : m.issues.warn ? 'warn' : 'ok');
+    badge.textContent = m.error ? '解析失败' : m.issues.error ? '有错误' : m.issues.warn ? m.issues.warn + ' 警告' : '正常';
+    head.appendChild(badge);
+    card.appendChild(head);
+    const file = document.createElement('div');
+    file.className = 'act-cat';
+    file.textContent = m.file;
+    card.appendChild(file);
+    const metrics = document.createElement('div');
+    metrics.className = 'act-metrics';
+    [
+      ['任务', m.tasks],
+      ['启用', m.enabled],
+      ['未启用', m.disabled],
+      ['NPC', m.npcs],
+      ['开关', m.switches]
+    ].forEach(([label, value]) => {
+      const chip = document.createElement('span');
+      chip.className = 'act-metric';
+      const b = document.createElement('b');
+      b.textContent = String(value);
+      const l = document.createElement('span');
+      l.textContent = label;
+      chip.appendChild(b);
+      chip.appendChild(l);
+      metrics.appendChild(chip);
+    });
+    card.appendChild(metrics);
+    if (m.error) {
+      const err = document.createElement('div');
+      err.className = 'act-desc';
+      err.textContent = m.error;
+      card.appendChild(err);
+    }
+    const foot = document.createElement('div');
+    foot.className = 'act-foot';
+    const open = tskButton('查看该模块任务', 'btn btn-sm', () => {
+      TSK.filter = m.id;
+      const input = tskEl('taskFilter');
+      if (input) input.value = m.id;
+      TSK.tab = 'detail';
+      tskRenderTabs();
+      tskRenderList();
+    });
+    foot.appendChild(open);
+    card.appendChild(foot);
+    box.appendChild(card);
+  }
+}
+
+function tskIssueRow(issue) {
+  const row = document.createElement('div');
+  row.className = 'mon-issue';
+  const sev = document.createElement('span');
+  sev.className = 'mon-sev ' + issue.severity;
+  sev.textContent = TSK_SEV[issue.severity] || issue.severity;
+  row.appendChild(sev);
+  const body = document.createElement('div');
+  body.className = 'mon-issue-body';
+  const msg = document.createElement('div');
+  msg.textContent = (TSK_ISSUE_LABELS[issue.code] || issue.code) + '：' + issue.message;
+  body.appendChild(msg);
+  const meta = document.createElement('div');
+  meta.className = 'act-issue-meta';
+  meta.textContent = [issue.file, issue.line ? '第 ' + issue.line + ' 行' : ''].filter(Boolean).join(' · ');
+  if (meta.textContent) body.appendChild(meta);
+  row.appendChild(body);
+  if (issue.jump && issue.jump.task != null) {
+    row.appendChild(
+      tskButton('查看任务', 'btn btn-sm', () => tskGotoTask(issue.jump.task))
+    );
+  }
+  return row;
+}
+
+function tskRenderHealth() {
+  const box = tskEl('taskHealthList');
+  if (!box) return;
+  tskClear(box);
+  if (!TSK.data) {
+    box.appendChild(tskEmptyLine('正在加载任务数据...'));
+    return;
+  }
+  const groups = new Map();
+  for (const issue of TSK.data.issues) {
+    const scope = issue.scope || 'global';
+    if (!groups.has(scope)) groups.set(scope, []);
+    groups.get(scope).push(issue);
+  }
+  const order = [...tskModules().map((m) => m.id), 'global'];
+  for (const scope of order) {
+    const issues = groups.get(scope) || [];
+    const mod = tskModules().find((m) => m.id === scope);
+    const taskWarn = mod ? TSK.data.tasks.filter((t) => t.module === mod.id && t.issues.error + t.issues.warn > 0).length : 0;
+    if (!mod && !issues.length) continue;
+    const group = document.createElement('div');
+    group.className = 'mon-issue-group';
+    const head = document.createElement('div');
+    head.className = 'mon-issue-head';
+    const title = document.createElement('span');
+    title.textContent = scope === 'global' ? '全局 / 跨模块' : mod ? mod.id + ' · ' + mod.file : scope;
+    head.appendChild(title);
+    if (mod) {
+      const counts = document.createElement('span');
+      counts.className = 'act-cat';
+      counts.textContent = '错误 ' + mod.issues.error + ' · 警告 ' + mod.issues.warn + ' · 提示 ' + mod.issues.info;
+      head.appendChild(counts);
+    }
+    group.appendChild(head);
+    if (mod && mod.error) {
+      group.appendChild(tskIssueRow({ code: 'task_parse_error', severity: 'error', message: mod.error, file: mod.file }));
+    }
+    if (taskWarn) {
+      const row = document.createElement('div');
+      row.className = 'mon-issue';
+      const sev = document.createElement('span');
+      sev.className = 'mon-sev warn';
+      sev.textContent = '警告';
+      row.appendChild(sev);
+      const body = document.createElement('div');
+      body.className = 'mon-issue-body';
+      const msg = document.createElement('div');
+      msg.textContent = mod.id + ' 有 ' + taskWarn + ' 个任务存在怪物/物品/前置任务等问题，可在左侧用「有异常」筛选。';
+      body.appendChild(msg);
+      row.appendChild(body);
+      row.appendChild(
+        tskButton('筛选异常', 'btn btn-sm', () => {
+          TSK.flag = 'issues';
+          TSK.filter = mod.id;
+          const input = tskEl('taskFilter');
+          if (input) input.value = mod.id;
+          document.querySelectorAll('#taskFlagFilter [data-task-flag]').forEach((b) => {
+            b.classList.toggle('active', b.dataset.taskFlag === 'issues');
+          });
+          TSK.tab = 'detail';
+          tskRenderTabs();
+          tskRenderList();
+        })
+      );
+      group.appendChild(row);
+    }
+    issues.forEach((issue) => group.appendChild(tskIssueRow(issue)));
+    if (mod && !mod.error && !taskWarn && !issues.length) {
+      const clear = document.createElement('div');
+      clear.className = 'mon-empty';
+      clear.textContent = '未发现问题。';
+      group.appendChild(clear);
+    }
+    box.appendChild(group);
+  }
+  if (!box.childNodes.length) {
+    box.appendChild(tskEmptyLine('未发现问题。'));
+  }
+}
+
+function tskRenderAll() {
+  tskRenderTabs();
+  tskRenderMeta();
+  tskRenderList();
+  tskRenderDetail();
+  tskRenderModules();
+  tskRenderHealth();
+  if (TSK.data) {
+    tskText('taskCount', String(TSK.data.stats.enabled));
+    const count = tskEl('taskCount');
+    if (count) count.title = '已启用任务 / 总任务 ' + TSK.data.stats.enabled + ' / ' + TSK.data.stats.tasks;
+  }
+}
+
+async function tskSelect(id) {
+  TSK.selected = String(id);
+  TSK.tab = 'detail';
+  tskRenderTabs();
+  tskRenderList();
+  const row = document.querySelector('[data-task-id="' + id + '"]');
+  if (row) row.scrollIntoView({ block: 'nearest' });
+  await tskLoadDetail(id);
+  tskRenderDetail();
+  tskSetHash(id);
+  tskRenderMeta();
+}
+
+async function openTaskView(tab, id) {
+  if (S.mode !== 'task' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (tab) TSK.tab = tab;
+  S.mode = 'task';
+  if (window.hideConfigViews) window.hideConfigViews();
+  if (window.hideMonsterView) window.hideMonsterView();
+  if (window.hideActivityView) window.hideActivityView();
+  const dbView = tskEl('dbView');
+  const dropView = tskEl('dropView');
+  if (dbView) dbView.classList.add('hidden');
+  if (dropView) dropView.classList.add('hidden');
+  const view = tskEl('taskView');
+  if (view) view.classList.remove('hidden');
+  if (window.showSideTab) window.showSideTab('tsk');
+  tskRenderAll();
+  if (!TSK.data || TSK.stale) {
+    try {
+      await tskLoad(true);
+      tskRenderAll();
+    } catch (e) {
+      tskRenderAll();
+      toast('加载任务配置失败：' + e.message, 'err');
+    }
+  }
+  const target = id || TSK.selected;
+  if (target) await tskSelect(target);
+  else tskSetHash('');
+}
+
+window.openTaskView = openTaskView;
+window.hideTaskView = () => {
+  const view = tskEl('taskView');
+  if (!view) return;
+  const wasVisible = !view.classList.contains('hidden');
+  view.classList.add('hidden');
+  if (wasVisible && tskHashName()) {
+    try {
+      history.replaceState(null, '', location.pathname + location.search);
+    } catch (e) {
+    }
+  }
+};
+window.refreshTaskState = (st) => {
+  const info = st && st.configs ? st.configs.tasks : null;
+  if (info && info.tasks != null) {
+    tskText('taskCount', String(info.tasks));
+  }
+  TSK.stale = true;
+  if (S.mode === 'task') tskRenderMeta();
+};
+window.updateTaskMeta = tskRenderMeta;
+
+function tskBindEvents() {
+  const filter = tskEl('taskFilter');
+  if (filter) {
+    filter.addEventListener('input', () => {
+      clearTimeout(TSK.searchTimer);
+      TSK.searchTimer = setTimeout(() => {
+        TSK.filter = filter.value;
+        tskRenderList();
+      }, 150);
+    });
+  }
+  document.querySelectorAll('#taskFlagFilter [data-task-flag]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      TSK.flag = btn.dataset.taskFlag;
+      document.querySelectorAll('#taskFlagFilter [data-task-flag]').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+      tskRenderList();
+    });
+  });
+  const tabs = tskEl('taskTabs');
+  if (tabs) {
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-task-tab]');
+      if (!btn) return;
+      TSK.tab = btn.dataset.taskTab;
+      tskRenderTabs();
+    });
+  }
+  const reload = tskEl('btnTaskReload');
+  if (reload) {
+    reload.addEventListener('click', async () => {
+      reload.disabled = true;
+      try {
+        await tskLoad(true);
+        TSK.detailId = '';
+        if (TSK.selected) await tskLoadDetail(TSK.selected);
+        tskRenderAll();
+        tskSetHash(TSK.selected);
+        toast('任务配置已重新检查', 'ok');
+      } catch (e) {
+        tskRenderAll();
+        toast('检查失败：' + e.message, 'err');
+      } finally {
+        reload.disabled = false;
+      }
+    });
+  }
+  window.addEventListener('hashchange', () => {
+    const name = tskHashName();
+    if (name) openTaskView(undefined, name);
+  });
+}
+
+tskBindEvents();
+
+if (window.appReady && typeof window.appReady.then === 'function') {
+  window.appReady.then(() => {
+    const name = tskHashName();
+    if (name) openTaskView(undefined, name);
+  });
+} else {
+  window.addEventListener('app-ready', () => {
+    const name = tskHashName();
+    if (name) openTaskView(undefined, name);
+  });
+}

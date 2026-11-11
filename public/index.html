@@ -24,21 +24,22 @@
 
   <div class="layout">
     <aside class="sidebar">
-      <div class="side-tabs" role="tablist">
-        <button class="side-tab" data-side-tab="mon" role="tab">
-          怪物<span class="count" id="monCount">0</span>
+      <nav class="side-rail" role="tablist" aria-orientation="vertical">
+        <button class="side-tab" data-side-tab="mon" role="tab" aria-selected="false">
+          <span class="side-tab-label">怪物</span><span class="count" id="monCount">0</span>
         </button>
-        <button class="side-tab active" data-side-tab="db" role="tab">
-          数据库<span class="count" id="dbCount">0</span>
+        <button class="side-tab active" data-side-tab="db" role="tab" aria-selected="true">
+          <span class="side-tab-label">数据库</span><span class="count" id="dbCount">0</span>
         </button>
-        <button class="side-tab" data-side-tab="drop" role="tab">
-          爆率<span class="count" id="dropCount">0</span>
+        <button class="side-tab" data-side-tab="drop" role="tab" aria-selected="false">
+          <span class="side-tab-label">爆率</span><span class="count" id="dropCount">0</span>
         </button>
-        <button class="side-tab" data-side-tab="cfg" role="tab">
-          玩法<span class="count" id="cfgCount">12</span>
+        <button class="side-tab" data-side-tab="cfg" role="tab" aria-selected="false">
+          <span class="side-tab-label">玩法</span><span class="count" id="cfgCount">12</span>
         </button>
-      </div>
+      </nav>
 
+      <div class="side-body">
       <div class="side-pane" data-side-pane="mon">
         <input id="monFilter" class="filter" placeholder="搜索怪物 / 刷怪地图..." autocomplete="off">
         <div id="monFlagFilter" class="mon-flag-filter">
@@ -117,6 +118,7 @@
         <div class="side-note">
           点击项目打开图形化编辑；保存只改写修改过的行，并自动备份原文件。
         </div>
+      </div>
       </div>
     </aside>
 

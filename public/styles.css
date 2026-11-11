@@ -1061,3 +1061,21 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 #monDropGrid td:nth-child(5) input { width: 82px; min-width: 82px; }
 #monSpawnGrid td:nth-child(2) input,
 #monChildGrid td:nth-child(2) input { min-width: 130px; }
+
+/* 活动体检直接修复 */
+.mon-issue.act-issue-main { flex-wrap: wrap; }
+.act-repair {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+}
+.act-repair-label { color: #e0b07a; font-size: 11.5px; }
+.act-repair-input { width: 220px; max-width: 100%; }
+.focus-pulse td { animation: extraFocusPulse 1.6s ease-out; }
+@keyframes extraFocusPulse {
+  0% { background: #3f3420; }
+  100% { background: transparent; }
+}

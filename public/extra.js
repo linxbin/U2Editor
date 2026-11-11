@@ -688,7 +688,7 @@ async function loadExtraFile(key, force) {
 }
 
 async function openExtraConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !confirmDiscard()) return false;
   try {
     await ensureExtraRegistry();
     if (!CFG.extra.key) CFG.extra.key = 'server';
@@ -700,14 +700,79 @@ async function openExtraConfig(force) {
     cfgEl('extraSearch').value = '';
     extraRender();
     updateExtraMeta();
+    return true;
   } catch (e) {
     toast('打开扩展配置失败：' + e.message, 'err');
+    return false;
   }
 }
 
 window.openExtraKey = (key, force) => {
   CFG.extra.key = key;
   return openExtraConfig(force);
+};
+
+/* 从体检/任务等外部入口打开配置并定位到问题行/章节 */
+function extraFocusRow(index) {
+  const m = CFG.extra;
+  if (!m.data) return false;
+  const list = m.data.mode === 'sections' ? extraSections() : extraRows();
+  const pos = list.findIndex((item) => item.index === index);
+  if (pos < 0) return false;
+  m.page = Math.floor(pos / m.pageSize);
+  extraRenderGrid();
+  extraSelect(index);
+  const tr = cfgEl('extraGrid').querySelector('tbody tr[data-index="' + index + '"]');
+  if (tr) {
+    tr.scrollIntoView({ block: 'center' });
+    tr.classList.add('focus-pulse');
+    setTimeout(() => tr.classList.remove('focus-pulse'), 1600);
+  }
+  return true;
+}
+
+function extraFocusTarget(target) {
+  const m = CFG.extra;
+  const d = m.data;
+  if (!d || d.mode === 'raw') return false;
+  const line = target.line ? Number(target.line) : 0;
+  m.search = '';
+  cfgEl('extraSearch').value = '';
+
+  if (d.mode === 'sections') {
+    const sections = d.sections || [];
+    let sec = target.section ? sections.find((s) => s.name === target.section) : null;
+    if (!sec && line) {
+      const before = sections.filter((s) => s.index <= line - 1);
+      sec = before.length ? before[before.length - 1] : null;
+    }
+    if (!sec) return false;
+    return extraFocusRow(sec.index);
+  }
+
+  let row = null;
+  if (d.mode === 'xml') {
+    const rows = d.rows || [];
+    if (target.index != null) row = rows.find((r) => r.index === Number(target.index)) || null;
+    if (!row && line) row = rows.find((r) => r.line === line - 1) || null;
+  } else {
+    if (target.index != null) row = m.rowMap.get(Number(target.index)) || null;
+    if (!row && line) row = m.rowMap.get(line - 1) || null;
+  }
+  if (!row) return false;
+
+  if (d.sectioned && d.mode !== 'xml' && row.section != null && row.section >= 0) {
+    m.section = row.section;
+    const sel = cfgEl('extraSection');
+    if (sel) sel.value = String(row.section);
+  }
+  return extraFocusRow(row.index);
+}
+
+window.openExtraKeyAt = async (key, target) => {
+  const opened = await window.openExtraKey(key);
+  if (!opened) return false;
+  return extraFocusTarget(target || {});
 };
 
 async function openServerConfig(force) {

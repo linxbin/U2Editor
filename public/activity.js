@@ -9,7 +9,9 @@ const ACT = {
   filter: '',
   flag: 'all',
   selected: '',
-  searchTimer: null
+  searchTimer: null,
+  options: null,
+  optionsLoading: null
 };
 
 const ACT_STATUS = { ok: '正常', warn: '警告', error: '异常', info: '提示' };
@@ -152,19 +154,186 @@ function actIssueJump(issue) {
     if (rank) return { text: '查看 NPC', npc: rank.npc };
     return null;
   }
-  if (issue.file) {
-    const found = actFindFile(issue.file);
-    if (found && found.file.exists) {
-      if (found.file.view === 'extra' || found.file.view === 'ops') {
-        return { text: '打开文件', file: found.file };
-      }
+  const found = issue.file ? actFindFile(issue.file) : null;
+  if (found && found.file.exists) {
+    const file = found.file;
+    if (file.view === 'extra' && file.key) {
+      const target = issue.target || (issue.line ? { editor: 'extra', key: file.key, line: issue.line } : null);
+      return { text: target ? '去修复' : '打开文件', file, target };
     }
+    if (file.view === 'ops') return { text: '打开文件', file };
+  }
+  if (issue.target && issue.target.editor === 'extra' && issue.target.key) {
+    return { text: '去修复', key: issue.target.key, target: issue.target };
   }
   const activity = actFindActivity(issue.activityId);
   if (activity && activity.editors.length) {
     return { text: '打开活动', editor: activity.editors[0] };
   }
   return null;
+}
+
+function actRepairPath(jump) {
+  if (!jump || !jump.target) return null;
+  if (jump.file) return { file: jump.file, target: jump.target };
+  if (jump.key) return { file: { name: jump.key, view: 'extra', key: jump.key, exists: true }, target: jump.target };
+  return null;
+}
+
+function actOpenFileAt(file, target) {
+  if (!file || !file.exists) return toast('文件不存在：' + (file ? file.name : ''), 'err');
+  if (file.view === 'extra' && window.openExtraKeyAt) {
+    return window.openExtraKeyAt(file.key, target).then((focused) => {
+      if (!focused) toast('已打开文件，但没有定位到问题行（可能行格式无法识别）', 'warn');
+    }).catch((e) => toast('打开配置失败：' + e.message, 'err'));
+  }
+  return actGotoFile(file);
+}
+
+function actEnsureOptions() {
+  if (ACT.options) return Promise.resolve(ACT.options);
+  if (ACT.optionsLoading) return ACT.optionsLoading;
+  ACT.optionsLoading = api('/api/config/task/options')
+    .then((res) => {
+      ACT.options = {
+        monsters: (res && res.monsters) || [],
+        items: (res && res.items) || []
+      };
+      return ACT.options;
+    })
+    .catch(() => {
+      ACT.options = { monsters: [], items: [] };
+      return ACT.options;
+    })
+    .finally(() => {
+      ACT.optionsLoading = null;
+    });
+  return ACT.optionsLoading;
+}
+
+function actFillDatalist(id, values) {
+  let dl = document.getElementById(id);
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = id;
+    document.body.appendChild(dl);
+  }
+  const list = values || [];
+  if (dl.dataset.filled === String(list.length)) return;
+  dl.dataset.filled = String(list.length);
+  dl.innerHTML = '';
+  for (const value of list) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    dl.appendChild(opt);
+  }
+}
+
+function actRepairPatch(data, repair, value) {
+  const from = repair.from == null ? '' : String(repair.from);
+  if (data.mode === 'xml') {
+    const rows = data.rows || [];
+    let row = null;
+    if (repair.index != null) row = rows.find((r) => r.index === Number(repair.index)) || null;
+    if (!row && repair.line) row = rows.find((r) => r.line === Number(repair.line) - 1) || null;
+    if (!row) throw new Error('未找到对应 XML 节点，可能已被修改');
+    if (from && String(row.attrs[repair.field]) !== from) throw new Error('节点内容已变化，请刷新后重试');
+    const hits = from ? rows.filter((r) => String(r.attrs[repair.field]) === from) : [row];
+    return {
+      changes: hits.map((r) => ({
+        index: r.index,
+        values: { ...r.attrs, [repair.field]: value }
+      }))
+    };
+  }
+  if (data.mode === 'table') {
+    const rows = data.rows || [];
+    let row = null;
+    if (repair.index != null) row = rows.find((r) => r.index === Number(repair.index)) || null;
+    if (!row && repair.line) row = rows.find((r) => r.index === Number(repair.line) - 1) || null;
+    if (!row) throw new Error('未找到对应配置行，可能已被修改');
+    if (from && String(row.values[repair.field]) !== from) throw new Error('行内容已变化，请刷新后重试');
+    const hits = from ? rows.filter((r) => String(r.values[repair.field]) === from) : [row];
+    return {
+      changes: hits.map((r) => {
+        const values = r.values.slice();
+        values[repair.field] = value;
+        return { index: r.index, values };
+      })
+    };
+  }
+  throw new Error('该配置类型不支持一键修复');
+}
+
+async function actPatchIssue(issue, value, btn) {
+  const repair = issue.target;
+  if (!repair || !repair.key) return;
+  const kindName = repair.kind === 'monster' ? '怪物' : '物品';
+  if (!value) return toast('请输入新的' + kindName + '名称', 'err');
+  if (repair.from && value === repair.from) return toast('新名称与原名称相同', 'err');
+  const list = repair.kind === 'monster'
+    ? ((ACT.options && ACT.options.monsters) || [])
+    : ((ACT.options && ACT.options.items) || []);
+  if (list.length && !list.includes(value)) return toast(`「${value}」不在${kindName}数据库中`, 'err');
+  if (btn) btn.disabled = true;
+  try {
+    const data = await api('/api/config/extra/data?key=' + encodeURIComponent(repair.key));
+    const payload = actRepairPatch(data, repair, value);
+    const res = await api('/api/config/extra/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: repair.key, payload })
+    });
+    const count = (payload.changes || []).length;
+    toast(`已修复 ${count} 处：${repair.from || '（空）'} → ${value}` + (res.backup ? '\n备份：' + res.backup : ''), 'ok');
+    ACT.stale = true;
+    await actLoad(true);
+    actRenderAll();
+    if (typeof refreshState === 'function') refreshState().catch(() => {});
+  } catch (e) {
+    toast('修复失败：' + e.message, 'err');
+    if (btn) btn.disabled = false;
+  }
+}
+
+function actRepairInput(issue) {
+  const repair = issue.target;
+  const wrap = document.createElement('div');
+  wrap.className = 'act-repair';
+  const label = document.createElement('span');
+  label.className = 'act-repair-label';
+  label.textContent = repair.kind === 'monster' ? '改为怪物' : '改为物品';
+  wrap.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'act-repair-input';
+  input.autocomplete = 'off';
+  input.placeholder = repair.from ? `替换「${repair.from}」为…` : '填写缺失名称…';
+  if (ACT.options) {
+    const listId = repair.kind === 'monster' ? 'actRepairMonsters' : 'actRepairItems';
+    actFillDatalist(listId, repair.kind === 'monster' ? ACT.options.monsters : ACT.options.items);
+    input.setAttribute('list', listId);
+  } else {
+    actEnsureOptions().then(() => {
+      if (ACT.tab === 'health' && S.mode === 'activity') actRenderHealth();
+    });
+  }
+  wrap.appendChild(input);
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn small';
+  btn.textContent = '保存修复';
+  btn.addEventListener('click', () => actPatchIssue(issue, input.value.trim(), btn));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      btn.click();
+    }
+  });
+  wrap.appendChild(btn);
+  return wrap;
 }
 
 function actStatusBadge(status) {
@@ -392,6 +561,10 @@ function actIssueRow(issue) {
   const row = document.createElement('div');
   row.className = 'mon-issue';
   row.dataset.actIssue = issue.code;
+  const patchable = Boolean(issue.target && issue.target.key &&
+    (issue.target.kind === 'monster' || issue.target.kind === 'item') &&
+    issue.target.field != null);
+  if (patchable) row.classList.add('act-issue-main');
 
   const sev = document.createElement('span');
   sev.className = 'mon-sev ' + issue.severity;
@@ -418,12 +591,15 @@ function actIssueRow(issue) {
     btn.className = 'btn small ghost';
     btn.textContent = jump.text;
     btn.addEventListener('click', () => {
-      if (jump.file) actGotoFile(jump.file);
+      const at = actRepairPath(jump);
+      if (at) actOpenFileAt(at.file, at.target);
+      else if (jump.file) actGotoFile(jump.file);
       else if (jump.editor) actGotoEditor(jump.editor);
       else if (jump.npc) actOpenNpc(jump.npc);
     });
     row.appendChild(btn);
   }
+  if (patchable) row.appendChild(actRepairInput(issue));
   return row;
 }
 

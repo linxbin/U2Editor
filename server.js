@@ -18,6 +18,7 @@ const activityData = require('./lib/activity');
 const taskData = require('./lib/tasks');
 const npcWorkData = require('./lib/npcwork');
 const itemWorkData = require('./lib/itemwork');
+const growthData = require('./lib/growth');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -75,6 +76,10 @@ const npcWorkbench = npcWorkData.create({
   itemFile: path.join(DB_DIR, 'stditems.db'),
   itemNames,
   taskWorkbench
+});
+
+const growthWorkbench = growthData.create({
+  dbDir: DB_DIR
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -201,6 +206,7 @@ const STATIC = {
   '/tasks.js': { file: 'tasks.js', type: 'application/javascript; charset=utf-8' },
   '/npcwork.js': { file: 'npcwork.js', type: 'application/javascript; charset=utf-8' },
   '/itemwork.js': { file: 'itemwork.js', type: 'application/javascript; charset=utf-8' },
+  '/growth.js': { file: 'growth.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -336,6 +342,11 @@ function configSummary() {
     out.itemwork = itemWorkbench.summary();
   } catch (e) {
     out.itemwork = { error: e.message };
+  }
+  try {
+    out.growth = growthWorkbench.summary();
+  } catch (e) {
+    out.growth = { error: e.message };
   }
   return out;
 }
@@ -554,6 +565,11 @@ async function handle(req, res) {
       const status = e && e.code === 'ENOENT' ? 404 : 400;
       json(res, status, { error: status === 404 ? `脚本不存在：${name}` : e.message });
     }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/growth') {
+    json(res, 200, growthWorkbench.list());
     return;
   }
 

@@ -49,6 +49,9 @@
         <button class="side-tab" data-side-tab="itemw" role="tab" aria-selected="false">
           <span class="side-tab-label">物品</span><span class="count" id="itemWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
+          <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
+        </button>
       </nav>
 
       <div class="side-body">
@@ -184,6 +187,23 @@
         </div>
         <ul id="itwList" class="file-list"></ul>
         <div id="itwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="grw">
+        <input id="grwFilter" class="filter" placeholder="搜索技能 / MagID / 职业..." autocomplete="off">
+        <select id="grwJob" class="filter grw-job" title="按职业筛选">
+          <option value="all">全部职业</option>
+          <option value="0">战士</option>
+          <option value="1">法师</option>
+          <option value="2">道士</option>
+          <option value="special">特殊</option>
+        </select>
+        <div id="grwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-grw-flag="all">全部</button>
+          <button class="btn small" data-grw-flag="issues">有异常</button>
+        </div>
+        <ul id="grwList" class="file-list"></ul>
+        <div id="grwListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -817,6 +837,41 @@
         </div>
       </section>
 
+      <section id="growthView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>数值 / 成长</strong>
+            <span id="grwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnGrwReload" class="btn">重新检查</button>
+        </div>
+        <div id="grwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-grw-tab="skills">技能</button>
+          <button class="mon-tab" data-grw-tab="classes">职业成长</button>
+          <button class="mon-tab" data-grw-tab="upgrades">升级经验</button>
+          <button class="mon-tab" data-grw-tab="pets">宠物成长</button>
+          <button class="mon-tab" data-grw-tab="health">配置体检</button>
+        </div>
+        <div class="grw-body">
+          <div id="grwSkillPane" class="grw-pane">
+            <div id="grwSkillDetail" class="grw-detail"></div>
+          </div>
+          <div id="grwClassPane" class="grw-pane hidden">
+            <div id="grwClass" class="grw-detail"></div>
+          </div>
+          <div id="grwUpgradePane" class="grw-pane hidden">
+            <div id="grwUpgrade" class="grw-detail"></div>
+          </div>
+          <div id="grwPetPane" class="grw-pane hidden">
+            <div id="grwPet" class="grw-detail"></div>
+          </div>
+          <div id="grwHealthPane" class="grw-pane hidden">
+            <div id="grwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <aside id="cfgDetail" class="detail hidden">
         <div class="detail-head">
           <div>
@@ -867,5 +922,6 @@
   <script src="tasks.js"></script>
   <script src="npcwork.js"></script>
   <script src="itemwork.js"></script>
+  <script src="growth.js"></script>
 </body>
 </html>

@@ -43,6 +43,9 @@
         <button class="side-tab" data-side-tab="tsk" role="tab" aria-selected="false">
           <span class="side-tab-label">任务</span><span class="count" id="taskCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="npcw" role="tab" aria-selected="false">
+          <span class="side-tab-label">NPC</span><span class="count" id="npcWorkCount">0</span>
+        </button>
       </nav>
 
       <div class="side-body">
@@ -147,6 +150,19 @@
         </div>
         <ul id="taskList" class="file-list"></ul>
         <div id="taskListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="npcw">
+        <input id="npwFilter" class="filter" placeholder="搜索 NPC / 编号 / 脚本 / 地图..." autocomplete="off">
+        <div id="npwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-npw-flag="all">全部</button>
+          <button class="btn small" data-npw-flag="issues">有异常</button>
+          <button class="btn small" data-npw-flag="nofile">无脚本</button>
+          <button class="btn small" data-npw-flag="shop">有商店</button>
+          <button class="btn small" data-npw-flag="task">有任务</button>
+        </div>
+        <ul id="npwList" class="file-list"></ul>
+        <div id="npwListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -722,6 +738,37 @@
         </div>
       </section>
 
+      <section id="npcWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>NPC 工作台</strong>
+            <span id="npwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnNpwReload" class="btn">重新检查</button>
+        </div>
+        <div id="npwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-npw-tab="detail">详情</button>
+          <button class="mon-tab" data-npw-tab="script">脚本</button>
+          <button class="mon-tab" data-npw-tab="health">配置体检</button>
+        </div>
+        <div class="npw-body">
+          <div id="npwDetailPane" class="npw-pane">
+            <div id="npwDetail" class="npw-detail"></div>
+          </div>
+          <div id="npwScriptPane" class="npw-pane hidden">
+            <div class="npw-script-bar">
+              <input id="npwScriptSearch" class="filter search" placeholder="在脚本中搜索..." autocomplete="off">
+              <span id="npwScriptInfo" class="muted"></span>
+            </div>
+            <div id="npwScriptView" class="npw-script"></div>
+          </div>
+          <div id="npwHealthPane" class="npw-pane hidden">
+            <div id="npwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <aside id="cfgDetail" class="detail hidden">
         <div class="detail-head">
           <div>
@@ -770,5 +817,6 @@
   <script src="monsters.js"></script>
   <script src="activity.js"></script>
   <script src="tasks.js"></script>
+  <script src="npcwork.js"></script>
 </body>
 </html>

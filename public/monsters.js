@@ -261,6 +261,7 @@ function monShowShell() {
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideActivityView) window.hideActivityView();
   if (window.hideTaskView) window.hideTaskView();
+  if (window.hideNpcWorkView) window.hideNpcWorkView();
   if (window.showSideTab) window.showSideTab('mon');
   S.mode = 'monster';
   monEl('dbView').classList.add('hidden');

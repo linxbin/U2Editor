@@ -16,6 +16,7 @@ const extraData = require('./lib/extra');
 const monsterData = require('./lib/monster');
 const activityData = require('./lib/activity');
 const taskData = require('./lib/tasks');
+const npcWorkData = require('./lib/npcwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -63,6 +64,15 @@ const taskWorkbench = taskData.create({
   scriptDir: NPC_SCRIPT_DIR,
   npcFile: NPC_FILE,
   dbDir: DB_DIR
+});
+
+const npcWorkbench = npcWorkData.create({
+  scriptDir: NPC_SCRIPT_DIR,
+  npcFile: NPC_FILE,
+  mapInfoFile: MAPINFO_FILE,
+  itemFile: path.join(DB_DIR, 'stditems.db'),
+  itemNames,
+  taskWorkbench
 });
 
 const DB_NAME_RE = /^[^\\/:*?"<>|]+\.db$/i;
@@ -174,6 +184,7 @@ const STATIC = {
   '/monsters.js': { file: 'monsters.js', type: 'application/javascript; charset=utf-8' },
   '/activity.js': { file: 'activity.js', type: 'application/javascript; charset=utf-8' },
   '/tasks.js': { file: 'tasks.js', type: 'application/javascript; charset=utf-8' },
+  '/npcwork.js': { file: 'npcwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -299,6 +310,11 @@ function configSummary() {
     out.tasks = taskWorkbench.summary();
   } catch (e) {
     out.tasks = { error: e.message };
+  }
+  try {
+    out.npcwork = npcWorkbench.summary();
+  } catch (e) {
+    out.npcwork = { error: e.message };
   }
   return out;
 }
@@ -486,6 +502,37 @@ async function handle(req, res) {
     const body = await readBody(req);
     const result = npcData.saveShops(NPC_SCRIPT_DIR, body, new Set(itemNames()));
     json(res, 200, result);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/npcwork') {
+    json(res, 200, npcWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/npcwork/detail') {
+    const raw = url.searchParams.get('index');
+    if (raw == null || !/^\d+$/.test(raw)) {
+      json(res, 400, { error: 'NPC 序号无效' });
+      return;
+    }
+    const detail = npcWorkbench.detail(Number(raw));
+    if (!detail) {
+      json(res, 404, { error: '未找到 NPC' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/npcwork/script') {
+    const name = url.searchParams.get('name') || '';
+    try {
+      json(res, 200, npcWorkbench.script(name));
+    } catch (e) {
+      const status = e && e.code === 'ENOENT' ? 404 : 400;
+      json(res, status, { error: status === 404 ? `脚本不存在：${name}` : e.message });
+    }
     return;
   }
 

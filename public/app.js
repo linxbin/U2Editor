@@ -453,6 +453,11 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
+  if (S.mode === 'item') {
+    if (window.updateItemWorkMeta) window.updateItemWorkMeta();
+    dot.classList.toggle('on', false);
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -502,6 +507,7 @@ async function openDb(name, force) {
     if (window.hideActivityView) window.hideActivityView();
     if (window.hideTaskView) window.hideTaskView();
     if (window.hideNpcWorkView) window.hideNpcWorkView();
+    if (window.hideItemWorkView) window.hideItemWorkView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -535,6 +541,7 @@ async function openDrop(name, force) {
     if (window.hideActivityView) window.hideActivityView();
     if (window.hideTaskView) window.hideTaskView();
     if (window.hideNpcWorkView) window.hideNpcWorkView();
+    if (window.hideItemWorkView) window.hideItemWorkView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -653,6 +660,7 @@ async function refreshState() {
   if (window.refreshActivityState) window.refreshActivityState(st);
   if (window.refreshTaskState) window.refreshTaskState(st);
   if (window.refreshNpcWorkState) window.refreshNpcWorkState(st);
+  if (window.refreshItemWorkState) window.refreshItemWorkState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -708,6 +716,10 @@ document.querySelectorAll('.side-tab').forEach((tab) => {
     }
     if (tab.dataset.sideTab === 'npcw' && window.openNpcWorkView) {
       window.openNpcWorkView();
+      return;
+    }
+    if (tab.dataset.sideTab === 'itemw' && window.openItemWorkView) {
+      window.openItemWorkView();
       return;
     }
     showSideTab(tab.dataset.sideTab);

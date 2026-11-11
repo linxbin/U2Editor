@@ -46,6 +46,9 @@
         <button class="side-tab" data-side-tab="npcw" role="tab" aria-selected="false">
           <span class="side-tab-label">NPC</span><span class="count" id="npcWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="itemw" role="tab" aria-selected="false">
+          <span class="side-tab-label">物品</span><span class="count" id="itemWorkCount">0</span>
+        </button>
       </nav>
 
       <div class="side-body">
@@ -163,6 +166,24 @@
         </div>
         <ul id="npwList" class="file-list"></ul>
         <div id="npwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="itemw">
+        <input id="itwFilter" class="filter" placeholder="搜索物品 / Idx / 类型..." autocomplete="off">
+        <select id="itwType" class="filter itw-type" title="按类型筛选">
+          <option value="all">全部类型</option>
+        </select>
+        <div id="itwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-itw-flag="all">全部</button>
+          <button class="btn small" data-itw-flag="issues">有异常</button>
+          <button class="btn small" data-itw-flag="nosource">无产出</button>
+          <button class="btn small" data-itw-flag="nodesc">缺描述</button>
+          <button class="btn small" data-itw-flag="drop">有掉落</button>
+          <button class="btn small" data-itw-flag="shop">有商店</button>
+          <button class="btn small" data-itw-flag="task">有任务</button>
+        </div>
+        <ul id="itwList" class="file-list"></ul>
+        <div id="itwListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -769,6 +790,33 @@
         </div>
       </section>
 
+      <section id="itemWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>物品 / 装备</strong>
+            <span id="itwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnItwReload" class="btn">重新检查</button>
+        </div>
+        <div id="itwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-itw-tab="detail">详情</button>
+          <button class="mon-tab" data-itw-tab="access">获取途径</button>
+          <button class="mon-tab" data-itw-tab="health">配置体检</button>
+        </div>
+        <div class="itw-body">
+          <div id="itwDetailPane" class="itw-pane">
+            <div id="itwDetail" class="itw-detail"></div>
+          </div>
+          <div id="itwAccessPane" class="itw-pane hidden">
+            <div id="itwAccess" class="itw-detail"></div>
+          </div>
+          <div id="itwHealthPane" class="itw-pane hidden">
+            <div id="itwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <aside id="cfgDetail" class="detail hidden">
         <div class="detail-head">
           <div>
@@ -818,5 +866,6 @@
   <script src="activity.js"></script>
   <script src="tasks.js"></script>
   <script src="npcwork.js"></script>
+  <script src="itemwork.js"></script>
 </body>
 </html>

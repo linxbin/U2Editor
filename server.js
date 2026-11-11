@@ -17,6 +17,7 @@ const monsterData = require('./lib/monster');
 const activityData = require('./lib/activity');
 const taskData = require('./lib/tasks');
 const npcWorkData = require('./lib/npcwork');
+const itemWorkData = require('./lib/itemwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -41,6 +42,7 @@ const GOODS_FILE = path.join(ENVIR_DIR, 'goodsconfig');
 const MONSTER_CHAIN_FILE = path.join(ENVIR_DIR, 'MonsterChain.ini');
 const MONSTER_CHILD_FILE = path.join(ENVIR_DIR, 'MonsterChild.ini');
 const MALL_FILE = path.join(ENVIR_DIR, 'PTItems.xml');
+const ITEMDESC_FILE = path.join(ENVIR_DIR, 'itemdesc.txt');
 const PUBLIC_DIR = path.join(APP_DIR, 'public');
 const BASE_PORT = Number(process.env.PORT || 8866);
 
@@ -72,6 +74,19 @@ const npcWorkbench = npcWorkData.create({
   mapInfoFile: MAPINFO_FILE,
   itemFile: path.join(DB_DIR, 'stditems.db'),
   itemNames,
+  taskWorkbench
+});
+
+const itemWorkbench = itemWorkData.create({
+  dbFile: path.join(DB_DIR, 'stditems.db'),
+  descFile: ITEMDESC_FILE,
+  dropDir: DROP_DIR,
+  monsterFile: path.join(DB_DIR, 'Monster.DB'),
+  npcFile: NPC_FILE,
+  scriptDir: NPC_SCRIPT_DIR,
+  makeItemFile: MAKEITEM_FILE,
+  goodsFile: GOODS_FILE,
+  mallFile: MALL_FILE,
   taskWorkbench
 });
 
@@ -185,6 +200,7 @@ const STATIC = {
   '/activity.js': { file: 'activity.js', type: 'application/javascript; charset=utf-8' },
   '/tasks.js': { file: 'tasks.js', type: 'application/javascript; charset=utf-8' },
   '/npcwork.js': { file: 'npcwork.js', type: 'application/javascript; charset=utf-8' },
+  '/itemwork.js': { file: 'itemwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -315,6 +331,11 @@ function configSummary() {
     out.npcwork = npcWorkbench.summary();
   } catch (e) {
     out.npcwork = { error: e.message };
+  }
+  try {
+    out.itemwork = itemWorkbench.summary();
+  } catch (e) {
+    out.itemwork = { error: e.message };
   }
   return out;
 }
@@ -533,6 +554,26 @@ async function handle(req, res) {
       const status = e && e.code === 'ENOENT' ? 404 : 400;
       json(res, status, { error: status === 404 ? `脚本不存在：${name}` : e.message });
     }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/itemwork') {
+    json(res, 200, itemWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/itemwork/detail') {
+    const raw = url.searchParams.get('index');
+    if (raw == null || !/^\d+$/.test(raw)) {
+      json(res, 400, { error: '物品序号无效' });
+      return;
+    }
+    const detail = itemWorkbench.detail(Number(raw));
+    if (!detail) {
+      json(res, 404, { error: '未找到物品' });
+      return;
+    }
+    json(res, 200, detail);
     return;
   }
 

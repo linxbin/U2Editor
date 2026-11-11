@@ -37,6 +37,9 @@
         <button class="side-tab" data-side-tab="cfg" role="tab" aria-selected="false">
           <span class="side-tab-label">玩法</span><span class="count" id="cfgCount">12</span>
         </button>
+        <button class="side-tab" data-side-tab="act" role="tab" aria-selected="false">
+          <span class="side-tab-label">活动</span><span class="count" id="actCount">0</span>
+        </button>
       </nav>
 
       <div class="side-body">
@@ -118,6 +121,17 @@
         <div class="side-note">
           点击项目打开图形化编辑；保存只改写修改过的行，并自动备份原文件。
         </div>
+      </div>
+
+      <div class="side-pane" data-side-pane="act">
+        <input id="actFilter" class="filter" placeholder="搜索活动 / 文件..." autocomplete="off">
+        <div id="actFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-act-flag="all">全部</button>
+          <button class="btn small" data-act-flag="issues">异常</button>
+          <button class="btn small" data-act-flag="missing">缺失</button>
+        </div>
+        <ul id="actList" class="file-list"></ul>
+        <div id="actListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -639,6 +653,33 @@
         </div>
       </section>
 
+      <section id="activityView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>活动与榜单</strong>
+            <span id="actMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnActReload" class="btn">重新检查</button>
+        </div>
+        <div id="actTabs" class="mon-tabs">
+          <button class="mon-tab active" data-act-tab="overview">总览</button>
+          <button class="mon-tab" data-act-tab="rankings">榜单</button>
+          <button class="mon-tab" data-act-tab="health">配置体检</button>
+        </div>
+        <div class="act-body">
+          <div id="actOverview" class="act-pane">
+            <div id="activityCards" class="act-cards"></div>
+          </div>
+          <div id="actRankings" class="act-pane hidden">
+            <div id="activityRankingCards" class="act-cards"></div>
+          </div>
+          <div id="actHealth" class="act-pane hidden">
+            <div id="activityHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <aside id="cfgDetail" class="detail hidden">
         <div class="detail-head">
           <div>
@@ -685,5 +726,6 @@
   <script src="ops.js"></script>
   <script src="extra.js"></script>
   <script src="monsters.js"></script>
+  <script src="activity.js"></script>
 </body>
 </html>

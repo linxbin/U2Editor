@@ -247,6 +247,7 @@ window.hideConfigViews = () => {
 function cfgSetMode(mode) {
   S.mode = mode;
   if (window.hideMonsterView) window.hideMonsterView();
+  if (window.hideActivityView) window.hideActivityView();
   if (window.showSideTab) window.showSideTab('cfg');
   cfgEl('dbView').classList.add('hidden');
   cfgEl('dropView').classList.add('hidden');

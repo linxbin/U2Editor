@@ -14,6 +14,7 @@ const mapData = require('./lib/mapinfo');
 const opsData = require('./lib/ops');
 const extraData = require('./lib/extra');
 const monsterData = require('./lib/monster');
+const activityData = require('./lib/activity');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -48,6 +49,13 @@ const monsterWorkbench = monsterData.create({
   childFile: MONSTER_CHILD_FILE,
   mapInfoFile: MAPINFO_FILE,
   dropDir: DROP_DIR
+});
+
+const activityWorkbench = activityData.create({
+  envirDir: ENVIR_DIR,
+  dbDir: DB_DIR,
+  scriptDir: NPC_SCRIPT_DIR,
+  npcFile: NPC_FILE
 });
 
 const DB_NAME_RE = /^[^\\/:*?"<>|]+\.db$/i;
@@ -157,6 +165,7 @@ const STATIC = {
   '/ops.js': { file: 'ops.js', type: 'application/javascript; charset=utf-8' },
   '/extra.js': { file: 'extra.js', type: 'application/javascript; charset=utf-8' },
   '/monsters.js': { file: 'monsters.js', type: 'application/javascript; charset=utf-8' },
+  '/activity.js': { file: 'activity.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -272,6 +281,11 @@ function configSummary() {
     out.extra = { files: extraData.listFiles().length };
   } catch (e) {
     out.extra = { error: e.message };
+  }
+  try {
+    out.activity = activityWorkbench.summary();
+  } catch (e) {
+    out.activity = { error: e.message };
   }
   return out;
 }
@@ -605,6 +619,11 @@ async function handle(req, res) {
   if (req.method === 'POST' && pathname === '/api/config/ops/starter/save') {
     const body = await readBody(req);
     json(res, 200, { file: opsData.STARTER_FILE, ...opsData.saveStarter(ENVIR_DIR, body) });
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/activity') {
+    json(res, 200, activityWorkbench.list());
     return;
   }
 

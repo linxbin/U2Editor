@@ -815,6 +815,109 @@ th.col-idx { color: #6f7f95; }
   line-height: 1.7;
 }
 
+/* ---------------- 活动与榜单 ---------------- */
+.act-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: auto;
+}
+.act-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.act-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 10px;
+  padding: 12px 14px;
+  align-content: start;
+}
+.act-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid #263042;
+  border-radius: 8px;
+  background: #141a23;
+  padding: 10px 12px;
+}
+.act-card.selected {
+  border-color: #3f7df0;
+  box-shadow: 0 0 0 1px #3f7df055;
+}
+.act-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.act-status {
+  border-radius: 3px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 17px;
+  border: 1px solid #2b3648;
+  color: #9fb0c8;
+  white-space: nowrap;
+}
+.act-status.ok { color: #6fd3a5; border-color: #245a45; background: #14251e; }
+.act-status.warn { color: #f0c46a; border-color: #5c4820; background: #241d10; }
+.act-status.error { color: #ff9a9a; border-color: #5a2630; background: #2a1418; }
+.act-status.info { color: #8fb8ff; border-color: #2c4a78; background: #14203a; }
+.act-cat { color: #6f7f95; font-size: 10.5px; }
+.act-desc { color: #9fb0c8; font-size: 11.5px; line-height: 1.55; }
+.act-notes { color: #7f8da3; }
+.act-metrics { display: flex; flex-wrap: wrap; gap: 6px; }
+.act-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  background: #0f141c;
+  border: 1px solid #222b3a;
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: #8fa0b8;
+  font-size: 10.5px;
+}
+.act-metric b { color: #cfd9e8; font-size: 12px; font-weight: 600; }
+.act-files { display: flex; flex-wrap: wrap; gap: 5px; }
+.act-file {
+  padding: 2px 7px;
+  border: 1px solid #2b3648;
+  border-radius: 4px;
+  background: #10151d;
+  color: #9fb0c8;
+  font-size: 10.5px;
+  line-height: 17px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.act-file:hover { border-color: #3f7df0; color: #eaf1ff; }
+.act-file.bad { color: #ff9a9a; border-color: #5a2630; }
+.act-file.warn { color: #f0c46a; border-color: #5c4820; }
+.act-file.dir { cursor: default; color: #8fa0b8; }
+.act-file.dir:hover { border-color: #2b3648; color: #8fa0b8; }
+.act-rank-card .act-file { cursor: default; }
+.act-rank-card .act-file:hover { border-color: #2b3648; color: #9fb0c8; }
+.act-rank-card .act-file.bad:hover { border-color: #5a2630; color: #ff9a9a; }
+.act-foot { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
+.act-ok { color: #6fd3a5; font-size: 11px; }
+.act-empty { padding: 40px 16px; color: #7f8da3; text-align: center; font-size: 12.5px; }
+.act-issue-meta {
+  flex: 0 0 auto;
+  color: #6f7f95;
+  font-size: 10.5px;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+@media (max-width: 1100px) {
+  .act-cards { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 1100px) {
   .mon-attr-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }

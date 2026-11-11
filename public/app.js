@@ -433,6 +433,11 @@ function updateMeta() {
     if (window.updateMonsterMeta) window.updateMonsterMeta();
     return;
   }
+  if (S.mode === 'activity') {
+    if (window.updateActivityMeta) window.updateActivityMeta();
+    dot.classList.toggle('on', false);
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -479,6 +484,7 @@ async function openDb(name, force) {
     const data = await api('/api/db?file=' + encodeURIComponent(name));
     if (window.hideConfigViews) window.hideConfigViews();
     if (window.hideMonsterView) window.hideMonsterView();
+    if (window.hideActivityView) window.hideActivityView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -509,6 +515,7 @@ async function openDrop(name, force) {
     const data = await api('/api/drop?file=' + encodeURIComponent(name));
     if (window.hideConfigViews) window.hideConfigViews();
     if (window.hideMonsterView) window.hideMonsterView();
+    if (window.hideActivityView) window.hideActivityView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -624,6 +631,7 @@ async function refreshState() {
   renderDbList();
   renderDropList();
   if (window.refreshConfigState) window.refreshConfigState(st);
+  if (window.refreshActivityState) window.refreshActivityState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -667,6 +675,10 @@ document.querySelectorAll('.side-tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     if (tab.dataset.sideTab === 'mon' && window.openMonsterWorkbench) {
       window.openMonsterWorkbench();
+      return;
+    }
+    if (tab.dataset.sideTab === 'act' && window.openActivityView) {
+      window.openActivityView();
       return;
     }
     showSideTab(tab.dataset.sideTab);

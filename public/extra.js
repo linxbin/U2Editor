@@ -705,6 +705,11 @@ async function openExtraConfig(force) {
   }
 }
 
+window.openExtraKey = (key, force) => {
+  CFG.extra.key = key;
+  return openExtraConfig(force);
+};
+
 async function openServerConfig(force) {
   if (!force && !confirmDiscard()) return;
   try {

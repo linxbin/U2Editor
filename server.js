@@ -19,6 +19,7 @@ const taskData = require('./lib/tasks');
 const npcWorkData = require('./lib/npcwork');
 const itemWorkData = require('./lib/itemwork');
 const growthData = require('./lib/growth');
+const dropWorkData = require('./lib/dropwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -80,6 +81,13 @@ const npcWorkbench = npcWorkData.create({
 
 const growthWorkbench = growthData.create({
   dbDir: DB_DIR
+});
+
+const dropWorkbench = dropWorkData.create({
+  dropDir: DROP_DIR,
+  monsterFile: path.join(DB_DIR, 'Monster.DB'),
+  itemFile: path.join(DB_DIR, 'stditems.db'),
+  mongenFile: MONGEN_FILE
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -207,6 +215,7 @@ const STATIC = {
   '/npcwork.js': { file: 'npcwork.js', type: 'application/javascript; charset=utf-8' },
   '/itemwork.js': { file: 'itemwork.js', type: 'application/javascript; charset=utf-8' },
   '/growth.js': { file: 'growth.js', type: 'application/javascript; charset=utf-8' },
+  '/drops.js': { file: 'drops.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -347,6 +356,11 @@ function configSummary() {
     out.growth = growthWorkbench.summary();
   } catch (e) {
     out.growth = { error: e.message };
+  }
+  try {
+    out.dropwork = dropWorkbench.summary();
+  } catch (e) {
+    out.dropwork = { error: e.message };
   }
   return out;
 }
@@ -565,6 +579,26 @@ async function handle(req, res) {
       const status = e && e.code === 'ENOENT' ? 404 : 400;
       json(res, status, { error: status === 404 ? `脚本不存在：${name}` : e.message });
     }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/drops') {
+    json(res, 200, dropWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/drops/item') {
+    const key = url.searchParams.get('key');
+    if (key == null || key === '') {
+      json(res, 400, { error: '物品名称无效' });
+      return;
+    }
+    const detail = dropWorkbench.detail(key);
+    if (!detail) {
+      json(res, 404, { error: '未找到掉落物品' });
+      return;
+    }
+    json(res, 200, detail);
     return;
   }
 

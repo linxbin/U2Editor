@@ -49,6 +49,9 @@
         <button class="side-tab" data-side-tab="itemw" role="tab" aria-selected="false">
           <span class="side-tab-label">物品</span><span class="count" id="itemWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="dpw" role="tab" aria-selected="false">
+          <span class="side-tab-label">掉落</span><span class="count" id="dropWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
           <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
         </button>
@@ -187,6 +190,16 @@
         </div>
         <ul id="itwList" class="file-list"></ul>
         <div id="itwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="dpw">
+        <input id="dpwFilter" class="filter" placeholder="搜索掉落物品..." autocomplete="off">
+        <div id="dpwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-dpw-flag="all">全部</button>
+          <button class="btn small" data-dpw-flag="issues">有异常</button>
+        </div>
+        <ul id="dpwList" class="file-list"></ul>
+        <div id="dpwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="grw">
@@ -837,6 +850,34 @@
         </div>
       </section>
 
+      <section id="dropWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>爆率（物品视角）</strong>
+            <span id="dpwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnDpwReload" class="btn">重新检查</button>
+        </div>
+        <div id="dpwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-dpw-tab="items">物品掉落</button>
+          <button class="mon-tab" data-dpw-tab="files">爆率文件</button>
+          <button class="mon-tab" data-dpw-tab="health">配置体检</button>
+        </div>
+        <div class="dpw-body">
+          <div id="dpwItemPane" class="dpw-pane">
+            <div id="dpwItemDetail" class="dpw-detail"></div>
+          </div>
+          <div id="dpwFilePane" class="dpw-pane hidden">
+            <input id="dpwFileFilter" class="filter search dpw-file-filter" placeholder="筛选文件 / 怪物..." autocomplete="off">
+            <div id="dpwFileList" class="dpw-files"></div>
+          </div>
+          <div id="dpwHealthPane" class="dpw-pane hidden">
+            <div id="dpwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="growthView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -923,5 +964,6 @@
   <script src="npcwork.js"></script>
   <script src="itemwork.js"></script>
   <script src="growth.js"></script>
+  <script src="drops.js"></script>
 </body>
 </html>

@@ -1119,6 +1119,7 @@ async function openTaskView(tab, id) {
   if (window.hideNpcWorkView) window.hideNpcWorkView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
+  if (window.hideDropWorkView) window.hideDropWorkView();
   const dbView = tskEl('dbView');
   const dropView = tskEl('dropView');
   if (dbView) dbView.classList.add('hidden');

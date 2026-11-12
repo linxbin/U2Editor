@@ -252,6 +252,7 @@ function cfgSetMode(mode) {
   if (window.hideNpcWorkView) window.hideNpcWorkView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
+  if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.showSideTab) window.showSideTab('cfg');
   cfgEl('dbView').classList.add('hidden');
   cfgEl('dropView').classList.add('hidden');

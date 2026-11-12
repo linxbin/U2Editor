@@ -1917,3 +1917,90 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   .dpw-table-wrap { max-height: 420px; }
   .spw-table-wrap { max-height: 420px; }
 }
+
+/* 文案 / 对话工作台 */
+.txw-cards { display: flex; flex-direction: column; gap: 10px; }
+.txw-card {
+  border: 1px solid #242e3d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #121924;
+}
+.txw-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.txw-card-meta { margin-top: 4px; font-size: 11px; color: #8b9bb4; }
+.txw-card-desc { margin-top: 6px; font-size: 11.5px; color: #b9c6da; }
+.txw-desc { margin: 8px 0 10px; font-size: 11.5px; }
+.txw-table tbody tr { cursor: pointer; }
+.txw-preview { max-width: 520px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b9c6da; }
+.txw-flag {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid #33415a;
+  background: #1a2230;
+  font-size: 10px;
+  color: #9fb0c8;
+}
+.txw-flag-empty,
+.txw-flag-encoding,
+.txw-flag-line-invalid { border-color: #5a3341; background: #241a20; color: #d99aa8; }
+.txw-flag-missing-item,
+.txw-flag-variant-missing,
+.txw-flag-map-missing { border-color: #5a4a2a; background: #241f16; color: #d9c08a; }
+.txw-code {
+  margin-top: 10px;
+  border: 1px solid #242e3d;
+  border-radius: 8px;
+  background: #0f141c;
+  max-height: 520px;
+  overflow: auto;
+  padding: 8px 0;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11.5px;
+}
+.txw-line { display: flex; gap: 10px; padding: 1px 10px; }
+.txw-line:hover { background: #151d29; }
+.txw-line.header { color: #8cc4ff; font-weight: 600; }
+.txw-line.comment { color: #6f8a6f; }
+.txw-ln {
+  flex: 0 0 46px;
+  text-align: right;
+  color: #5c6b82;
+  user-select: none;
+}
+.txw-lt { white-space: pre-wrap; word-break: break-all; color: #d5dfee; }
+.txw-section-title { margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: #b9c6da; }
+.txw-fields,
+.txw-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.txw-fields span {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid #2a3547;
+  border-radius: 6px;
+  background: #141b26;
+  font-size: 11px;
+}
+.txw-fields em { font-style: normal; color: #8b9bb4; }
+.txw-fields b { color: #d5dfee; font-weight: 600; }
+.txw-variant {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #2a3547;
+  border-radius: 6px;
+  background: #141b26;
+  font-size: 11.5px;
+}
+.txw-variant-no { color: #8cc4ff; flex: 0 0 18px; }

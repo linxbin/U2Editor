@@ -25,6 +25,7 @@ const mapWorkData = require('./lib/mapwork');
 const shopWorkData = require('./lib/shopwork');
 const scriptWorkData = require('./lib/scriptwork');
 const castleWorkData = require('./lib/castlework');
+const textWorkData = require('./lib/textwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -142,6 +143,12 @@ const castleWorkbench = castleWorkData.create({
   mapInfoFile: MAPINFO_FILE,
   itemFile: path.join(DB_DIR, 'stditems.db'),
   itemNames
+});
+
+const textWorkbench = textWorkData.create({
+  envirDir: ENVIR_DIR,
+  itemFile: path.join(DB_DIR, 'stditems.db'),
+  mapInfoFile: MAPINFO_FILE
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -275,6 +282,7 @@ const STATIC = {
   '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
   '/scriptwork.js': { file: 'scriptwork.js', type: 'application/javascript; charset=utf-8' },
   '/castlework.js': { file: 'castlework.js', type: 'application/javascript; charset=utf-8' },
+  '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -445,6 +453,11 @@ function configSummary() {
     out.castlework = castleWorkbench.summary();
   } catch (e) {
     out.castlework = { error: e.message };
+  }
+  try {
+    out.textwork = textWorkbench.summary();
+  } catch (e) {
+    out.textwork = { error: e.message };
   }
   return out;
 }
@@ -795,6 +808,28 @@ async function handle(req, res) {
     } catch (e) {
       json(res, 400, { error: e.message });
     }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/textwork') {
+    if (url.searchParams.get('refresh') === '1') textWorkbench.invalidate();
+    json(res, 200, textWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/textwork/detail') {
+    const detail = textWorkbench.detail(url.searchParams.get('source'), url.searchParams.get('index'));
+    if (!detail) {
+      json(res, 404, { error: '未找到文案条目' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/textwork/search') {
+    const q = url.searchParams.get('q') || '';
+    json(res, 200, textWorkbench.search(q, url.searchParams.get('limit')));
     return;
   }
 

@@ -270,6 +270,7 @@ function monShowShell() {
   if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
   if (window.hideCastleWorkView) window.hideCastleWorkView();
+  if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.showSideTab) window.showSideTab('mon');
   S.mode = 'monster';
   monEl('dbView').classList.add('hidden');
@@ -537,6 +538,16 @@ function monRenderAttr() {
   info.className = 'muted';
   info.textContent = 'Name 重命名不会同步刷怪/爆率/召唤（v1）· 保存会写回 Monster.DB 并自动备份';
   bar.appendChild(info);
+
+  const dialogBtn = document.createElement('button');
+  dialogBtn.type = 'button';
+  dialogBtn.className = 'btn btn-sm';
+  dialogBtn.textContent = '编辑活动对话';
+  dialogBtn.title = '活动对话按类型编号配置，不区分具体怪物';
+  dialogBtn.addEventListener('click', () => {
+    if (window.openTextWorkSource) window.openTextWorkSource('monsterdialog');
+  });
+  bar.appendChild(dialogBtn);
 
   const nameField = MON.detail.attr.fields.find((f) => f.name === 'Name');
   const nameWidth = nameField ? nameField.width : 14;

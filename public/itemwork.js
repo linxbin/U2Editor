@@ -297,6 +297,7 @@ function itwRenderDetail() {
     (item.hasDesc ? '' : '<span class="npw-chip">无描述</span>') +
     (itwIssueCount(issues) ? '<span class="npw-chip bad">问题 ' + itwIssueCount(issues) + '</span>' : '') +
     '<span class="spacer"></span>' +
+    '<button class="btn btn-sm" data-itw-act="editdesc" data-name="' + itwEsc(name) + '">编辑描述</button>' +
     '<button class="btn btn-sm" data-itw-act="db" data-name="' + itwEsc(name) + '">在数据库中查看</button>' +
     '</div>');
 
@@ -675,6 +676,7 @@ async function openItemWorkView(index) {
   if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
   if (window.hideCastleWorkView) window.hideCastleWorkView();
+  if (window.hideTextWorkView) window.hideTextWorkView();
   const dbView = itwEl('dbView');
   const dropView = itwEl('dropView');
   if (dbView) dbView.classList.add('hidden');
@@ -779,6 +781,9 @@ function itwBindEvents() {
       if (!btn) return;
       const act = btn.dataset.itwAct;
       if (act === 'db') itwGotoDb(btn.dataset.name);
+      else if (act === 'editdesc') {
+        if (window.openTextEntryForItem) window.openTextEntryForItem(btn.dataset.name);
+      }
       else if (act === 'monster') itwGotoMonster(btn.dataset.name);
       else if (act === 'task') itwGotoTask(btn.dataset.id);
       else if (act === 'shop') itwGotoShop(btn.dataset.search);

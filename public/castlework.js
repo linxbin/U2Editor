@@ -569,6 +569,7 @@ async function openCastleView(sel) {
   if (window.hideMapWorkView) window.hideMapWorkView();
   if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
+  if (window.hideTextWorkView) window.hideTextWorkView();
   const dbView = cbwEl('dbView');
   const dropView = cbwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

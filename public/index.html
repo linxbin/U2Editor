@@ -61,6 +61,9 @@
         <button class="side-tab" data-side-tab="cbw" role="tab" aria-selected="false">
           <span class="side-tab-label">沙城<br>攻城</span><span class="count" id="castleWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="txw" role="tab" aria-selected="false">
+          <span class="side-tab-label">文案<br>对话</span><span class="count" id="textWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="shw" role="tab" aria-selected="false">
           <span class="side-tab-label">合成<br>商城</span><span class="count" id="shopWorkCount">0</span>
         </button>
@@ -243,6 +246,25 @@
       <div class="side-pane" data-side-pane="cbw">
         <ul id="cbwList" class="file-list"></ul>
         <div id="cbwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="txw">
+        <input id="txwQuery" class="filter" placeholder="搜索全部文案 / 关键词..." autocomplete="off">
+        <div id="txwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-txw-flag="all">全部</button>
+          <button class="btn small" data-txw-flag="issues">异常</button>
+          <button class="btn small" data-txw-flag="empty">空</button>
+          <button class="btn small" data-txw-flag="placeholder">占位</button>
+          <button class="btn small" data-txw-flag="missing-item">缺目标</button>
+          <button class="btn small" data-txw-flag="long">超长</button>
+          <button class="btn small" data-txw-flag="duplicate">重复</button>
+        </div>
+        <div class="scw-global">
+          <button id="btnTxwSearch" class="btn small">搜索</button>
+          <button id="btnTxwClear" class="btn small">清空</button>
+        </div>
+        <ul id="txwList" class="file-list"></ul>
+        <div id="txwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="shw">
@@ -1021,6 +1043,29 @@
         </div>
       </section>
 
+      <section id="textWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>文案 / 对话工作台</strong>
+            <span id="txwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnTxwReload" class="btn">重新检查</button>
+        </div>
+        <div id="txwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-txw-tab="detail">文案索引</button>
+          <button class="mon-tab" data-txw-tab="health">配置体检</button>
+        </div>
+        <div class="mpw-body">
+          <div id="txwDetailPane" class="mpw-pane">
+            <div id="txwDetail" class="mpw-detail"></div>
+          </div>
+          <div id="txwHealthPane" class="mpw-pane hidden">
+            <div id="txwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="shopWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1171,5 +1216,6 @@
   <script src="shopwork.js"></script>
   <script src="scriptwork.js"></script>
   <script src="castlework.js"></script>
+  <script src="textwork.js"></script>
 </body>
 </html>

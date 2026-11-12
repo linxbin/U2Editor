@@ -1764,6 +1764,79 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .mpw-badge.hot { background: #3a2a1c; color: #ffbd82; border-color: #624225; }
 .npw-tag.hot { color: #ffbd82; border-color: #624225; }
 
+/* ---------------- 脚本检索工作台 ---------------- */
+.scw-global {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scw-global .filter {
+  width: 270px;
+  max-width: 40vw;
+}
+.scw-detail-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+.scw-detail-tools .filter {
+  width: 260px;
+  max-width: 50%;
+}
+.scw-code {
+  max-height: none;
+  min-height: 200px;
+}
+.scw-line.target { background: #1b3047; outline: 1px solid #355d8e; }
+.scw-line.target .npw-line-no { color: #8fc1ff; }
+.scw-search-summary {
+  padding: 4px 2px 8px;
+  color: #8fa0b8;
+  font-size: 12px;
+}
+.scw-result-row {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 7px 10px;
+  border-bottom: 1px solid #1d2734;
+  cursor: pointer;
+}
+.scw-result-row:hover { background: #162130; }
+.scw-result-file {
+  flex: 0 0 150px;
+  color: #8fc1ff;
+  font-size: 11.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scw-result-line {
+  flex: 0 0 52px;
+  color: #6f7f95;
+  font-size: 10.5px;
+  text-align: right;
+}
+.scw-result-text {
+  min-width: 0;
+  color: #c3d0e2;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.scw-result-text mark {
+  background: #5c4820;
+  color: #ffe6a8;
+  border-radius: 2px;
+}
+.scw-ref-note {
+  color: #8a9bb2;
+  font-size: 11px;
+}
+.scw-code-wrap { min-width: 0; }
+
 @media (max-width: 1100px) {
   .grw-kv-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .grw-table-wrap { max-height: 320px; }

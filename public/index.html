@@ -61,6 +61,9 @@
         <button class="side-tab" data-side-tab="shw" role="tab" aria-selected="false">
           <span class="side-tab-label">合成<br>商城</span><span class="count" id="shopWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="scw" role="tab" aria-selected="false">
+          <span class="side-tab-label">脚本</span><span class="count" id="scriptWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
           <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
         </button>
@@ -247,6 +250,17 @@
         </div>
         <ul id="swList" class="file-list"></ul>
         <div id="swListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="scw">
+        <input id="scwFilter" class="filter" placeholder="搜索脚本文件名..." autocomplete="off">
+        <div id="scwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-scw-flag="all">全部</button>
+          <button class="btn small" data-scw-flag="issues">有异常</button>
+          <button class="btn small" data-scw-flag="orphan">未引用</button>
+        </div>
+        <ul id="scwList" class="file-list"></ul>
+        <div id="scwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="grw">
@@ -999,6 +1013,42 @@
         </div>
       </section>
 
+      <section id="scriptWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>脚本检索工作台</strong>
+            <span id="scwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <div class="scw-global">
+            <input id="scwGlobalSearch" class="filter" placeholder="全文搜索脚本内容..." autocomplete="off">
+            <button id="btnScwSearch" class="btn btn-sm">搜索</button>
+            <button id="btnScwClear" class="btn btn-sm">清空</button>
+            <button id="btnScwReload" class="btn btn-sm">重新检查</button>
+          </div>
+        </div>
+        <div id="scwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-scw-tab="detail">脚本详情</button>
+          <button class="mon-tab" data-scw-tab="search">搜索结果</button>
+          <button class="mon-tab" data-scw-tab="health">配置体检</button>
+        </div>
+        <div class="mpw-body">
+          <div id="scwDetailPane" class="mpw-pane">
+            <div id="scwDetailTools" class="scw-detail-tools hidden">
+              <input id="scwInScript" class="filter" placeholder="在本脚本内筛选..." autocomplete="off">
+              <span id="scwLineInfo" class="muted"></span>
+            </div>
+            <div id="scwDetail" class="mpw-detail"></div>
+          </div>
+          <div id="scwSearchPane" class="mpw-pane hidden">
+            <div id="scwSearchResults" class="mon-issues"></div>
+          </div>
+          <div id="scwHealthPane" class="mpw-pane hidden">
+            <div id="scwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="growthView" class="view hidden">        <div class="toolbar">
           <div class="title-block">
             <strong>数值 / 成长</strong>
@@ -1088,5 +1138,6 @@
   <script src="spawns.js"></script>
   <script src="maps.js"></script>
   <script src="shopwork.js"></script>
+  <script src="scriptwork.js"></script>
 </body>
 </html>

@@ -499,6 +499,7 @@ async function openSpawnView(sel) {
   if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.hideMapWorkView) window.hideMapWorkView();
   if (window.hideShopWorkView) window.hideShopWorkView();
+  if (window.hideScriptWorkView) window.hideScriptWorkView();
   const dbView = spwEl('dbView');
   const dropView = spwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

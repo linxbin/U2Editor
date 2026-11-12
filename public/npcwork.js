@@ -651,6 +651,7 @@ async function openNpcWorkView(index) {
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
   if (window.hideMapWorkView) window.hideMapWorkView();
   if (window.hideShopWorkView) window.hideShopWorkView();
+  if (window.hideScriptWorkView) window.hideScriptWorkView();
   const dbView = npwEl('dbView');
   const dropView = npwEl('dropView');
   if (dbView) dbView.classList.add('hidden');
@@ -718,6 +719,7 @@ function npwSetMapFilter(map) {
 }
 
 window.filterNpcWorkByMap = npwSetMapFilter;
+window.openShopsByScript = npwGotoShop;
 
 function npwBindEvents() {
   const filter = npwEl('npwFilter');

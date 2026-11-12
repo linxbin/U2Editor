@@ -256,6 +256,7 @@ function cfgSetMode(mode) {
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
   if (window.hideMapWorkView) window.hideMapWorkView();
   if (window.hideShopWorkView) window.hideShopWorkView();
+  if (window.hideScriptWorkView) window.hideScriptWorkView();
   if (window.showSideTab) window.showSideTab('cfg');
   cfgEl('dbView').classList.add('hidden');
   cfgEl('dropView').classList.add('hidden');

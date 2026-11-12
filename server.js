@@ -23,6 +23,7 @@ const dropWorkData = require('./lib/dropwork');
 const spawnWorkData = require('./lib/spawnwork');
 const mapWorkData = require('./lib/mapwork');
 const shopWorkData = require('./lib/shopwork');
+const scriptWorkData = require('./lib/scriptwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -115,6 +116,13 @@ const shopWorkbench = shopWorkData.create({
   makeItemFile: MAKEITEM_FILE,
   goodsFile: GOODS_FILE,
   mallFile: MALL_FILE
+});
+
+const scriptWorkbench = scriptWorkData.create({
+  scriptDir: NPC_SCRIPT_DIR,
+  npcFile: NPC_FILE,
+  mapInfoFile: MAPINFO_FILE,
+  taskWorkbench
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -246,6 +254,7 @@ const STATIC = {
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
   '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
   '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
+  '/scriptwork.js': { file: 'scriptwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -406,6 +415,11 @@ function configSummary() {
     out.shopwork = shopWorkbench.summary();
   } catch (e) {
     out.shopwork = { error: e.message };
+  }
+  try {
+    out.scriptwork = scriptWorkbench.summary();
+  } catch (e) {
+    out.scriptwork = { error: e.message };
   }
   return out;
 }
@@ -713,6 +727,33 @@ async function handle(req, res) {
       return;
     }
     json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/scriptwork') {
+    if (url.searchParams.get('refresh') === '1') scriptWorkbench.invalidate();
+    json(res, 200, scriptWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/scriptwork/detail') {
+    const name = url.searchParams.get('name');
+    if (!name) {
+      json(res, 400, { error: '脚本名无效' });
+      return;
+    }
+    const detail = scriptWorkbench.detail(name);
+    if (!detail) {
+      json(res, 404, { error: '未找到脚本' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/scriptwork/search') {
+    const q = url.searchParams.get('q') || '';
+    json(res, 200, scriptWorkbench.search(q, url.searchParams.get('limit')));
     return;
   }
 

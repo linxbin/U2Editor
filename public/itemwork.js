@@ -671,6 +671,7 @@ async function openItemWorkView(index) {
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
+  if (window.hideMapWorkView) window.hideMapWorkView();
   const dbView = itwEl('dbView');
   const dropView = itwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

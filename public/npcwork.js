@@ -11,6 +11,7 @@ const NPW = {
   tab: 'detail',
   filter: '',
   flag: 'all',
+  mapFilter: '',
   script: null,
   scriptName: '',
   scriptSearch: '',
@@ -196,7 +197,11 @@ function npwRenderList() {
     return;
   }
   const q = NPW.filter.trim().toLowerCase();
-  const all = NPW.data.npcs.filter((n) => npwFlagMatch(n) && npwMatches(n, q));
+  const all = NPW.data.npcs.filter((n) =>
+    npwFlagMatch(n) &&
+    (!NPW.mapFilter || String(n.map).toLowerCase() === NPW.mapFilter) &&
+    npwMatches(n, q)
+  );
   const shown = all.slice(0, NPW_LIST_LIMIT);
   for (const n of shown) {
     const li = document.createElement('li');
@@ -228,9 +233,9 @@ function npwRenderList() {
     list.appendChild(empty);
   }
   if (hint) {
-    hint.textContent = all.length > NPW_LIST_LIMIT
+    hint.textContent = (NPW.mapFilter ? '地图 ' + NPW.mapFilter + ' · ' : '') + (all.length > NPW_LIST_LIMIT
       ? '显示前 ' + NPW_LIST_LIMIT + ' 条，共 ' + all.length + ' 条；输入关键词或切换筛选缩小范围。'
-      : '共 ' + all.length + ' 个 NPC。';
+      : '共 ' + all.length + ' 个 NPC。');
   }
 }
 
@@ -644,6 +649,7 @@ async function openNpcWorkView(index) {
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
+  if (window.hideMapWorkView) window.hideMapWorkView();
   const dbView = npwEl('dbView');
   const dropView = npwEl('dropView');
   if (dbView) dbView.classList.add('hidden');
@@ -697,6 +703,21 @@ window.refreshNpcWorkState = (st) => {
 };
 window.updateNpcWorkMeta = npwRenderMeta;
 
+function npwSyncMapFilter() {
+  const btn = npwEl('npwMapFilterClear');
+  if (!btn) return;
+  btn.classList.toggle('hidden', !NPW.mapFilter);
+  btn.textContent = NPW.mapFilter ? '地图 ' + NPW.mapFilter + ' ×' : '';
+}
+
+function npwSetMapFilter(map) {
+  NPW.mapFilter = String(map == null ? '' : map).toLowerCase();
+  npwSyncMapFilter();
+  npwRenderList();
+}
+
+window.filterNpcWorkByMap = npwSetMapFilter;
+
 function npwBindEvents() {
   const filter = npwEl('npwFilter');
   if (filter) {
@@ -717,6 +738,9 @@ function npwBindEvents() {
       npwRenderList();
     });
   });
+  const mapClear = npwEl('npwMapFilterClear');
+  if (mapClear) mapClear.addEventListener('click', () => npwSetMapFilter(''));
+  npwSyncMapFilter();
   const list = npwEl('npwList');
   if (list) {
     list.addEventListener('click', (e) => {

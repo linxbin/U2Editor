@@ -381,4 +381,44 @@ cfgEl('btnMapinfoReload').addEventListener('click', () => openMapinfoConfig());
 cfgEl('btnMapinfoSave').addEventListener('click', saveMapinfoConfig);
 
 window.openMapinfoConfig = openMapinfoConfig;
+
+async function openMapinfoAt(map, section) {
+  const code = String(map == null ? '' : map);
+  if (S.mode !== 'cfgMapinfo' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  await openMapinfoConfig(true);
+  const m = CFG.mapinfo;
+  if (!m.data) return;
+  const key = code.toLowerCase();
+  const known = new Set(m.data.sections.map((s) => s.key));
+  let target = section && known.has(section) ? section : '';
+  if (!target) {
+    const owner = m.data.sections.find((sec) =>
+      sec.rows.some((row) => String(row.map).toLowerCase() === key)
+    );
+    target = owner ? owner.key : 'jump';
+  }
+  m.section = target;
+  cfgEl('mapinfoSection').value = target;
+  m.search = code;
+  cfgEl('mapinfoSearch').value = code;
+  m.page = 0;
+  m.selected = -1;
+  renderMapinfo();
+  const list = mapinfoRows();
+  const pos = list.findIndex((item) => String(item.row.map).toLowerCase() === key);
+  if (pos < 0) {
+    cfgCloseDetail();
+    updateMeta();
+    return;
+  }
+  const item = list[pos];
+  m.selected = item.index;
+  m.page = Math.floor(pos / m.pageSize);
+  renderMapinfo();
+  buildMapinfoForm(item.index);
+  updateMeta();
+  const tr = cfgEl('mapinfoGrid').querySelector(`tbody tr[data-index="${item.index}"]`);
+  if (tr) tr.scrollIntoView({ block: 'center' });
+}
+window.openMapinfoAt = openMapinfoAt;
 window.saveMapinfoConfig = saveMapinfoConfig;

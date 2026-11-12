@@ -55,6 +55,9 @@
         <button class="side-tab" data-side-tab="spw" role="tab" aria-selected="false">
           <span class="side-tab-label">刷怪</span><span class="count" id="spawnWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="mpw" role="tab" aria-selected="false">
+          <span class="side-tab-label">地图</span><span class="count" id="mapWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
           <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
         </button>
@@ -173,6 +176,7 @@
           <button class="btn small" data-npw-flag="shop">有商店</button>
           <button class="btn small" data-npw-flag="task">有任务</button>
         </div>
+        <button class="btn small hidden" id="npwMapFilterClear" type="button"></button>
         <ul id="npwList" class="file-list"></ul>
         <div id="npwListHint" class="side-note"></div>
       </div>
@@ -213,6 +217,18 @@
         </div>
         <ul id="spwList" class="file-list"></ul>
         <div id="spwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="mpw">
+        <input id="mpwFilter" class="filter" placeholder="搜索地图编号 / 名称..." autocomplete="off">
+        <div id="mpwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-mpw-flag="all">全部</button>
+          <button class="btn small" data-mpw-flag="attention">有异常</button>
+          <button class="btn small" data-mpw-flag="unknown">未登记</button>
+          <button class="btn small" data-mpw-flag="orphan">文件孤儿</button>
+        </div>
+        <ul id="mpwList" class="file-list"></ul>
+        <div id="mpwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="grw">
@@ -919,8 +935,30 @@
         </div>
       </section>
 
-      <section id="growthView" class="view hidden">
+      <section id="mapWorkView" class="view hidden">
         <div class="toolbar">
+          <div class="title-block">
+            <strong>地图工作台</strong>
+            <span id="mpwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnMpwReload" class="btn">重新检查</button>
+        </div>
+        <div id="mpwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-mpw-tab="detail">地图详情</button>
+          <button class="mon-tab" data-mpw-tab="health">配置体检</button>
+        </div>
+        <div class="mpw-body">
+          <div id="mpwDetailPane" class="mpw-pane">
+            <div id="mpwDetail" class="mpw-detail"></div>
+          </div>
+          <div id="mpwHealthPane" class="mpw-pane hidden">
+            <div id="mpwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="growthView" class="view hidden">        <div class="toolbar">
           <div class="title-block">
             <strong>数值 / 成长</strong>
             <span id="grwMeta" class="muted"></span>
@@ -1007,5 +1045,6 @@
   <script src="growth.js"></script>
   <script src="drops.js"></script>
   <script src="spawns.js"></script>
+  <script src="maps.js"></script>
 </body>
 </html>

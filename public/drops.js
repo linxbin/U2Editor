@@ -547,6 +547,7 @@ async function openDropsView(sel) {
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
+  if (window.hideMapWorkView) window.hideMapWorkView();
   const dbView = dpwEl('dbView');
   const dropView = dpwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

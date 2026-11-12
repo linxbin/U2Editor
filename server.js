@@ -21,6 +21,7 @@ const itemWorkData = require('./lib/itemwork');
 const growthData = require('./lib/growth');
 const dropWorkData = require('./lib/dropwork');
 const spawnWorkData = require('./lib/spawnwork');
+const mapWorkData = require('./lib/mapwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -97,6 +98,15 @@ const spawnWorkbench = spawnWorkData.create({
   mapinfoFile: MAPINFO_FILE,
   dropDir: DROP_DIR,
   mapDir: path.join(ENVIR_DIR, 'map')
+});
+
+const mapWorkbench = mapWorkData.create({
+  mapinfoFile: MAPINFO_FILE,
+  mapDir: path.join(ENVIR_DIR, 'map'),
+  npcFile: NPC_FILE,
+  mongenFile: MONGEN_FILE,
+  miniMapFile: path.join(ENVIR_DIR, 'MiniMap.txt'),
+  miniListFile: path.join(ENVIR_DIR, 'minmaplist.txt')
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -226,6 +236,7 @@ const STATIC = {
   '/growth.js': { file: 'growth.js', type: 'application/javascript; charset=utf-8' },
   '/drops.js': { file: 'drops.js', type: 'application/javascript; charset=utf-8' },
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
+  '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -376,6 +387,11 @@ function configSummary() {
     out.spawnwork = spawnWorkbench.summary();
   } catch (e) {
     out.spawnwork = { error: e.message };
+  }
+  try {
+    out.mapwork = mapWorkbench.summary();
+  } catch (e) {
+    out.mapwork = { error: e.message };
   }
   return out;
 }
@@ -632,6 +648,27 @@ async function handle(req, res) {
     const detail = spawnWorkbench.detail(key);
     if (!detail) {
       json(res, 404, { error: '未找到刷怪地图' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/maps') {
+    if (url.searchParams.get('refresh') === '1') mapWorkbench.invalidate();
+    json(res, 200, mapWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/maps/detail') {
+    const key = url.searchParams.get('key');
+    if (key == null || key === '') {
+      json(res, 400, { error: '地图编号无效' });
+      return;
+    }
+    const detail = mapWorkbench.detail(key);
+    if (!detail) {
+      json(res, 404, { error: '未找到地图' });
       return;
     }
     json(res, 200, detail);

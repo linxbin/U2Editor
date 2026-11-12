@@ -2130,3 +2130,31 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 @media (max-width: 760px) {
   .nbw-section-head .filter { width: 100%; margin-left: 0; }
 }
+.iuw-gift-wrap {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid #242e3d;
+  border-radius: 6px;
+  margin: 4px 0 8px;
+}
+.iuw-gift-table { width: 100%; border-collapse: collapse; }
+.iuw-gift-table th,
+.iuw-gift-table td { padding: 4px 6px; border-bottom: 1px solid #1c2533; text-align: left; }
+.iuw-gift-table th { color: #8fa0b8; font-size: 11px; font-weight: 500; }
+.iuw-gift-table input { width: 100%; min-width: 90px; }
+.iuw-gift-table td.num input { width: 88px; min-width: 0; }
+.iuw-fields,
+.iuw-magic { max-height: 380px; }
+.iuw-func-desc {
+  margin-top: 5px;
+  color: #8fa0b8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.iuw-peer-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: #8fa0b8;
+  font-size: 11.5px;
+  line-height: 1.7;
+}

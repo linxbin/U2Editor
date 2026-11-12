@@ -545,6 +545,7 @@ async function openDropsView(sel) {
   if (window.hideTaskView) window.hideTaskView();
   if (window.hideNpcWorkView) window.hideNpcWorkView();
   if (window.hideNpcBuyView) window.hideNpcBuyView();
+  if (window.hideItemUseView) window.hideItemUseView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();

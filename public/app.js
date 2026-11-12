@@ -78,6 +78,7 @@ const WORK_GROUPS = [
       { target: 'spw', name: '刷怪', desc: '按地图检查刷怪范围、数量与间隔' },
       { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
       { target: 'nbw', name: 'NPC购买菜单', desc: '可视化增删改脚本里的购买项与价目' },
+      { target: 'itwu', name: '物品使用触发', desc: '查看和编辑特殊物品使用后的效果函数与礼包' },
       { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
     ]
   },
@@ -680,6 +681,7 @@ async function openDb(name, force) {
     if (window.hideTaskView) window.hideTaskView();
     if (window.hideNpcWorkView) window.hideNpcWorkView();
     if (window.hideNpcBuyView) window.hideNpcBuyView();
+    if (window.hideItemUseView) window.hideItemUseView();
     if (window.hideItemWorkView) window.hideItemWorkView();
     if (window.hideGrowthView) window.hideGrowthView();
     if (window.hideDropWorkView) window.hideDropWorkView();
@@ -725,6 +727,7 @@ async function openDrop(name, force) {
     if (window.hideTaskView) window.hideTaskView();
     if (window.hideNpcWorkView) window.hideNpcWorkView();
     if (window.hideNpcBuyView) window.hideNpcBuyView();
+    if (window.hideItemUseView) window.hideItemUseView();
     if (window.hideItemWorkView) window.hideItemWorkView();
     if (window.hideGrowthView) window.hideGrowthView();
     if (window.hideDropWorkView) window.hideDropWorkView();
@@ -854,6 +857,7 @@ async function refreshState() {
   if (window.refreshTaskState) window.refreshTaskState(st);
   if (window.refreshNpcWorkState) window.refreshNpcWorkState(st);
   if (window.refreshNpcBuyState) window.refreshNpcBuyState(st);
+  if (window.refreshItemUseState) window.refreshItemUseState(st);
   if (window.refreshItemWorkState) window.refreshItemWorkState(st);
   if (window.refreshGrowthState) window.refreshGrowthState(st);
   if (window.refreshDropWorkState) window.refreshDropWorkState(st);
@@ -1025,6 +1029,10 @@ function openSideTarget(name) {
   }
   if (name === 'nbw' && window.openNpcBuyView) {
     window.openNpcBuyView();
+    return;
+  }
+  if (name === 'itwu' && window.openItemUseView) {
+    window.openItemUseView();
     return;
   }
   showSideTab(name);

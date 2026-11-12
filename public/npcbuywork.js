@@ -402,6 +402,7 @@ async function openNpcBuyView(sel) {
   if (S.mode !== 'npcbuy' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
   S.mode = 'npcbuy';
   if (typeof hideAllViews === 'function') hideAllViews();
+  if (window.hideItemUseView) window.hideItemUseView();
   const view = nbwEl('npcBuyView');
   if (view) view.classList.remove('hidden');
   if (window.showSideTab) window.showSideTab('nbw');

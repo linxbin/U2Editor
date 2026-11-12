@@ -29,6 +29,7 @@ const castleWorkData = require('./lib/castlework');
 const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
+const itemUseData = require('./lib/itemuse');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -135,6 +136,13 @@ const npcBuyWorkbench = npcBuyData.create({
   mapInfoFile: MAPINFO_FILE,
   itemNames,
   itemIndex
+});
+
+const itemUseWorkbench = itemUseData.create({
+  scriptDir: NPC_SCRIPT_DIR,
+  itemNames,
+  monsterNames,
+  mapCodes
 });
 
 const scriptWorkbench = scriptWorkData.create({
@@ -317,12 +325,14 @@ const STATIC = {
   '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
   '/starterwork.js': { file: 'starterwork.js', type: 'application/javascript; charset=utf-8' },
   '/healthwork.js': { file: 'healthwork.js', type: 'application/javascript; charset=utf-8' },
+  '/itemusework.js': { file: 'itemusework.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
 let cachedMonsterNames = null;
 let cachedItemNames = null;
 let cachedItemIndex = null;
+let cachedMapCodes = null;
 
 function readNames(file) {
   const { rows } = dbe.loadDb(file);
@@ -354,6 +364,43 @@ function itemIndex() {
     }
   }
   return cachedItemIndex;
+}
+
+function mapCodes() {
+  if (cachedMapCodes) return cachedMapCodes;
+  const set = new Set();
+  try {
+    const text = gbk.decodeText(fs.readFileSync(MAPINFO_FILE));
+    let section = '';
+    for (const line of text.split(/\r?\n/)) {
+      const header = /^\s*\[([^\]]+)\]/.exec(line);
+      if (header) {
+        section = header[1].trim().toUpperCase();
+        continue;
+      }
+      if (section !== 'MAPLOAD' && section !== 'MAPPROPERTY') continue;
+      const s = line.trim();
+      if (!s || s.startsWith(';') || s.startsWith('#')) continue;
+      const code = s.split(/[\s,]+/)[0];
+      if (code && /^[A-Za-z0-9_]+$/.test(code)) set.add(code);
+    }
+  } catch (e) { /* 地图配置缺失时只影响告警 */ }
+  try {
+    const text = gbk.decodeText(fs.readFileSync(path.join(ENVIR_DIR, 'MiniMap.txt')));
+    for (const line of text.split(/\r?\n/)) {
+      const s = line.trim();
+      if (!s || s.startsWith(';') || s.startsWith('#')) continue;
+      const code = s.split(/\s+/)[0];
+      if (code && /^[A-Za-z0-9_]+$/.test(code)) set.add(code);
+    }
+  } catch (e) { /* 同上 */ }
+  try {
+    for (const name of fs.readdirSync(path.join(ENVIR_DIR, 'map'))) {
+      if (/\.map$/i.test(name)) set.add(name.replace(/\.map$/i, ''));
+    }
+  } catch (e) { /* 同上 */ }
+  cachedMapCodes = [...set].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  return cachedMapCodes;
 }
 
 function configSummary() {
@@ -515,6 +562,11 @@ function configSummary() {
     out.healthwork = healthWorkbench.summary();
   } catch (e) {
     out.healthwork = { error: e.message };
+  }
+  try {
+    out.itemuse = itemUseWorkbench.summary();
+  } catch (e) {
+    out.itemuse = { error: e.message };
   }
   return out;
 }
@@ -728,6 +780,42 @@ async function handle(req, res) {
     const body = await readBody(req);
     try {
       json(res, 200, npcBuyWorkbench.save(body.file, body));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/itemuse') {
+    if (url.searchParams.get('refresh') === '1') {
+      itemUseWorkbench.invalidate();
+      cachedMapCodes = null;
+      cachedMonsterNames = null;
+      cachedItemNames = null;
+      cachedItemIndex = null;
+    }
+    try {
+      json(res, 200, itemUseWorkbench.list());
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/itemuse/detail') {
+    const item = url.searchParams.get('item') || '';
+    try {
+      json(res, 200, itemUseWorkbench.detail(item));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/itemuse/save') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, itemUseWorkbench.save(body));
     } catch (e) {
       json(res, e.status || 500, { error: e.message });
     }
@@ -1068,7 +1156,10 @@ async function handle(req, res) {
 
   if (req.method === 'POST' && pathname === '/api/config/mapinfo/save') {
     const body = await readBody(req);
-    json(res, 200, { file: 'MapInfo', ...mapData.saveMapInfo(MAPINFO_FILE, body) });
+    const result = mapData.saveMapInfo(MAPINFO_FILE, body);
+    cachedMapCodes = null;
+    itemUseWorkbench.invalidate();
+    json(res, 200, { file: 'MapInfo', ...result });
     return;
   }
 

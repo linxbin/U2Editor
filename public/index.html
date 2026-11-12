@@ -299,6 +299,13 @@
         <ul id="hwSourceList" class="file-list"></ul>
         <div id="hwListHint" class="side-note"></div>
       </div>
+
+      <div class="side-pane" data-side-pane="itwu">
+        <input id="iuwFilter" class="filter" placeholder="搜索物品 / 效果函数 / 分类..." autocomplete="off">
+        <div id="iuwCatFilter" class="mon-flag-filter"></div>
+        <ul id="iuwList" class="file-list"></ul>
+        <div id="iuwListHint" class="side-note"></div>
+      </div>
       </div>
     </aside>
 
@@ -1135,6 +1142,18 @@
         <div id="nbwBody" class="nbw-body"></div>
       </section>
 
+      <section id="itemUseView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>物品使用触发</strong>
+            <span id="iuwMeta" class="muted">未选择物品</span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnIuwReload" class="btn">重新检查</button>
+        </div>
+        <div id="iuwBody" class="nbw-body"></div>
+      </section>
+
       <section id="scriptWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1241,6 +1260,7 @@
   <datalist id="mapList"></datalist>
   <datalist id="npcScriptList"></datalist>
   <datalist id="summonGroupList"></datalist>
+  <datalist id="iuwMapCodeList"></datalist>
   <script src="labels.js"></script>
   <script src="app.js"></script>
   <script src="configs.js"></script>
@@ -1266,5 +1286,6 @@
   <script src="textwork.js"></script>
   <script src="starterwork.js"></script>
   <script src="healthwork.js"></script>
+  <script src="itemusework.js"></script>
 </body>
 </html>

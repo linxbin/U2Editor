@@ -253,6 +253,7 @@ function cfgSetMode(mode) {
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
+  if (window.hideSpawnWorkView) window.hideSpawnWorkView();
   if (window.showSideTab) window.showSideTab('cfg');
   cfgEl('dbView').classList.add('hidden');
   cfgEl('dropView').classList.add('hidden');
@@ -653,6 +654,32 @@ async function openMongen(force) {
     toast('打开刷怪配置失败：' + e.message, 'err');
   }
 }
+
+async function openMongenAt(index, map) {
+  if (typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  await openMongen(true);
+  const m = CFG.mongen;
+  if (!m.data) return;
+  let target = Number(index);
+  if (!Number.isInteger(target) || target < 0 || target >= m.data.entries.length) {
+    if (!map) return;
+    target = m.data.entries.findIndex((row) => String(row.map).toLowerCase() === String(map).toLowerCase());
+    if (target < 0) return;
+  }
+  const row = m.data.entries[target];
+  m.mapFilter = row.map;
+  m.search = '';
+  cfgEl('mongenSearch').value = '';
+  buildMongenMapSelect();
+  const list = mongenList();
+  const pos = list.findIndex((item) => item.index === target);
+  if (pos >= 0) m.page = Math.floor(pos / m.pageSize);
+  renderMongen();
+  selectMongen(target);
+  const tr = cfgEl('mongenGrid').querySelector(`tbody tr[data-index="${target}"]`);
+  if (tr) tr.scrollIntoView({ block: 'center' });
+}
+window.openMongenAt = openMongenAt;
 
 async function saveMongen() {
   const m = CFG.mongen;

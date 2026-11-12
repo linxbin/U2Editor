@@ -20,6 +20,7 @@ const npcWorkData = require('./lib/npcwork');
 const itemWorkData = require('./lib/itemwork');
 const growthData = require('./lib/growth');
 const dropWorkData = require('./lib/dropwork');
+const spawnWorkData = require('./lib/spawnwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -88,6 +89,14 @@ const dropWorkbench = dropWorkData.create({
   monsterFile: path.join(DB_DIR, 'Monster.DB'),
   itemFile: path.join(DB_DIR, 'stditems.db'),
   mongenFile: MONGEN_FILE
+});
+
+const spawnWorkbench = spawnWorkData.create({
+  mongenFile: MONGEN_FILE,
+  monsterFile: path.join(DB_DIR, 'Monster.DB'),
+  mapinfoFile: MAPINFO_FILE,
+  dropDir: DROP_DIR,
+  mapDir: path.join(ENVIR_DIR, 'map')
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -216,6 +225,7 @@ const STATIC = {
   '/itemwork.js': { file: 'itemwork.js', type: 'application/javascript; charset=utf-8' },
   '/growth.js': { file: 'growth.js', type: 'application/javascript; charset=utf-8' },
   '/drops.js': { file: 'drops.js', type: 'application/javascript; charset=utf-8' },
+  '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -361,6 +371,11 @@ function configSummary() {
     out.dropwork = dropWorkbench.summary();
   } catch (e) {
     out.dropwork = { error: e.message };
+  }
+  try {
+    out.spawnwork = spawnWorkbench.summary();
+  } catch (e) {
+    out.spawnwork = { error: e.message };
   }
   return out;
 }
@@ -596,6 +611,27 @@ async function handle(req, res) {
     const detail = dropWorkbench.detail(key);
     if (!detail) {
       json(res, 404, { error: '未找到掉落物品' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/spawns') {
+    if (url.searchParams.get('refresh') === '1') spawnWorkbench.invalidate();
+    json(res, 200, spawnWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/spawns/map') {
+    const key = url.searchParams.get('key');
+    if (key == null || key === '') {
+      json(res, 400, { error: '地图编号无效' });
+      return;
+    }
+    const detail = spawnWorkbench.detail(key);
+    if (!detail) {
+      json(res, 404, { error: '未找到刷怪地图' });
       return;
     }
     json(res, 200, detail);

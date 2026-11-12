@@ -52,6 +52,9 @@
         <button class="side-tab" data-side-tab="dpw" role="tab" aria-selected="false">
           <span class="side-tab-label">掉落</span><span class="count" id="dropWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="spw" role="tab" aria-selected="false">
+          <span class="side-tab-label">刷怪</span><span class="count" id="spawnWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
           <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
         </button>
@@ -200,6 +203,16 @@
         </div>
         <ul id="dpwList" class="file-list"></ul>
         <div id="dpwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="spw">
+        <input id="spwFilter" class="filter" placeholder="搜索地图编号 / 名称..." autocomplete="off">
+        <div id="spwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-spw-flag="all">全部</button>
+          <button class="btn small" data-spw-flag="issues">有异常</button>
+        </div>
+        <ul id="spwList" class="file-list"></ul>
+        <div id="spwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="grw">
@@ -878,6 +891,34 @@
         </div>
       </section>
 
+      <section id="spawnWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>刷怪分布</strong>
+            <span id="spwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnSpwReload" class="btn">重新检查</button>
+        </div>
+        <div id="spwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-spw-tab="maps">地图分布</button>
+          <button class="mon-tab" data-spw-tab="monsters">怪物分布</button>
+          <button class="mon-tab" data-spw-tab="health">配置体检</button>
+        </div>
+        <div class="spw-body">
+          <div id="spwMapPane" class="spw-pane">
+            <div id="spwMapDetail" class="spw-detail"></div>
+          </div>
+          <div id="spwMonsterPane" class="spw-pane hidden">
+            <input id="spwMonsterFilter" class="filter search spw-monster-filter" placeholder="筛选怪物..." autocomplete="off">
+            <div id="spwMonsterList" class="spw-monsters"></div>
+          </div>
+          <div id="spwHealthPane" class="spw-pane hidden">
+            <div id="spwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="growthView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -965,5 +1006,6 @@
   <script src="itemwork.js"></script>
   <script src="growth.js"></script>
   <script src="drops.js"></script>
+  <script src="spawns.js"></script>
 </body>
 </html>

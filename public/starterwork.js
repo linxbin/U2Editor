@@ -762,17 +762,6 @@ function stwBindEvents() {
       }
     });
   }
-  const search = stwEl('btnStwSearch');
-  if (search) search.addEventListener('click', () => {
-    const q = stwEl('stwQuery');
-    stwRunSearch(q ? q.value : '').catch((e) => toast('搜索失败：' + e.message, 'err'));
-  });
-  const clear = stwEl('btnStwClear');
-  if (clear) clear.addEventListener('click', () => {
-    const q = stwEl('stwQuery');
-    if (q) q.value = '';
-    stwRunSearch('').catch((e) => toast('搜索失败：' + e.message, 'err'));
-  });
   const tabs = stwEl('stwTabs');
   if (tabs) {
     tabs.addEventListener('click', (e) => {

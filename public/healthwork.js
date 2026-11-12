@@ -13,6 +13,7 @@ const HW = {
 };
 
 const HW_SEV = { error: '错误', warn: '警告', info: '提示' };
+let hwSearchTimer = null;
 
 const HW_ISSUE_LABEL = {
   item_drop_unknown_monster: '爆率怪物缺失',
@@ -483,27 +484,14 @@ document.addEventListener('DOMContentLoaded', () => {
       hwSelectSeverity(btn.dataset.hwSeverity);
     });
   }
-  const search = hwEl('btnHwSearch');
-  if (search) {
-    search.addEventListener('click', () => {
-      HW.q = hwEl('hwQuery') ? hwEl('hwQuery').value : '';
-      hwRenderIssues();
-    });
-  }
-  const clear = hwEl('btnHwClear');
-  if (clear) {
-    clear.addEventListener('click', () => {
-      HW.q = '';
-      if (hwEl('hwQuery')) hwEl('hwQuery').value = '';
-      hwRenderIssues();
-    });
-  }
   const query = hwEl('hwQuery');
   if (query) {
-    query.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      HW.q = query.value;
-      hwRenderIssues();
+    query.addEventListener('input', () => {
+      clearTimeout(hwSearchTimer);
+      hwSearchTimer = setTimeout(() => {
+        HW.q = query.value;
+        hwRenderIssues();
+      }, 200);
     });
   }
   const reload = hwEl('btnHwReload');

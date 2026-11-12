@@ -741,21 +741,6 @@ function txwBindEvents() {
       }
     });
   }
-  const searchBtn = txwEl('btnTxwSearch');
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      const q = txwEl('txwQuery');
-      txwRunSearch(q ? q.value : '').catch((e) => toast('搜索失败：' + e.message, 'err'));
-    });
-  }
-  const clearBtn = txwEl('btnTxwClear');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      const q = txwEl('txwQuery');
-      if (q) q.value = '';
-      txwRunSearch('').catch((e) => toast('清空失败：' + e.message, 'err'));
-    });
-  }
   const tabs = txwEl('txwTabs');
   if (tabs) {
     tabs.addEventListener('click', (e) => {

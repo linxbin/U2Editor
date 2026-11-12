@@ -57,29 +57,133 @@ function toast(message, type) {
   }, type === 'err' ? 7000 : 5000);
 }
 
-function setSideGroup(name, expanded) {
-  document.querySelectorAll('.side-group').forEach((group) => {
-    const open = expanded && group.dataset.sideGroup === name;
-    group.classList.toggle('collapsed', !open);
-    const head = group.querySelector('.side-group-head');
-    if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
-    const caret = group.querySelector('.side-group-caret');
-    if (caret) caret.textContent = open ? '▾' : '▸';
+const BASIC_TABS = [
+  { target: 'db', name: '数据库', desc: '浏览并编辑物品、怪物等数据表' },
+  { target: 'mon', name: '怪物', desc: '查看怪物属性、刷怪点与爆率' },
+  { target: 'drop', name: '爆率', desc: '按文件编辑 MonItems 掉落规则' },
+  { target: 'cfg', name: '玩法', desc: '刷怪、合成、称号、商城等基础配置' }
+];
+
+const WORK_GROUPS = [
+  {
+    name: '总览与检查',
+    items: [
+      { target: 'hw', name: '配置体检', desc: '汇总所有工作台的错误、警告和提示' }
+    ]
+  },
+  {
+    name: '世界与剧情',
+    items: [
+      { target: 'mpw', name: '地图', desc: '查看地图、NPC、刷怪与跳转规则' },
+      { target: 'spw', name: '刷怪', desc: '按地图检查刷怪范围、数量与间隔' },
+      { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
+      { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
+    ]
+  },
+  {
+    name: '养成与经济',
+    items: [
+      { target: 'itemw', name: '物品', desc: '按物品查看来源、用途与配置问题' },
+      { target: 'grw', name: '成长', desc: '技能、职业、升级与宠物成长曲线' },
+      { target: 'dpw', name: '掉落', desc: '按物品反查爆率来源与异常' },
+      { target: 'shw', name: '合成商城', desc: '检查配方、商品与跨商城重复' }
+    ]
+  },
+  {
+    name: '任务与运营',
+    items: [
+      { target: 'tsk', name: '任务', desc: '查看、启用和修复任务配置' },
+      { target: 'act', name: '活动', desc: '活动、榜单与开关配置' },
+      { target: 'cbw', name: '沙城攻城', desc: '沙城归属、攻城奖励与守卫' },
+      { target: 'txw', name: '文案对话', desc: '对话、描述、公告与验证文案' },
+      { target: 'stw', name: '新手充值', desc: '礼包、充值档位与账号名单' }
+    ]
+  }
+];
+
+const NAV_HEALTH_SOURCE = {
+  itemw: 'itemwork',
+  grw: 'growth',
+  dpw: 'dropwork',
+  spw: 'spawnwork',
+  mpw: 'mapwork',
+  shw: 'shopwork',
+  scw: 'scriptwork',
+  cbw: 'castlework',
+  txw: 'textwork',
+  stw: 'starterwork'
+};
+function navIssueCounts(target) {
+  const summary = S.configs && S.configs.healthwork;
+  if (!summary) return null;
+  if (target === 'hw') {
+    return summary.stats ? { error: summary.stats.error || 0, warn: summary.stats.warn || 0 } : null;
+  }
+  const sourceKey = NAV_HEALTH_SOURCE[target];
+  if (!sourceKey || !Array.isArray(summary.sources)) return null;
+  const source = summary.sources.find((item) => item.key === sourceKey);
+  return source ? { error: source.error || 0, warn: source.warn || 0 } : null;
+}
+
+function navIssueHtmlCompact(target) {
+  const counts = navIssueCounts(target);
+  if (!counts) return '';
+  let html = '';
+  if (counts.error > 0) {
+    html += '<span class="work-issue err" title="' + counts.error + ' 个错误">' + counts.error + '</span>';
+  }
+  if (counts.warn > 0) {
+    html += '<span class="work-issue" title="' + counts.warn + ' 个警告">' + counts.warn + '</span>';
+  }
+  return html;
+}
+
+function renderWorkNav() {
+  const box = $('#workNavGroups');
+  if (!box) return;
+  let html = '';
+  let total = 0;
+  for (const group of WORK_GROUPS) {
+    html += '<div class="work-group"><div class="work-group-title">' + group.name + '</div>';
+    for (const item of group.items) {
+      total++;
+      html += '<button type="button" class="work-item" data-work-target="' + item.target +
+        '" aria-selected="false" title="' + item.desc + '">' +
+        '<span class="work-item-name">' + item.name + '</span>' +
+        '<span class="work-issues" data-work-issues="' + item.target + '"></span></button>';
+    }
+    html += '</div>';
+  }
+  box.innerHTML = html;
+  const count = $('#workNavCount');
+  if (count) count.textContent = total + ' 个入口';
+  updateWorkNavBadges();
+}
+
+function updateWorkNavBadges() {
+  document.querySelectorAll('[data-work-issues]').forEach((el) => {
+    el.innerHTML = navIssueHtmlCompact(el.dataset.workIssues);
+  });
+}
+
+function setNavActive(name) {
+  document.querySelectorAll('.data-tab[data-basic-tab]').forEach((tab) => {
+    const active = tab.dataset.basicTab === name;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.work-item[data-work-target]').forEach((item) => {
+    const active = item.dataset.workTarget === name;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-selected', active ? 'true' : 'false');
   });
 }
 
 function showSideTab(name) {
-  document.querySelectorAll('.side-tab').forEach((tab) => {
-    const active = tab.dataset.sideTab === name;
-    tab.classList.toggle('active', active);
-    tab.setAttribute('aria-selected', active ? 'true' : 'false');
-  });
   document.querySelectorAll('.side-pane').forEach((pane) => {
     pane.classList.toggle('active', pane.dataset.sidePane === name);
   });
-  const tab = document.querySelector('.side-tab[data-side-tab="' + name + '"]');
-  const group = tab && tab.closest('.side-group');
-  if (group) setSideGroup(group.dataset.sideGroup, true);
+  setNavActive(name);
 }
 window.showSideTab = showSideTab;
 
@@ -739,8 +843,7 @@ async function refreshState() {
   S.dbs = st.dbs;
   S.drops = st.drops;
   S.configs = st.configs || null;
-  $('#dbCount').textContent = st.dbs.length;
-  $('#dropCount').textContent = st.drops.length;
+  updateWorkNavBadges();
   renderDbList();
   renderDropList();
   if (window.refreshConfigState) window.refreshConfigState(st);
@@ -797,79 +900,145 @@ $('#rowSearch').addEventListener('input', () => {
 $('#dbFilter').addEventListener('input', renderDbList);
 $('#dropFilter').addEventListener('input', renderDropList);
 
-document.querySelectorAll('.side-group-head').forEach((head) => {
-  head.addEventListener('click', () => {
-    const group = head.closest('.side-group');
-    if (!group) return;
-    setSideGroup(group.dataset.sideGroup, group.classList.contains('collapsed'));
-  });
-});
+function hideAllViews() {
+  document.querySelectorAll('.main > .view').forEach((view) => view.classList.add('hidden'));
+  const detail = $('#detail');
+  if (detail) detail.classList.add('hidden');
+}
 
-document.querySelectorAll('.side-tab').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    if (tab.dataset.sideTab === 'mon' && window.openMonsterWorkbench) {
-      window.openMonsterWorkbench();
+function openBasicTab(target) {
+  if (target === 'db') {
+    if (S.mode === 'db' && S.dbFile) {
+      hideAllViews();
+      showSideTab('db');
+      $('#dbView').classList.remove('hidden');
       return;
     }
-    if (tab.dataset.sideTab === 'act' && window.openActivityView) {
-      window.openActivityView();
+    if (S.dbFile) {
+      openDb(S.dbFile);
       return;
     }
-    if (tab.dataset.sideTab === 'tsk' && window.openTaskView) {
-      window.openTaskView();
+    hideAllViews();
+    showSideTab('db');
+    $('#dbView').classList.remove('hidden');
+    return;
+  }
+  if (target === 'drop') {
+    if (S.mode === 'drop' && S.dropFile) {
+      hideAllViews();
+      showSideTab('drop');
+      $('#dropView').classList.remove('hidden');
       return;
     }
-    if (tab.dataset.sideTab === 'npcw' && window.openNpcWorkView) {
-      window.openNpcWorkView();
+    if (S.dropFile) {
+      openDrop(S.dropFile);
       return;
     }
-    if (tab.dataset.sideTab === 'itemw' && window.openItemWorkView) {
-      window.openItemWorkView();
+    hideAllViews();
+    showSideTab('drop');
+    $('#dropView').classList.remove('hidden');
+    return;
+  }
+  if (target === 'mon') {
+    if (window.openMonsterWorkbench) window.openMonsterWorkbench();
+    else showSideTab('mon');
+    return;
+  }
+  if (target === 'cfg') {
+    if (S.mode.startsWith('cfg')) {
+      showSideTab('cfg');
       return;
     }
-    if (tab.dataset.sideTab === 'dpw' && window.openDropsView) {
-      window.openDropsView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'spw' && window.openSpawnView) {
-      window.openSpawnView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'mpw' && window.openMapView) {
-      window.openMapView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'shw' && window.openShopView) {
-      window.openShopView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'scw' && window.openScriptView) {
-      window.openScriptView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'cbw' && window.openCastleView) {
-      window.openCastleView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'txw' && window.openTextWorkView) {
-      window.openTextWorkView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'stw' && window.openStarterWorkView) {
-      window.openStarterWorkView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'grw' && window.openGrowthView) {
-      window.openGrowthView();
-      return;
-    }
-    if (tab.dataset.sideTab === 'hw' && window.openHealthWorkView) {
-      window.openHealthWorkView();
-      return;
-    }
-    showSideTab(tab.dataset.sideTab);
+    if (!confirmDiscard()) return;
+    hideAllViews();
+    const item = document.querySelector('#cfgList .file-item.active') ||
+      document.querySelector('#cfgList .file-item');
+    if (item) item.click();
+    else showSideTab('cfg');
+  }
+}
+
+function openSideTarget(name) {
+  if (BASIC_TABS.some((tab) => tab.target === name)) {
+    openBasicTab(name);
+    return;
+  }
+  if (name === 'act' && window.openActivityView) {
+    window.openActivityView();
+    return;
+  }
+  if (name === 'tsk' && window.openTaskView) {
+    window.openTaskView();
+    return;
+  }
+  if (name === 'npcw' && window.openNpcWorkView) {
+    window.openNpcWorkView();
+    return;
+  }
+  if (name === 'itemw' && window.openItemWorkView) {
+    window.openItemWorkView();
+    return;
+  }
+  if (name === 'dpw' && window.openDropsView) {
+    window.openDropsView();
+    return;
+  }
+  if (name === 'spw' && window.openSpawnView) {
+    window.openSpawnView();
+    return;
+  }
+  if (name === 'mpw' && window.openMapView) {
+    window.openMapView();
+    return;
+  }
+  if (name === 'shw' && window.openShopView) {
+    window.openShopView();
+    return;
+  }
+  if (name === 'scw' && window.openScriptView) {
+    window.openScriptView();
+    return;
+  }
+  if (name === 'cbw' && window.openCastleView) {
+    window.openCastleView();
+    return;
+  }
+  if (name === 'txw' && window.openTextWorkView) {
+    window.openTextWorkView();
+    return;
+  }
+  if (name === 'stw' && window.openStarterWorkView) {
+    window.openStarterWorkView();
+    return;
+  }
+  if (name === 'grw' && window.openGrowthView) {
+    window.openGrowthView();
+    return;
+  }
+  if (name === 'hw' && window.openHealthWorkView) {
+    window.openHealthWorkView();
+    return;
+  }
+  showSideTab(name);
+}
+
+const dataBar = document.querySelector('.data-bar');
+if (dataBar) {
+  dataBar.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-basic-tab]');
+    if (!tab || !dataBar.contains(tab)) return;
+    openBasicTab(tab.dataset.basicTab);
   });
-});
+}
+
+const worknav = document.querySelector('.worknav');
+if (worknav) {
+  worknav.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-work-target]');
+    if (!item || !worknav.contains(item)) return;
+    openSideTarget(item.dataset.workTarget);
+  });
+}
 
 $('#prevPage').addEventListener('click', () => {
   if (S.page > 0) {
@@ -925,6 +1094,8 @@ window.addEventListener('beforeunload', (e) => {
     e.returnValue = '';
   }
 });
+
+renderWorkNav();
 
 window.appReady = init();
 window.appReady.then(() => window.dispatchEvent(new Event('app-ready')));

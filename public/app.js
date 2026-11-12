@@ -478,6 +478,11 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
+  if (S.mode === 'shopwork') {
+    if (window.updateShopWorkMeta) window.updateShopWorkMeta();
+    dot.classList.toggle('on', false);
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -532,6 +537,7 @@ async function openDb(name, force) {
     if (window.hideDropWorkView) window.hideDropWorkView();
     if (window.hideSpawnWorkView) window.hideSpawnWorkView();
     if (window.hideMapWorkView) window.hideMapWorkView();
+    if (window.hideShopWorkView) window.hideShopWorkView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -570,6 +576,7 @@ async function openDrop(name, force) {
     if (window.hideDropWorkView) window.hideDropWorkView();
     if (window.hideSpawnWorkView) window.hideSpawnWorkView();
     if (window.hideMapWorkView) window.hideMapWorkView();
+    if (window.hideShopWorkView) window.hideShopWorkView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -693,6 +700,7 @@ async function refreshState() {
   if (window.refreshDropWorkState) window.refreshDropWorkState(st);
   if (window.refreshSpawnWorkState) window.refreshSpawnWorkState(st);
   if (window.refreshMapWorkState) window.refreshMapWorkState(st);
+  if (window.refreshShopWorkState) window.refreshShopWorkState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -764,6 +772,10 @@ document.querySelectorAll('.side-tab').forEach((tab) => {
     }
     if (tab.dataset.sideTab === 'mpw' && window.openMapView) {
       window.openMapView();
+      return;
+    }
+    if (tab.dataset.sideTab === 'shw' && window.openShopView) {
+      window.openShopView();
       return;
     }
     if (tab.dataset.sideTab === 'grw' && window.openGrowthView) {

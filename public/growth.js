@@ -768,6 +768,7 @@ async function openGrowthView(sel) {
   if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
   if (window.hideMapWorkView) window.hideMapWorkView();
+  if (window.hideShopWorkView) window.hideShopWorkView();
   const dbView = grwEl('dbView');
   const dropView = grwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

@@ -255,6 +255,7 @@ function cfgSetMode(mode) {
   if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
   if (window.hideMapWorkView) window.hideMapWorkView();
+  if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.showSideTab) window.showSideTab('cfg');
   cfgEl('dbView').classList.add('hidden');
   cfgEl('dropView').classList.add('hidden');
@@ -962,6 +963,26 @@ async function openMakeitem(force) {
     toast('打开合成配方失败：' + e.message, 'err');
   }
 }
+
+window.openMakeitem = openMakeitem;
+
+async function openMakeitemAt(index) {
+  const i = Number(index);
+  if (!Number.isInteger(i) || i < 0) return;
+  if (S.mode !== 'cfgMakeItem' && !confirmDiscard()) return;
+  await openMakeitem(true);
+  const m = CFG.makeitem;
+  if (!m.data || !m.data.recipes || i >= m.data.recipes.length) return;
+  m.search = '';
+  cfgEl('makeitemSearch').value = '';
+  m.selected = i;
+  renderMakeitem();
+  buildMakeForm(i);
+  updateMeta();
+  const tr = cfgEl('makeitemGrid').querySelector(`tbody tr[data-index="${i}"]`);
+  if (tr) tr.scrollIntoView({ block: 'center' });
+}
+window.openMakeitemAt = openMakeitemAt;
 
 async function saveMakeitem() {
   const m = CFG.makeitem;

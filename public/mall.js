@@ -649,4 +649,26 @@ cfgEl('btnMallReload').addEventListener('click', () => openMallConfig());
 cfgEl('btnMallSave').addEventListener('click', saveMallConfig);
 
 window.openMallConfig = openMallConfig;
+
+async function openMallAt(index) {
+  const i = Number(index);
+  if (!Number.isInteger(i) || i < 0) return;
+  if (S.mode !== 'cfgMall' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  await openMallConfig(true);
+  const m = CFG.mall;
+  if (!m.data || i >= m.data.items.length) return;
+  m.tab = 'items';
+  m.search = '';
+  m.classFilter = '';
+  m.subFilter = '';
+  cfgEl('mallSearch').value = '';
+  m.page = Math.floor(i / m.pageSize);
+  m.selected = i;
+  renderMall();
+  selectMallItem(i);
+  updateMeta();
+  const tr = cfgEl('mallGrid').querySelector(`tbody tr[data-index="${i}"]`);
+  if (tr) tr.scrollIntoView({ block: 'center' });
+}
+window.openMallAt = openMallAt;
 window.saveMallConfig = saveMallConfig;

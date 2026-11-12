@@ -1692,6 +1692,78 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .mpw-issue .mon-issue-msg { color: #cfd9e8; font-size: 12px; }
 .mpw-issue .mon-issue-meta { color: #6f7f95; font-size: 10.5px; margin-top: 2px; }
 
+/* ---------------- 合成 / 商城工作台 ---------------- */
+.sw-source-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px 4px;
+}
+.sw-source-tabs .btn:nth-child(3) {
+  grid-column: 1 / -1;
+}
+.sw-source-tabs .btn {
+  padding: 5px 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sw-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #8fc1ff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  word-break: break-word;
+}
+.sw-link:hover { text-decoration: underline; }
+.sw-recipe-line { display: flex; flex-direction: column; }
+.sw-product-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+  background: #162536;
+  border-top: 1px solid #2c4056;
+}
+.sw-product-name { color: #9fe0b4; font-weight: 600; }
+.sw-note { color: #8a9bb2; font-size: 10.5px; }
+.sw-desc {
+  padding: 10px 12px;
+  color: #c2cfdf;
+  font-size: 12px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sw-hot-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  color: #c2cfdf;
+  font-size: 11.5px;
+}
+.sw-intro {
+  max-width: 860px;
+  padding: 14px 16px;
+  border: 1px solid #242e3d;
+  border-radius: 10px;
+  background: #141a24;
+  color: #b8c6d8;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.sw-intro h3 { margin: 0 0 4px; color: #eaf2ff; font-size: 15px; }
+.sw-intro p { margin: 8px 0 0; }
+.mpw-badge.hot { background: #3a2a1c; color: #ffbd82; border-color: #624225; }
+.npw-tag.hot { color: #ffbd82; border-color: #624225; }
+
 @media (max-width: 1100px) {
   .grw-kv-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .grw-table-wrap { max-height: 320px; }

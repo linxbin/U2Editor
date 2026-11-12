@@ -22,6 +22,7 @@ const growthData = require('./lib/growth');
 const dropWorkData = require('./lib/dropwork');
 const spawnWorkData = require('./lib/spawnwork');
 const mapWorkData = require('./lib/mapwork');
+const shopWorkData = require('./lib/shopwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -107,6 +108,13 @@ const mapWorkbench = mapWorkData.create({
   mongenFile: MONGEN_FILE,
   miniMapFile: path.join(ENVIR_DIR, 'MiniMap.txt'),
   miniListFile: path.join(ENVIR_DIR, 'minmaplist.txt')
+});
+
+const shopWorkbench = shopWorkData.create({
+  dbFile: path.join(DB_DIR, 'stditems.db'),
+  makeItemFile: MAKEITEM_FILE,
+  goodsFile: GOODS_FILE,
+  mallFile: MALL_FILE
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -237,6 +245,7 @@ const STATIC = {
   '/drops.js': { file: 'drops.js', type: 'application/javascript; charset=utf-8' },
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
   '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
+  '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -392,6 +401,11 @@ function configSummary() {
     out.mapwork = mapWorkbench.summary();
   } catch (e) {
     out.mapwork = { error: e.message };
+  }
+  try {
+    out.shopwork = shopWorkbench.summary();
+  } catch (e) {
+    out.shopwork = { error: e.message };
   }
   return out;
 }
@@ -677,6 +691,28 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && pathname === '/api/config/growth') {
     json(res, 200, growthWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/shopwork') {
+    if (url.searchParams.get('refresh') === '1') shopWorkbench.invalidate();
+    json(res, 200, shopWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/shopwork/detail') {
+    const type = url.searchParams.get('type');
+    const raw = url.searchParams.get('index');
+    if (!['recipe', 'goods', 'mall'].includes(type) || raw == null || !/^\d+$/.test(raw)) {
+      json(res, 400, { error: '商品类型或序号无效' });
+      return;
+    }
+    const detail = shopWorkbench.detail(type, Number(raw));
+    if (!detail) {
+      json(res, 404, { error: '未找到商品' });
+      return;
+    }
+    json(res, 200, detail);
     return;
   }
 

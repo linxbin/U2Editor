@@ -708,6 +708,25 @@ cfgEl('btnSummonReload').addEventListener('click', () => openSummonsConfig());
 cfgEl('btnSummonSave').addEventListener('click', saveSummonsConfig);
 
 window.openGoodsConfig = openGoodsConfig;
+
+async function openGoodsAt(index) {
+  const i = Number(index);
+  if (!Number.isInteger(i) || i < 0) return;
+  if (S.mode !== 'cfgGoods' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  await openGoodsConfig(true);
+  const m = CFG.goods;
+  if (!m.data || i >= m.data.entries.length) return;
+  m.search = '';
+  cfgEl('goodsSearch').value = '';
+  m.page = Math.floor(i / m.pageSize);
+  m.selected = i;
+  renderGoodsCfg();
+  buildGoodsCfgForm(i);
+  updateMeta();
+  const tr = cfgEl('goodsGrid').querySelector(`tbody tr[data-index="${i}"]`);
+  if (tr) tr.scrollIntoView({ block: 'center' });
+}
+window.openGoodsAt = openGoodsAt;
 window.saveGoodsConfig = saveGoodsConfig;
 window.openSummonsConfig = openSummonsConfig;
 window.saveSummonsConfig = saveSummonsConfig;

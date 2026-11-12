@@ -58,6 +58,9 @@
         <button class="side-tab" data-side-tab="mpw" role="tab" aria-selected="false">
           <span class="side-tab-label">地图</span><span class="count" id="mapWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="shw" role="tab" aria-selected="false">
+          <span class="side-tab-label">合成<br>商城</span><span class="count" id="shopWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
           <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
         </button>
@@ -229,6 +232,21 @@
         </div>
         <ul id="mpwList" class="file-list"></ul>
         <div id="mpwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="shw">
+        <div id="swSourceTabs" class="sw-source-tabs">
+          <button class="btn small active" data-shop-source="recipe">配方 <span id="swRecipeCount">0</span></button>
+          <button class="btn small" data-shop-source="goods">UU商城 <span id="swGoodsCount">0</span></button>
+          <button class="btn small" data-shop-source="mall">元宝商城 <span id="swMallCount">0</span></button>
+        </div>
+        <input id="swFilter" class="filter" placeholder="搜索配方 / 商品 / 物品..." autocomplete="off">
+        <div id="swFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-shop-flag="all">全部</button>
+          <button class="btn small" data-shop-flag="issues">有异常</button>
+        </div>
+        <ul id="swList" class="file-list"></ul>
+        <div id="swListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="grw">
@@ -958,6 +976,29 @@
         </div>
       </section>
 
+      <section id="shopWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>合成 / 商城工作台</strong>
+            <span id="swMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnSwReload" class="btn">重新检查</button>
+        </div>
+        <div id="swTabs" class="mon-tabs">
+          <button class="mon-tab active" data-shop-tab="detail">商品详情</button>
+          <button class="mon-tab" data-shop-tab="health">配置体检</button>
+        </div>
+        <div class="mpw-body">
+          <div id="swDetailPane" class="mpw-pane">
+            <div id="swDetail" class="mpw-detail"></div>
+          </div>
+          <div id="swHealthPane" class="mpw-pane hidden">
+            <div id="swHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="growthView" class="view hidden">        <div class="toolbar">
           <div class="title-block">
             <strong>数值 / 成长</strong>
@@ -1046,5 +1087,6 @@
   <script src="drops.js"></script>
   <script src="spawns.js"></script>
   <script src="maps.js"></script>
+  <script src="shopwork.js"></script>
 </body>
 </html>

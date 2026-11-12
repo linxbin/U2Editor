@@ -1837,7 +1837,81 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 }
 .scw-code-wrap { min-width: 0; }
 
+.cbw-edit {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 14px;
+}
+.cbw-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cbw-field label { color: #8fa0b8; font-size: 11.5px; }
+.cbw-field .cbw-input { width: 100%; margin: 0; }
+.cbw-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.cbw-edit-actions .muted { font-size: 11px; }
+.cbw-table-wrap {
+  overflow: auto;
+  border: 1px solid #242e3d;
+  border-radius: 8px;
+  max-height: 520px;
+  margin: 2px 0 4px;
+}
+.cbw-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.cbw-table th,
+.cbw-table td {
+  padding: 5px 9px;
+  border-bottom: 1px solid #1d2532;
+  text-align: left;
+  white-space: nowrap;
+}
+.cbw-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #141b26;
+  color: #7f8da3;
+  font-weight: 500;
+  font-size: 10.5px;
+}
+.cbw-table td { color: #cfd9e8; }
+.cbw-table tbody tr:hover { background: #182030; }
+.cbw-bad { color: #ff9aa2; }
+.cbw-points { display: flex; flex-wrap: wrap; gap: 4px; }
+.cbw-point {
+  padding: 1px 6px;
+  border: 1px solid #2a3446;
+  border-radius: 4px;
+  background: #0f141c;
+  color: #a9bbd2;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 10.5px;
+}
+.cbw-hero-groups { display: flex; flex-direction: column; gap: 8px; }
+.cbw-hero-group {
+  border: 1px solid #242e3d;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #121924;
+}
+.cbw-hero-head,
+.cbw-guard-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cbw-hero-head .muted,
+.cbw-guard-head .muted { font-size: 10.5px; }
+.cbw-guard-group { margin-bottom: 12px; }
+.cbw-guard-group:last-child { margin-bottom: 0; }
+
 @media (max-width: 1100px) {
+  .cbw-edit { grid-template-columns: 1fr; }
   .grw-kv-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .grw-table-wrap { max-height: 320px; }
   .dpw-table-wrap { max-height: 420px; }

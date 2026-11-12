@@ -58,6 +58,9 @@
         <button class="side-tab" data-side-tab="mpw" role="tab" aria-selected="false">
           <span class="side-tab-label">地图</span><span class="count" id="mapWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="cbw" role="tab" aria-selected="false">
+          <span class="side-tab-label">沙城<br>攻城</span><span class="count" id="castleWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="shw" role="tab" aria-selected="false">
           <span class="side-tab-label">合成<br>商城</span><span class="count" id="shopWorkCount">0</span>
         </button>
@@ -235,6 +238,11 @@
         </div>
         <ul id="mpwList" class="file-list"></ul>
         <div id="mpwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="cbw">
+        <ul id="cbwList" class="file-list"></ul>
+        <div id="cbwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="shw">
@@ -990,6 +998,29 @@
         </div>
       </section>
 
+      <section id="castleWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>沙城 / 攻城工作台</strong>
+            <span id="cbwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnCbwReload" class="btn">重新检查</button>
+        </div>
+        <div id="cbwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-cbw-tab="detail">配置详情</button>
+          <button class="mon-tab" data-cbw-tab="health">配置体检</button>
+        </div>
+        <div class="mpw-body">
+          <div id="cbwDetailPane" class="mpw-pane">
+            <div id="cbwDetail" class="mpw-detail"></div>
+          </div>
+          <div id="cbwHealthPane" class="mpw-pane hidden">
+            <div id="cbwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="shopWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1139,5 +1170,6 @@
   <script src="maps.js"></script>
   <script src="shopwork.js"></script>
   <script src="scriptwork.js"></script>
+  <script src="castlework.js"></script>
 </body>
 </html>

@@ -488,6 +488,11 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
+  if (S.mode === 'castlework') {
+    if (window.updateCastleWorkMeta) window.updateCastleWorkMeta();
+    dot.classList.toggle('on', false);
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -519,6 +524,9 @@ function confirmDiscard() {
   if (S.mode.startsWith('cfg')) {
     return window.configConfirmDiscard ? window.configConfirmDiscard() : true;
   }
+  if (S.mode === 'castlework') {
+    return window.castleConfirmDiscard ? window.castleConfirmDiscard() : true;
+  }
   if (S.mode === 'db' && dirtyCount() > 0) {
     return confirm('当前数据库有未保存的修改，确定放弃并继续？');
   }
@@ -544,6 +552,7 @@ async function openDb(name, force) {
     if (window.hideMapWorkView) window.hideMapWorkView();
     if (window.hideShopWorkView) window.hideShopWorkView();
     if (window.hideScriptWorkView) window.hideScriptWorkView();
+    if (window.hideCastleWorkView) window.hideCastleWorkView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -584,6 +593,7 @@ async function openDrop(name, force) {
     if (window.hideMapWorkView) window.hideMapWorkView();
     if (window.hideShopWorkView) window.hideShopWorkView();
     if (window.hideScriptWorkView) window.hideScriptWorkView();
+    if (window.hideCastleWorkView) window.hideCastleWorkView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -709,6 +719,7 @@ async function refreshState() {
   if (window.refreshMapWorkState) window.refreshMapWorkState(st);
   if (window.refreshShopWorkState) window.refreshShopWorkState(st);
   if (window.refreshScriptWorkState) window.refreshScriptWorkState(st);
+  if (window.refreshCastleWorkState) window.refreshCastleWorkState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -788,6 +799,10 @@ document.querySelectorAll('.side-tab').forEach((tab) => {
     }
     if (tab.dataset.sideTab === 'scw' && window.openScriptView) {
       window.openScriptView();
+      return;
+    }
+    if (tab.dataset.sideTab === 'cbw' && window.openCastleView) {
+      window.openCastleView();
       return;
     }
     if (tab.dataset.sideTab === 'grw' && window.openGrowthView) {

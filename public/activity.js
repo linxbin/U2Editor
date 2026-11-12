@@ -730,6 +730,7 @@ async function openActivityView(tab, id) {
   if (window.hideMapWorkView) window.hideMapWorkView();
   if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
+  if (window.hideCastleWorkView) window.hideCastleWorkView();
   actEl('dbView').classList.add('hidden');
   actEl('dropView').classList.add('hidden');
   actEl('activityView').classList.remove('hidden');

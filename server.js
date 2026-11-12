@@ -24,6 +24,7 @@ const spawnWorkData = require('./lib/spawnwork');
 const mapWorkData = require('./lib/mapwork');
 const shopWorkData = require('./lib/shopwork');
 const scriptWorkData = require('./lib/scriptwork');
+const castleWorkData = require('./lib/castlework');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -48,6 +49,12 @@ const GOODS_FILE = path.join(ENVIR_DIR, 'goodsconfig');
 const MONSTER_CHAIN_FILE = path.join(ENVIR_DIR, 'MonsterChain.ini');
 const MONSTER_CHILD_FILE = path.join(ENVIR_DIR, 'MonsterChild.ini');
 const MALL_FILE = path.join(ENVIR_DIR, 'PTItems.xml');
+const SABUK_FILE = path.join(ENVIR_DIR, 'Sabuk.txt');
+const SABUK_PRIZES_FILE = path.join(ENVIR_DIR, 'SabukPrizes.txt');
+const WAR_FILE = path.join(ENVIR_DIR, 'WarDate.txt');
+const GUILD_FILE = path.join(ENVIR_DIR, 'Guildlist.txt');
+const HERO_FILE = path.join(ENVIR_DIR, 'Herofightmappointlist.TXT');
+const GUARD_FILE = path.join(ENVIR_DIR, 'GuardList.txt');
 const ITEMDESC_FILE = path.join(ENVIR_DIR, 'itemdesc.txt');
 const PUBLIC_DIR = path.join(APP_DIR, 'public');
 const BASE_PORT = Number(process.env.PORT || 8866);
@@ -123,6 +130,18 @@ const scriptWorkbench = scriptWorkData.create({
   npcFile: NPC_FILE,
   mapInfoFile: MAPINFO_FILE,
   taskWorkbench
+});
+
+const castleWorkbench = castleWorkData.create({
+  sabukFile: SABUK_FILE,
+  prizesFile: SABUK_PRIZES_FILE,
+  warFile: WAR_FILE,
+  guildFile: GUILD_FILE,
+  heroFile: HERO_FILE,
+  guardFile: GUARD_FILE,
+  mapInfoFile: MAPINFO_FILE,
+  itemFile: path.join(DB_DIR, 'stditems.db'),
+  itemNames
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -255,6 +274,7 @@ const STATIC = {
   '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
   '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
   '/scriptwork.js': { file: 'scriptwork.js', type: 'application/javascript; charset=utf-8' },
+  '/castlework.js': { file: 'castlework.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -420,6 +440,11 @@ function configSummary() {
     out.scriptwork = scriptWorkbench.summary();
   } catch (e) {
     out.scriptwork = { error: e.message };
+  }
+  try {
+    out.castlework = castleWorkbench.summary();
+  } catch (e) {
+    out.castlework = { error: e.message };
   }
   return out;
 }
@@ -754,6 +779,22 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/scriptwork/search') {
     const q = url.searchParams.get('q') || '';
     json(res, 200, scriptWorkbench.search(q, url.searchParams.get('limit')));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/castlework') {
+    if (url.searchParams.get('refresh') === '1') castleWorkbench.invalidate();
+    json(res, 200, castleWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/castlework/save') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, { file: 'Sabuk.txt', ...castleWorkbench.save(body) });
+    } catch (e) {
+      json(res, 400, { error: e.message });
+    }
     return;
   }
 

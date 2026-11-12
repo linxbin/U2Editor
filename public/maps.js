@@ -650,6 +650,7 @@ async function openMapView(sel) {
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
   if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
+  if (window.hideCastleWorkView) window.hideCastleWorkView();
   const dbView = mpwEl('dbView');
   const dropView = mpwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

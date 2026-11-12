@@ -553,6 +553,7 @@ async function openDropsView(sel) {
   if (window.hideCastleWorkView) window.hideCastleWorkView();
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
+  if (window.hideHealthWorkView) window.hideHealthWorkView();
   const dbView = dpwEl('dbView');
   const dropView = dpwEl('dropView');
   if (dbView) dbView.classList.add('hidden');
@@ -587,6 +588,7 @@ async function openDropsView(sel) {
 }
 
 window.openDropsView = openDropsView;
+window.dpwJumpIssue = dpwJumpIssue;
 window.hideDropWorkView = () => {
   const view = dpwEl('dropWorkView');
   if (!view) return;

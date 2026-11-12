@@ -31,6 +31,9 @@
         <button class="side-tab active" data-side-tab="db" role="tab" aria-selected="true">
           <span class="side-tab-label">数据库</span><span class="count" id="dbCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="hw" role="tab" aria-selected="false">
+          <span class="side-tab-label">配置<br>体检</span><span class="count" id="healthWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="drop" role="tab" aria-selected="false">
           <span class="side-tab-label">爆率</span><span class="count" id="dropCount">0</span>
         </button>
@@ -329,6 +332,22 @@
         </div>
         <ul id="grwList" class="file-list"></ul>
         <div id="grwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="hw">
+        <input id="hwQuery" class="filter" placeholder="搜索问题 / 文件 / 工作台..." autocomplete="off">
+        <div id="hwSeverityFilter" class="mon-flag-filter">
+          <button class="btn small active" data-hw-severity="all">全部 <span id="hwAllCount">0</span></button>
+          <button class="btn small" data-hw-severity="error">错误 <span id="hwErrorCount">0</span></button>
+          <button class="btn small" data-hw-severity="warn">警告 <span id="hwWarnCount">0</span></button>
+          <button class="btn small" data-hw-severity="info">提示 <span id="hwInfoCount">0</span></button>
+        </div>
+        <div class="scw-global">
+          <button id="btnHwSearch" class="btn small">搜索</button>
+          <button id="btnHwClear" class="btn small">清空</button>
+        </div>
+        <ul id="hwSourceList" class="file-list"></ul>
+        <div id="hwListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -1110,6 +1129,27 @@
         </div>
       </section>
 
+      <section id="healthWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>配置健康总览</strong>
+            <span id="hwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnHwReload" class="btn">重新检查全部</button>
+        </div>
+        <div class="mpw-body">
+          <div class="mpw-pane">
+            <div id="hwSummary"></div>
+            <div id="hwSourceTable" class="tsk-section"></div>
+            <div class="tsk-section">
+              <div class="tsk-section-head"><h4>问题清单</h4><span id="hwViewHint" class="tsk-empty"></span></div>
+              <div id="hwIssueList" class="mon-issues"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="shopWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1262,5 +1302,6 @@
   <script src="castlework.js"></script>
   <script src="textwork.js"></script>
   <script src="starterwork.js"></script>
+  <script src="healthwork.js"></script>
 </body>
 </html>

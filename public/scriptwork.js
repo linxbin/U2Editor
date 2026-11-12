@@ -675,6 +675,7 @@ async function openScriptView(sel) {
   if (window.hideCastleWorkView) window.hideCastleWorkView();
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
+  if (window.hideHealthWorkView) window.hideHealthWorkView();
   const dbView = scwEl('dbView');
   const dropView = scwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

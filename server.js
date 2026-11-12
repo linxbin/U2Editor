@@ -27,6 +27,7 @@ const scriptWorkData = require('./lib/scriptwork');
 const castleWorkData = require('./lib/castlework');
 const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
+const healthWorkData = require('./lib/healthwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -170,6 +171,21 @@ const itemWorkbench = itemWorkData.create({
   taskWorkbench
 });
 
+const healthWorkbench = healthWorkData.create({
+  sources: [
+    { key: 'itemwork', label: '物品 / 装备', health: () => itemWorkbench.health(), invalidate: () => itemWorkbench.invalidate() },
+    { key: 'growth', label: '数值 / 成长', health: () => growthWorkbench.health(), invalidate: () => growthWorkbench.invalidate() },
+    { key: 'dropwork', label: '爆率', health: () => dropWorkbench.health(), invalidate: () => dropWorkbench.invalidate() },
+    { key: 'spawnwork', label: '刷怪', health: () => spawnWorkbench.health(), invalidate: () => spawnWorkbench.invalidate() },
+    { key: 'mapwork', label: '地图', health: () => mapWorkbench.health(), invalidate: () => mapWorkbench.invalidate() },
+    { key: 'shopwork', label: '合成 / 商城', health: () => shopWorkbench.health(), invalidate: () => shopWorkbench.invalidate() },
+    { key: 'scriptwork', label: '脚本检索', health: () => scriptWorkbench.health(), invalidate: () => scriptWorkbench.invalidate() },
+    { key: 'castlework', label: '沙城 / 攻城', health: () => castleWorkbench.health(), invalidate: () => castleWorkbench.invalidate() },
+    { key: 'textwork', label: '文案 / 对话', health: () => textWorkbench.health(), invalidate: () => textWorkbench.invalidate() },
+    { key: 'starterwork', label: '新手 / 充值', health: () => starterWorkbench.health(), invalidate: () => starterWorkbench.invalidate() }
+  ]
+});
+
 const DB_NAME_RE = /^[^\\/:*?"<>|]+\.db$/i;
 const DROP_NAME_RE = /^[^\\/:*?"<>|]+\.txt$/i;
 
@@ -290,6 +306,7 @@ const STATIC = {
   '/castlework.js': { file: 'castlework.js', type: 'application/javascript; charset=utf-8' },
   '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
   '/starterwork.js': { file: 'starterwork.js', type: 'application/javascript; charset=utf-8' },
+  '/healthwork.js': { file: 'healthwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -470,6 +487,11 @@ function configSummary() {
     out.starterwork = starterWorkbench.summary();
   } catch (e) {
     out.starterwork = { error: e.message };
+  }
+  try {
+    out.healthwork = healthWorkbench.summary();
+  } catch (e) {
+    out.healthwork = { error: e.message };
   }
   return out;
 }
@@ -864,6 +886,17 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/starterwork/search') {
     const q = url.searchParams.get('q') || '';
     json(res, 200, starterWorkbench.search(q, url.searchParams.get('limit')));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/healthwork') {
+    if (url.searchParams.get('refresh') === '1') healthWorkbench.invalidate();
+    json(res, 200, healthWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/healthwork/search') {
+    json(res, 200, healthWorkbench.search(url.searchParams.get('q') || '', url.searchParams.get('limit')));
     return;
   }
 

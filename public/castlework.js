@@ -571,6 +571,7 @@ async function openCastleView(sel) {
   if (window.hideScriptWorkView) window.hideScriptWorkView();
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
+  if (window.hideHealthWorkView) window.hideHealthWorkView();
   const dbView = cbwEl('dbView');
   const dropView = cbwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

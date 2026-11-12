@@ -2004,3 +2004,8 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   font-size: 11.5px;
 }
 .txw-variant-no { color: #8cc4ff; flex: 0 0 18px; }
+
+/* 配置健康总览 */
+.hw-cards { padding: 0; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.hw-num { font-size: 26px; font-weight: 600; color: #e6eefc; line-height: 1.15; }
+.hw-cards .act-card { min-height: 74px; justify-content: space-between; }

@@ -503,6 +503,11 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
+  if (S.mode === 'healthwork') {
+    if (window.updateHealthWorkMeta) window.updateHealthWorkMeta();
+    dot.classList.toggle('on', false);
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -565,6 +570,7 @@ async function openDb(name, force) {
     if (window.hideCastleWorkView) window.hideCastleWorkView();
     if (window.hideTextWorkView) window.hideTextWorkView();
     if (window.hideStarterWorkView) window.hideStarterWorkView();
+    if (window.hideHealthWorkView) window.hideHealthWorkView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -608,6 +614,7 @@ async function openDrop(name, force) {
     if (window.hideCastleWorkView) window.hideCastleWorkView();
     if (window.hideTextWorkView) window.hideTextWorkView();
     if (window.hideStarterWorkView) window.hideStarterWorkView();
+    if (window.hideHealthWorkView) window.hideHealthWorkView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -736,6 +743,7 @@ async function refreshState() {
   if (window.refreshCastleWorkState) window.refreshCastleWorkState(st);
   if (window.refreshTextWorkState) window.refreshTextWorkState(st);
   if (window.refreshStarterWorkState) window.refreshStarterWorkState(st);
+  if (window.refreshHealthWorkState) window.refreshHealthWorkState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -831,6 +839,10 @@ document.querySelectorAll('.side-tab').forEach((tab) => {
     }
     if (tab.dataset.sideTab === 'grw' && window.openGrowthView) {
       window.openGrowthView();
+      return;
+    }
+    if (tab.dataset.sideTab === 'hw' && window.openHealthWorkView) {
+      window.openHealthWorkView();
       return;
     }
     showSideTab(tab.dataset.sideTab);

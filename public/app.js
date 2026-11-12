@@ -57,6 +57,17 @@ function toast(message, type) {
   }, type === 'err' ? 7000 : 5000);
 }
 
+function setSideGroup(name, expanded) {
+  document.querySelectorAll('.side-group').forEach((group) => {
+    const open = expanded && group.dataset.sideGroup === name;
+    group.classList.toggle('collapsed', !open);
+    const head = group.querySelector('.side-group-head');
+    if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const caret = group.querySelector('.side-group-caret');
+    if (caret) caret.textContent = open ? '▾' : '▸';
+  });
+}
+
 function showSideTab(name) {
   document.querySelectorAll('.side-tab').forEach((tab) => {
     const active = tab.dataset.sideTab === name;
@@ -66,6 +77,9 @@ function showSideTab(name) {
   document.querySelectorAll('.side-pane').forEach((pane) => {
     pane.classList.toggle('active', pane.dataset.sidePane === name);
   });
+  const tab = document.querySelector('.side-tab[data-side-tab="' + name + '"]');
+  const group = tab && tab.closest('.side-group');
+  if (group) setSideGroup(group.dataset.sideGroup, true);
 }
 window.showSideTab = showSideTab;
 
@@ -782,6 +796,14 @@ $('#rowSearch').addEventListener('input', () => {
 
 $('#dbFilter').addEventListener('input', renderDbList);
 $('#dropFilter').addEventListener('input', renderDropList);
+
+document.querySelectorAll('.side-group-head').forEach((head) => {
+  head.addEventListener('click', () => {
+    const group = head.closest('.side-group');
+    if (!group) return;
+    setSideGroup(group.dataset.sideGroup, group.classList.contains('collapsed'));
+  });
+});
 
 document.querySelectorAll('.side-tab').forEach((tab) => {
   tab.addEventListener('click', () => {

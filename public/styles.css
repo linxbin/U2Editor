@@ -62,29 +62,76 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
   width: 58px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 6px;
+  gap: 2px;
+  padding: 6px 4px;
   background: #10151d;
   border-right: 1px solid #222b3a;
   overflow-y: auto;
 }
+.side-group {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.side-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.side-group.collapsed .side-group-items { display: none; }
+.side-group-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin: 2px 0 1px;
+  padding: 4px 0 5px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #222b3a;
+  color: #74849a;
+  cursor: pointer;
+}
+.side-group-head:hover { color: #cfd9e8; }
+.side-group-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+.side-group-meta {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #5f6e83;
+  font-size: 9.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.side-group-caret { font-size: 8px; }
 .side-tab {
   flex: 0 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 10px 2px;
+  gap: 2px;
+  padding: 6px 0;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
   color: #8796ab;
   font-size: 11.5px;
+  line-height: 1.2;
   cursor: pointer;
   text-align: center;
   white-space: nowrap;
 }
+.side-tab-label { display: block; line-height: 1.2; }
+.side-tab-pinned { margin-bottom: 1px; }
 .side-tab:hover { background: #1b2330; color: #cfd9e8; }
 .side-tab.active {
   background: #1d2b44;
@@ -93,9 +140,9 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 }
 .side-tab.active .count { background: #2b3d5e; color: #cfe0ff; }
 .side-tab .count {
-  padding: 0 6px;
+  padding: 0 4px;
   font-size: 10px;
-  line-height: 15px;
+  line-height: 13px;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -551,8 +598,8 @@ th.col-idx { color: #6f7f95; }
 
 @media (max-width: 1100px) {
   .sidebar { width: 280px; flex-basis: 280px; }
-  .side-rail { flex-basis: 52px; width: 52px; padding: 8px 4px; }
-  .side-tab { font-size: 11px; padding: 9px 1px; }
+  .side-rail { flex-basis: 52px; width: 52px; padding: 6px 3px; }
+  .side-tab { font-size: 11px; padding: 5px 0; }
   .detail { width: 300px; flex-basis: 300px; }
   .drop-side { width: 270px; flex-basis: 270px; }
   .shop-list-pane { width: 360px; flex-basis: 360px; }

@@ -24,61 +24,79 @@
 
   <div class="layout">
     <aside class="sidebar">
-      <nav class="side-rail" role="tablist" aria-orientation="vertical">
-        <button class="side-tab" data-side-tab="mon" role="tab" aria-selected="false">
-          <span class="side-tab-label">怪物</span><span class="count" id="monCount">0</span>
+      <nav class="side-rail" aria-label="工作区导航">
+        <button class="side-tab side-tab-pinned" data-side-tab="hw" aria-selected="false">
+          <span class="side-tab-label">配置体检</span><span class="count" id="healthWorkCount">0</span>
         </button>
-        <button class="side-tab active" data-side-tab="db" role="tab" aria-selected="true">
-          <span class="side-tab-label">数据库</span><span class="count" id="dbCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="hw" role="tab" aria-selected="false">
-          <span class="side-tab-label">配置<br>体检</span><span class="count" id="healthWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="drop" role="tab" aria-selected="false">
-          <span class="side-tab-label">爆率</span><span class="count" id="dropCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="cfg" role="tab" aria-selected="false">
-          <span class="side-tab-label">玩法</span><span class="count" id="cfgCount">12</span>
-        </button>
-        <button class="side-tab" data-side-tab="act" role="tab" aria-selected="false">
-          <span class="side-tab-label">活动</span><span class="count" id="actCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="tsk" role="tab" aria-selected="false">
-          <span class="side-tab-label">任务</span><span class="count" id="taskCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="npcw" role="tab" aria-selected="false">
-          <span class="side-tab-label">NPC</span><span class="count" id="npcWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="itemw" role="tab" aria-selected="false">
-          <span class="side-tab-label">物品</span><span class="count" id="itemWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="dpw" role="tab" aria-selected="false">
-          <span class="side-tab-label">掉落</span><span class="count" id="dropWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="spw" role="tab" aria-selected="false">
-          <span class="side-tab-label">刷怪</span><span class="count" id="spawnWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="mpw" role="tab" aria-selected="false">
-          <span class="side-tab-label">地图</span><span class="count" id="mapWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="cbw" role="tab" aria-selected="false">
-          <span class="side-tab-label">沙城<br>攻城</span><span class="count" id="castleWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="txw" role="tab" aria-selected="false">
-          <span class="side-tab-label">文案<br>对话</span><span class="count" id="textWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="stw" role="tab" aria-selected="false">
-          <span class="side-tab-label">新手<br>充值</span><span class="count" id="starterWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="shw" role="tab" aria-selected="false">
-          <span class="side-tab-label">合成<br>商城</span><span class="count" id="shopWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="scw" role="tab" aria-selected="false">
-          <span class="side-tab-label">脚本</span><span class="count" id="scriptWorkCount">0</span>
-        </button>
-        <button class="side-tab" data-side-tab="grw" role="tab" aria-selected="false">
-          <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
-        </button>
+
+        <div class="side-group collapsed" data-side-group="raw">
+          <button type="button" class="side-group-head" aria-expanded="false">
+            <span class="side-group-label">原始数据</span>
+            <span class="side-group-meta"><span class="side-group-caret">▸</span> 4 项</span>
+          </button>
+          <div class="side-group-items">
+            <button class="side-tab active" data-side-tab="db" aria-selected="true">
+              <span class="side-tab-label">数据库</span><span class="count" id="dbCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="mon" aria-selected="false">
+              <span class="side-tab-label">怪物</span><span class="count" id="monCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="drop" aria-selected="false">
+              <span class="side-tab-label">爆率</span><span class="count" id="dropCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="cfg" aria-selected="false">
+              <span class="side-tab-label">玩法</span><span class="count" id="cfgCount">12</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="side-group" data-side-group="work">
+          <button type="button" class="side-group-head" aria-expanded="true">
+            <span class="side-group-label">工作台</span>
+            <span class="side-group-meta"><span class="side-group-caret">▾</span> 13 项</span>
+          </button>
+          <div class="side-group-items">
+            <button class="side-tab" data-side-tab="itemw" aria-selected="false">
+              <span class="side-tab-label">物品</span><span class="count" id="itemWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="grw" aria-selected="false">
+              <span class="side-tab-label">成长</span><span class="count" id="grwCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="dpw" aria-selected="false">
+              <span class="side-tab-label">掉落</span><span class="count" id="dropWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="spw" aria-selected="false">
+              <span class="side-tab-label">刷怪</span><span class="count" id="spawnWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="mpw" aria-selected="false">
+              <span class="side-tab-label">地图</span><span class="count" id="mapWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="shw" aria-selected="false">
+              <span class="side-tab-label">合成商城</span><span class="count" id="shopWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="scw" aria-selected="false">
+              <span class="side-tab-label">脚本</span><span class="count" id="scriptWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="npcw" aria-selected="false">
+              <span class="side-tab-label">NPC</span><span class="count" id="npcWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="tsk" aria-selected="false">
+              <span class="side-tab-label">任务</span><span class="count" id="taskCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="act" aria-selected="false">
+              <span class="side-tab-label">活动</span><span class="count" id="actCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="cbw" aria-selected="false">
+              <span class="side-tab-label">沙城攻城</span><span class="count" id="castleWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="txw" aria-selected="false">
+              <span class="side-tab-label">文案对话</span><span class="count" id="textWorkCount">0</span>
+            </button>
+            <button class="side-tab" data-side-tab="stw" aria-selected="false">
+              <span class="side-tab-label">新手充值</span><span class="count" id="starterWorkCount">0</span>
+            </button>
+          </div>
+        </div>
       </nav>
 
       <div class="side-body">

@@ -64,6 +64,9 @@
         <button class="side-tab" data-side-tab="txw" role="tab" aria-selected="false">
           <span class="side-tab-label">文案<br>对话</span><span class="count" id="textWorkCount">0</span>
         </button>
+        <button class="side-tab" data-side-tab="stw" role="tab" aria-selected="false">
+          <span class="side-tab-label">新手<br>充值</span><span class="count" id="starterWorkCount">0</span>
+        </button>
         <button class="side-tab" data-side-tab="shw" role="tab" aria-selected="false">
           <span class="side-tab-label">合成<br>商城</span><span class="count" id="shopWorkCount">0</span>
         </button>
@@ -265,6 +268,24 @@
         </div>
         <ul id="txwList" class="file-list"></ul>
         <div id="txwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="stw">
+        <input id="stwQuery" class="filter" placeholder="搜索礼包 / 奖励物品 / 队列..." autocomplete="off">
+        <div id="stwFlagFilter" class="mon-flag-filter">
+          <button class="btn small active" data-stw-flag="all">全部</button>
+          <button class="btn small" data-stw-flag="issues">异常</button>
+          <button class="btn small" data-stw-flag="missing-item">缺物品</button>
+          <button class="btn small" data-stw-flag="empty">空档位</button>
+          <button class="btn small" data-stw-flag="invalid">格式</button>
+          <button class="btn small" data-stw-flag="duplicate">重复</button>
+        </div>
+        <div class="scw-global">
+          <button id="btnStwSearch" class="btn small">搜索</button>
+          <button id="btnStwClear" class="btn small">清空</button>
+        </div>
+        <ul id="stwList" class="file-list"></ul>
+        <div id="stwListHint" class="side-note"></div>
       </div>
 
       <div class="side-pane" data-side-pane="shw">
@@ -1066,6 +1087,29 @@
         </div>
       </section>
 
+      <section id="starterWorkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>新手 / 充值 / 账号工作台</strong>
+            <span id="stwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnStwReload" class="btn">重新检查</button>
+        </div>
+        <div id="stwTabs" class="mon-tabs">
+          <button class="mon-tab active" data-stw-tab="detail">礼包索引</button>
+          <button class="mon-tab" data-stw-tab="health">配置体检</button>
+        </div>
+        <div class="mpw-body">
+          <div id="stwDetailPane" class="mpw-pane">
+            <div id="stwDetail" class="mpw-detail"></div>
+          </div>
+          <div id="stwHealthPane" class="mpw-pane hidden">
+            <div id="stwHealthList" class="mon-issues"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="shopWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1217,5 +1261,6 @@
   <script src="scriptwork.js"></script>
   <script src="castlework.js"></script>
   <script src="textwork.js"></script>
+  <script src="starterwork.js"></script>
 </body>
 </html>

@@ -627,7 +627,8 @@ async function openShopView(sel) {
   if (window.hideMapWorkView) window.hideMapWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
   if (window.hideCastleWorkView) window.hideCastleWorkView();
-    if (window.hideTextWorkView) window.hideTextWorkView();
+  if (window.hideTextWorkView) window.hideTextWorkView();
+  if (window.hideStarterWorkView) window.hideStarterWorkView();
   const dbView = swEl('dbView');
   const dropView = swEl('dropView');
   if (dbView) dbView.classList.add('hidden');

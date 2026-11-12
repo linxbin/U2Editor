@@ -26,6 +26,7 @@ const shopWorkData = require('./lib/shopwork');
 const scriptWorkData = require('./lib/scriptwork');
 const castleWorkData = require('./lib/castlework');
 const textWorkData = require('./lib/textwork');
+const starterWorkData = require('./lib/starterwork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -149,6 +150,11 @@ const textWorkbench = textWorkData.create({
   envirDir: ENVIR_DIR,
   itemFile: path.join(DB_DIR, 'stditems.db'),
   mapInfoFile: MAPINFO_FILE
+});
+
+const starterWorkbench = starterWorkData.create({
+  envirDir: ENVIR_DIR,
+  itemFile: path.join(DB_DIR, 'stditems.db')
 });
 
 const itemWorkbench = itemWorkData.create({
@@ -283,6 +289,7 @@ const STATIC = {
   '/scriptwork.js': { file: 'scriptwork.js', type: 'application/javascript; charset=utf-8' },
   '/castlework.js': { file: 'castlework.js', type: 'application/javascript; charset=utf-8' },
   '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
+  '/starterwork.js': { file: 'starterwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -458,6 +465,11 @@ function configSummary() {
     out.textwork = textWorkbench.summary();
   } catch (e) {
     out.textwork = { error: e.message };
+  }
+  try {
+    out.starterwork = starterWorkbench.summary();
+  } catch (e) {
+    out.starterwork = { error: e.message };
   }
   return out;
 }
@@ -830,6 +842,28 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/textwork/search') {
     const q = url.searchParams.get('q') || '';
     json(res, 200, textWorkbench.search(q, url.searchParams.get('limit')));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/starterwork') {
+    if (url.searchParams.get('refresh') === '1') starterWorkbench.invalidate();
+    json(res, 200, starterWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/starterwork/detail') {
+    const detail = starterWorkbench.detail(url.searchParams.get('source'), url.searchParams.get('index'));
+    if (!detail) {
+      json(res, 404, { error: '未找到礼包条目' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/starterwork/search') {
+    const q = url.searchParams.get('q') || '';
+    json(res, 200, starterWorkbench.search(q, url.searchParams.get('limit')));
     return;
   }
 

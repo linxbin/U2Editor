@@ -605,7 +605,8 @@ async function openTextWorkView(sel) {
   if (window.hideShopWorkView) window.hideShopWorkView();
   if (window.hideScriptWorkView) window.hideScriptWorkView();
   if (window.hideCastleWorkView) window.hideCastleWorkView();
-    if (window.hideTextWorkView) window.hideTextWorkView();
+  if (window.hideTextWorkView) window.hideTextWorkView();
+  if (window.hideStarterWorkView) window.hideStarterWorkView();
   const dbView = txwEl('dbView');
   const dropView = txwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

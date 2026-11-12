@@ -23,6 +23,7 @@ const dropWorkData = require('./lib/dropwork');
 const spawnWorkData = require('./lib/spawnwork');
 const mapWorkData = require('./lib/mapwork');
 const shopWorkData = require('./lib/shopwork');
+const npcBuyData = require('./lib/npcbuy');
 const scriptWorkData = require('./lib/scriptwork');
 const castleWorkData = require('./lib/castlework');
 const textWorkData = require('./lib/textwork');
@@ -126,6 +127,14 @@ const shopWorkbench = shopWorkData.create({
   makeItemFile: MAKEITEM_FILE,
   goodsFile: GOODS_FILE,
   mallFile: MALL_FILE
+});
+
+const npcBuyWorkbench = npcBuyData.create({
+  scriptDir: NPC_SCRIPT_DIR,
+  npcFile: NPC_FILE,
+  mapInfoFile: MAPINFO_FILE,
+  itemNames,
+  itemIndex
 });
 
 const scriptWorkbench = scriptWorkData.create({
@@ -302,6 +311,7 @@ const STATIC = {
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
   '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
   '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
+  '/npcbuywork.js': { file: 'npcbuywork.js', type: 'application/javascript; charset=utf-8' },
   '/scriptwork.js': { file: 'scriptwork.js', type: 'application/javascript; charset=utf-8' },
   '/castlework.js': { file: 'castlework.js', type: 'application/javascript; charset=utf-8' },
   '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
@@ -312,6 +322,7 @@ const STATIC = {
 
 let cachedMonsterNames = null;
 let cachedItemNames = null;
+let cachedItemIndex = null;
 
 function readNames(file) {
   const { rows } = dbe.loadDb(file);
@@ -331,6 +342,18 @@ function monsterNames() {
 function itemNames() {
   if (!cachedItemNames) cachedItemNames = readNames(path.join(DB_DIR, 'stditems.db'));
   return cachedItemNames;
+}
+
+function itemIndex() {
+  if (!cachedItemIndex) {
+    const { rows } = dbe.loadDb(path.join(DB_DIR, 'stditems.db'));
+    cachedItemIndex = new Map();
+    for (const row of rows) {
+      const name = row.Name == null ? '' : String(row.Name).trim();
+      if (name && !cachedItemIndex.has(name)) cachedItemIndex.set(name, Number(row.Idx));
+    }
+  }
+  return cachedItemIndex;
 }
 
 function configSummary() {
@@ -549,7 +572,10 @@ async function handle(req, res) {
     const result = dbe.saveDb(file, body.changes, body.added);
     const saved = path.basename(file).toLowerCase();
     if (saved === 'monster.db') cachedMonsterNames = null;
-    if (saved === 'stditems.db') cachedItemNames = null;
+    if (saved === 'stditems.db') {
+      cachedItemNames = null;
+      cachedItemIndex = null;
+    }
     json(res, 200, result);
     return;
   }
@@ -679,6 +705,32 @@ async function handle(req, res) {
     const body = await readBody(req);
     const result = npcData.saveShops(NPC_SCRIPT_DIR, body, new Set(itemNames()));
     json(res, 200, result);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/npcbuy') {
+    if (url.searchParams.get('refresh') === '1') npcBuyWorkbench.invalidate();
+    json(res, 200, npcBuyWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/npcbuy/detail') {
+    const file = url.searchParams.get('file') || '';
+    try {
+      json(res, 200, npcBuyWorkbench.detail(file));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/npcbuy/save') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, npcBuyWorkbench.save(body.file, body));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
     return;
   }
 

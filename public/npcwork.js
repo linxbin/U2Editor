@@ -656,6 +656,7 @@ async function openNpcWorkView(index) {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideHealthWorkView) window.hideHealthWorkView();
+  if (window.hideNpcBuyView) window.hideNpcBuyView();
   const dbView = npwEl('dbView');
   const dropView = npwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

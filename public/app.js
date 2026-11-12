@@ -77,6 +77,7 @@ const WORK_GROUPS = [
       { target: 'mpw', name: '地图', desc: '查看地图、NPC、刷怪与跳转规则' },
       { target: 'spw', name: '刷怪', desc: '按地图检查刷怪范围、数量与间隔' },
       { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
+      { target: 'nbw', name: 'NPC购买菜单', desc: '可视化增删改脚本里的购买项与价目' },
       { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
     ]
   },
@@ -678,6 +679,7 @@ async function openDb(name, force) {
     if (window.hideActivityView) window.hideActivityView();
     if (window.hideTaskView) window.hideTaskView();
     if (window.hideNpcWorkView) window.hideNpcWorkView();
+    if (window.hideNpcBuyView) window.hideNpcBuyView();
     if (window.hideItemWorkView) window.hideItemWorkView();
     if (window.hideGrowthView) window.hideGrowthView();
     if (window.hideDropWorkView) window.hideDropWorkView();
@@ -722,6 +724,7 @@ async function openDrop(name, force) {
     if (window.hideActivityView) window.hideActivityView();
     if (window.hideTaskView) window.hideTaskView();
     if (window.hideNpcWorkView) window.hideNpcWorkView();
+    if (window.hideNpcBuyView) window.hideNpcBuyView();
     if (window.hideItemWorkView) window.hideItemWorkView();
     if (window.hideGrowthView) window.hideGrowthView();
     if (window.hideDropWorkView) window.hideDropWorkView();
@@ -850,6 +853,7 @@ async function refreshState() {
   if (window.refreshActivityState) window.refreshActivityState(st);
   if (window.refreshTaskState) window.refreshTaskState(st);
   if (window.refreshNpcWorkState) window.refreshNpcWorkState(st);
+  if (window.refreshNpcBuyState) window.refreshNpcBuyState(st);
   if (window.refreshItemWorkState) window.refreshItemWorkState(st);
   if (window.refreshGrowthState) window.refreshGrowthState(st);
   if (window.refreshDropWorkState) window.refreshDropWorkState(st);
@@ -1017,6 +1021,10 @@ function openSideTarget(name) {
   }
   if (name === 'hw' && window.openHealthWorkView) {
     window.openHealthWorkView();
+    return;
+  }
+  if (name === 'nbw' && window.openNpcBuyView) {
+    window.openNpcBuyView();
     return;
   }
   showSideTab(name);

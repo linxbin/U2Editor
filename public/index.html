@@ -155,6 +155,12 @@
         <div id="npwListHint" class="side-note"></div>
       </div>
 
+      <div class="side-pane" data-side-pane="nbw">
+        <input id="nbwFilter" class="filter" placeholder="搜索脚本 / NPC / 地图..." autocomplete="off">
+        <ul id="nbwList" class="file-list"></ul>
+        <div id="nbwListHint" class="side-note"></div>
+      </div>
+
       <div class="side-pane" data-side-pane="itemw">
         <input id="itwFilter" class="filter" placeholder="搜索物品 / Idx / 类型..." autocomplete="off">
         <select id="itwType" class="filter itw-type" title="按类型筛选">
@@ -1117,6 +1123,18 @@
         </div>
       </section>
 
+      <section id="npcBuyView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>NPC 购买菜单</strong>
+            <span id="nbwMeta" class="muted">未选择脚本</span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnNbwReload" class="btn">重新检查</button>
+        </div>
+        <div id="nbwBody" class="nbw-body"></div>
+      </section>
+
       <section id="scriptWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1242,6 +1260,7 @@
   <script src="spawns.js"></script>
   <script src="maps.js"></script>
   <script src="shopwork.js"></script>
+  <script src="npcbuywork.js"></script>
   <script src="scriptwork.js"></script>
   <script src="castlework.js"></script>
   <script src="textwork.js"></script>

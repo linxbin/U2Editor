@@ -283,6 +283,8 @@ select option, select optgroup { background: #151b25; color: #e6edf7; }
 .btn.primary:disabled { background: #2a3a55; border-color: #33415a; color: #77869c; cursor: default; }
 .btn.small { padding: 4px 10px; font-size: 12px; }
 .btn.ghost { background: transparent; border-color: #2f3a4d; }
+.btn.danger { background: #5a2730; border-color: #7a3540; color: #f0c7cd; }
+.btn.danger:hover { background: #6d2f3a; }
 .btn:disabled { opacity: .5; cursor: default; }
 
 .table-wrap { flex: 1; overflow: auto; min-height: 0; }

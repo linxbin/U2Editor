@@ -644,6 +644,7 @@ function updateMeta() {
     dot.classList.toggle('on', d);
     $('#btnDropSave').disabled = !d;
     $('#btnDropSave').textContent = d ? '保存' : '保存';
+    $('#btnDropDelete').disabled = !S.dropFile;
     $('#statusText').textContent = S.dropFile
       ? `已打开 ${S.dropFile}${d ? ' · 有未保存修改' : ''}`
       : '未选择爆率文件';
@@ -1048,6 +1049,63 @@ async function saveDrop() {
   }
 }
 
+async function deleteDrop() {
+  if (!S.dropFile) return toast('请先选择爆率文件', 'err');
+  if (!confirmDiscard()) return;
+  const name = S.dropFile;
+  let refs;
+  try {
+    refs = await api('/api/drop/references?file=' + encodeURIComponent(name));
+  } catch (e) {
+    toast('检查引用失败，已取消删除：' + e.message, 'err');
+    return;
+  }
+  const parts = [];
+  const monsterNames = refs.monsterNames || [];
+  const spawnMaps = refs.spawnMaps || [];
+  if (monsterNames.length) {
+    const head = monsterNames.slice(0, 8).join('、');
+    parts.push(`Monster.DB：${monsterNames.length} 个怪物（${head}${monsterNames.length > 8 ? ' 等' : ''}）`);
+  }
+  if (refs.spawnCount) {
+    const maps = spawnMaps.slice(0, 6).join('、');
+    parts.push(`Mongen.txt：${refs.spawnCount} 条刷怪${maps ? `（${maps}${spawnMaps.length > 6 ? ' 等' : ''}）` : ''}`);
+  }
+  let msg = `确定删除爆率文件「${name}」？\n\n`;
+  if (refs.referenced) {
+    msg += '检测到该文件仍被引用：\n' + parts.join('\n') +
+      '\n\n删除后这些怪物将失去该爆率文件。\n';
+  } else {
+    msg += '未检测到怪物或刷怪配置引用。\n';
+  }
+  msg += '\n删除前会自动备份到 MonItems\\备份，此操作不可撤销。';
+  if (!confirm(msg)) return;
+
+  $('#btnDropDelete').disabled = true;
+  try {
+    const res = await api('/api/drop/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: name, force: refs.referenced === true })
+    });
+    S.dropFile = null;
+    S.dropText = '';
+    S.dropOriginal = '';
+    S.dropCRLF = false;
+    $('#dropText').value = '';
+    $('#dropTitle').textContent = '未选择爆率文件';
+    $('#dropMeta').textContent = '';
+    if (NAV.current && NAV.current.name === '__drop') NAV.current = null;
+    toast(`已删除 ${res.file}\n备份：${res.backup}`, 'ok');
+    renderDropStats();
+    await refreshState();
+    updateMeta();
+  } catch (e) {
+    toast('删除失败：' + e.message, 'err');
+    updateMeta();
+  }
+}
+
 function applyState(st) {
   S.dbs = st.dbs;
   S.drops = st.drops;
@@ -1292,6 +1350,7 @@ $('#btnDropReload').addEventListener('click', () => {
   if (S.dropFile && confirmDiscard()) openDrop(S.dropFile, true);
 });
 $('#btnDropSave').addEventListener('click', saveDrop);
+$('#btnDropDelete').addEventListener('click', deleteDrop);
 $('#dropText').addEventListener('input', () => {
   S.dropText = $('#dropText').value;
   updateMeta();

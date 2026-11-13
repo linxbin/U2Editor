@@ -769,6 +769,68 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/drop/references') {
+    let file;
+    try {
+      file = safePath(DROP_DIR, url.searchParams.get('file'), DROP_NAME_RE);
+    } catch (e) {
+      json(res, 400, { error: e.message });
+      return;
+    }
+    if (!fs.existsSync(file)) {
+      json(res, 404, { error: '爆率文件不存在：' + path.basename(file) });
+      return;
+    }
+    try {
+      json(res, 200, dropWorkbench.references(path.basename(file)));
+    } catch (e) {
+      json(res, 500, { error: '检查引用失败：' + e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/drop/delete') {
+    const body = await readBody(req);
+    let file;
+    try {
+      file = safePath(DROP_DIR, body.file, DROP_NAME_RE);
+    } catch (e) {
+      json(res, 400, { error: e.message });
+      return;
+    }
+    if (!fs.existsSync(file)) {
+      json(res, 404, { error: '爆率文件不存在：' + path.basename(file) });
+      return;
+    }
+    let refs;
+    try {
+      refs = dropWorkbench.references(path.basename(file));
+    } catch (e) {
+      json(res, 500, { error: '检查引用失败，已取消删除：' + e.message });
+      return;
+    }
+    if (refs.referenced && body.force !== true) {
+      json(res, 409, {
+        error: `爆率文件仍被 ${refs.monsterCount} 个怪物、${refs.spawnCount} 条刷怪引用`,
+        references: refs
+      });
+      return;
+    }
+    const backup = dbe.backupFile(file);
+    fs.unlinkSync(file);
+    dropWorkbench.invalidate();
+    itemWorkbench.invalidate();
+    monsterWorkbench.invalidate();
+    spawnWorkbench.invalidate();
+    json(res, 200, {
+      ok: true,
+      file: path.basename(file),
+      backup,
+      references: refs
+    });
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/config/mongen') {
     const parsed = configs.parseMongen(MONGEN_FILE);
     json(res, 200, {

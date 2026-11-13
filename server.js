@@ -30,6 +30,7 @@ const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
 const itemUseData = require('./lib/itemuse');
+const teleportData = require('./lib/teleport');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -143,6 +144,14 @@ const itemUseWorkbench = itemUseData.create({
   itemNames,
   monsterNames,
   mapCodes
+});
+
+const teleportWorkbench = teleportData.create({
+  scriptDir: NPC_SCRIPT_DIR,
+  npcFile: NPC_FILE,
+  mapCodes,
+  mapNames,
+  npcAdd: (row) => npcData.saveNpc(NPC_FILE, { added: [row] })
 });
 
 const scriptWorkbench = scriptWorkData.create({
@@ -326,6 +335,7 @@ const STATIC = {
   '/starterwork.js': { file: 'starterwork.js', type: 'application/javascript; charset=utf-8' },
   '/healthwork.js': { file: 'healthwork.js', type: 'application/javascript; charset=utf-8' },
   '/itemusework.js': { file: 'itemusework.js', type: 'application/javascript; charset=utf-8' },
+  '/teleportwork.js': { file: 'teleportwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -403,172 +413,280 @@ function mapCodes() {
   return cachedMapCodes;
 }
 
-function configSummary() {
+function mapNames() {
   const out = {};
   try {
-    const m = configs.parseMongen(MONGEN_FILE);
-    out.mongen = { entries: m.entries.length, maps: m.maps.length, invalid: m.special.length };
-  } catch (e) {
-    out.mongen = { error: e.message };
-  }
-  try {
-    const m = configs.parseMakeItem(MAKEITEM_FILE);
-    out.makeitem = { recipes: m.recipes.length, items: m.recipes.reduce((n, r) => n + r.items.length, 0) };
-  } catch (e) {
-    out.makeitem = { error: e.message };
-  }
-  try {
-    const a = configs.parseAppellation(APPELLATION_FILE);
-    out.appellation = { rows: a.rows.length, sections: a.sections.map((s) => s.name) };
-  } catch (e) {
-    out.appellation = { error: e.message };
-  }
-  try {
-    const n = npcData.parseNpc(NPC_FILE);
-    out.npc = { rows: n.rows.length, maps: n.maps.length, scripts: n.scripts.length };
-    const s = npcData.parseShops(NPC_SCRIPT_DIR, n.rows);
-    out.shops = { npcs: s.shops.length, files: s.files.length, goods: s.goods };
-  } catch (e) {
-    out.npc = { error: e.message };
-    out.shops = { error: e.message };
-  }
-  try {
-    const g = extras.parseGoodsConfig(GOODS_FILE);
-    out.goods = { entries: g.entries.length, invalid: g.special.length };
-  } catch (e) {
-    out.goods = { error: e.message };
-  }
-  try {
-    const c = extras.parseMonsterChain(MONSTER_CHAIN_FILE);
-    const ch = extras.parseMonsterChild(MONSTER_CHILD_FILE);
-    out.summons = {
-      chainGroups: c.groups.length,
-      chainEntries: c.entries.length,
-      chainInvalid: c.special.length,
-      childGroups: ch.groups.length,
-      childEntries: ch.rows.length,
-      childInvalid: ch.special.length
-    };
-  } catch (e) {
-    out.summons = { error: e.message };
-  }
-  try {
-    const m = mallData.parseMall(MALL_FILE);
-    out.mall = {
-      items: m.items.length,
-      hot: m.hotItems.length,
-      classes: m.classes.length,
-      subclasses: m.subclasses.length,
-      invalid: m.special.length
-    };
-  } catch (e) {
-    out.mall = { error: e.message };
-  }
-  try {
-    const m = mapData.parseMapInfo(MAPINFO_FILE);
-    const counts = {};
-    let total = 0;
-    for (const def of mapData.SECTIONS) {
-      const n = m.sections[def.key].rows.length;
-      counts[def.key] = n;
-      total += n;
+    for (const row of npcData.parseMapNames(MAPINFO_FILE)) out[row.code] = row.name;
+  } catch (e) { /* MapInfo 读取失败时只缺少中文名 */ }
+  return out;
+}
+
+const yieldTick = () => new Promise((resolve) => setImmediate(resolve));
+
+async function configSummary() {
+  const out = {};
+  const steps = [];
+  steps.push(() => {
+    try {
+      const m = configs.parseMongen(MONGEN_FILE);
+      out.mongen = { entries: m.entries.length, maps: m.maps.length, invalid: m.special.length };
+    } catch (e) {
+      out.mongen = { error: e.message };
     }
-    out.mapinfo = { total, counts };
-  } catch (e) {
-    out.mapinfo = { error: e.message };
-  }
-  try {
-    const o = opsData.parseOps(ENVIR_DIR);
-    out.ops = {
-      notices: Object.keys(o.notices.files).length,
-      quiz: o.quiz.rows.length,
-      boxes: o.boxes.rows.length,
-      starter: o.starter.rows.length
-    };
-  } catch (e) {
-    out.ops = { error: e.message };
-  }
-  try {
-    out.extra = { files: extraData.listFiles().length };
-  } catch (e) {
-    out.extra = { error: e.message };
-  }
-  try {
-    out.activity = activityWorkbench.summary();
-  } catch (e) {
-    out.activity = { error: e.message };
-  }
-  try {
-    out.tasks = taskWorkbench.summary();
-  } catch (e) {
-    out.tasks = { error: e.message };
-  }
-  try {
-    out.npcwork = npcWorkbench.summary();
-  } catch (e) {
-    out.npcwork = { error: e.message };
-  }
-  try {
-    out.itemwork = itemWorkbench.summary();
-  } catch (e) {
-    out.itemwork = { error: e.message };
-  }
-  try {
-    out.growth = growthWorkbench.summary();
-  } catch (e) {
-    out.growth = { error: e.message };
-  }
-  try {
-    out.dropwork = dropWorkbench.summary();
-  } catch (e) {
-    out.dropwork = { error: e.message };
-  }
-  try {
-    out.spawnwork = spawnWorkbench.summary();
-  } catch (e) {
-    out.spawnwork = { error: e.message };
-  }
-  try {
-    out.mapwork = mapWorkbench.summary();
-  } catch (e) {
-    out.mapwork = { error: e.message };
-  }
-  try {
-    out.shopwork = shopWorkbench.summary();
-  } catch (e) {
-    out.shopwork = { error: e.message };
-  }
-  try {
-    out.scriptwork = scriptWorkbench.summary();
-  } catch (e) {
-    out.scriptwork = { error: e.message };
-  }
-  try {
-    out.castlework = castleWorkbench.summary();
-  } catch (e) {
-    out.castlework = { error: e.message };
-  }
-  try {
-    out.textwork = textWorkbench.summary();
-  } catch (e) {
-    out.textwork = { error: e.message };
-  }
-  try {
-    out.starterwork = starterWorkbench.summary();
-  } catch (e) {
-    out.starterwork = { error: e.message };
-  }
-  try {
-    out.healthwork = healthWorkbench.summary();
-  } catch (e) {
-    out.healthwork = { error: e.message };
-  }
-  try {
-    out.itemuse = itemUseWorkbench.summary();
-  } catch (e) {
-    out.itemuse = { error: e.message };
+  });
+  steps.push(() => {
+    try {
+      const m = configs.parseMakeItem(MAKEITEM_FILE);
+      out.makeitem = { recipes: m.recipes.length, items: m.recipes.reduce((n, r) => n + r.items.length, 0) };
+    } catch (e) {
+      out.makeitem = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const a = configs.parseAppellation(APPELLATION_FILE);
+      out.appellation = { rows: a.rows.length, sections: a.sections.map((s) => s.name) };
+    } catch (e) {
+      out.appellation = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const n = npcData.parseNpc(NPC_FILE);
+      out.npc = { rows: n.rows.length, maps: n.maps.length, scripts: n.scripts.length };
+      const s = npcData.parseShops(NPC_SCRIPT_DIR, n.rows);
+      out.shops = { npcs: s.shops.length, files: s.files.length, goods: s.goods };
+    } catch (e) {
+      out.npc = { error: e.message };
+      out.shops = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const g = extras.parseGoodsConfig(GOODS_FILE);
+      out.goods = { entries: g.entries.length, invalid: g.special.length };
+    } catch (e) {
+      out.goods = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const c = extras.parseMonsterChain(MONSTER_CHAIN_FILE);
+      const ch = extras.parseMonsterChild(MONSTER_CHILD_FILE);
+      out.summons = {
+        chainGroups: c.groups.length,
+        chainEntries: c.entries.length,
+        chainInvalid: c.special.length,
+        childGroups: ch.groups.length,
+        childEntries: ch.rows.length,
+        childInvalid: ch.special.length
+      };
+    } catch (e) {
+      out.summons = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const m = mallData.parseMall(MALL_FILE);
+      out.mall = {
+        items: m.items.length,
+        hot: m.hotItems.length,
+        classes: m.classes.length,
+        subclasses: m.subclasses.length,
+        invalid: m.special.length
+      };
+    } catch (e) {
+      out.mall = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const m = mapData.parseMapInfo(MAPINFO_FILE);
+      const counts = {};
+      let total = 0;
+      for (const def of mapData.SECTIONS) {
+        const n = m.sections[def.key].rows.length;
+        counts[def.key] = n;
+        total += n;
+      }
+      out.mapinfo = { total, counts };
+    } catch (e) {
+      out.mapinfo = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      const o = opsData.parseOps(ENVIR_DIR);
+      out.ops = {
+        notices: Object.keys(o.notices.files).length,
+        quiz: o.quiz.rows.length,
+        boxes: o.boxes.rows.length,
+        starter: o.starter.rows.length
+      };
+    } catch (e) {
+      out.ops = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.extra = { files: extraData.listFiles().length };
+    } catch (e) {
+      out.extra = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.activity = activityWorkbench.summary();
+    } catch (e) {
+      out.activity = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.tasks = taskWorkbench.summary();
+    } catch (e) {
+      out.tasks = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.npcwork = npcWorkbench.summary();
+    } catch (e) {
+      out.npcwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.itemwork = itemWorkbench.summary();
+    } catch (e) {
+      out.itemwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.growth = growthWorkbench.summary();
+    } catch (e) {
+      out.growth = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.dropwork = dropWorkbench.summary();
+    } catch (e) {
+      out.dropwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.spawnwork = spawnWorkbench.summary();
+    } catch (e) {
+      out.spawnwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.mapwork = mapWorkbench.summary();
+    } catch (e) {
+      out.mapwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.shopwork = shopWorkbench.summary();
+    } catch (e) {
+      out.shopwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.scriptwork = scriptWorkbench.summary();
+    } catch (e) {
+      out.scriptwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.castlework = castleWorkbench.summary();
+    } catch (e) {
+      out.castlework = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.textwork = textWorkbench.summary();
+    } catch (e) {
+      out.textwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.starterwork = starterWorkbench.summary();
+    } catch (e) {
+      out.starterwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.healthwork = healthWorkbench.summary();
+    } catch (e) {
+      out.healthwork = { error: e.message };
+    }
+  });
+  steps.push(() => {
+    try {
+      out.itemuse = itemUseWorkbench.summary();
+    } catch (e) {
+      out.itemuse = { error: e.message };
+    }
+  });
+  for (const step of steps) {
+    step();
+    await yieldTick();
   }
   return out;
+}
+
+let cachedState = null;
+let cachedStateAt = 0;
+let statePromise = null;
+let stateGeneration = 0;
+const STATE_CACHE_MS = 2000;
+
+async function buildState() {
+  return {
+    root: ROOT,
+    dbDir: DB_DIR,
+    dropDir: DROP_DIR,
+    dbs: listDbs(),
+    drops: listDrops(),
+    configs: await configSummary()
+  };
+}
+
+function getState() {
+  if (cachedState && Date.now() - cachedStateAt < STATE_CACHE_MS) {
+    return Promise.resolve(cachedState);
+  }
+  if (statePromise) return statePromise;
+  const gen = stateGeneration;
+  const p = buildState().then((data) => {
+    if (gen === stateGeneration) {
+      cachedState = data;
+      cachedStateAt = Date.now();
+    }
+    return data;
+  }).finally(() => {
+    if (statePromise === p) statePromise = null;
+  });
+  statePromise = p;
+  return p;
+}
+
+function invalidateState() {
+  stateGeneration += 1;
+  cachedState = null;
+  cachedStateAt = 0;
+  statePromise = null;
 }
 
 async function handle(req, res) {
@@ -588,15 +706,23 @@ async function handle(req, res) {
     return;
   }
 
-  if (req.method === 'GET' && pathname === '/api/state') {
+  if (req.method === 'GET' && pathname === '/api/state/bootstrap') {
     json(res, 200, {
       root: ROOT,
       dbDir: DB_DIR,
       dropDir: DROP_DIR,
       dbs: listDbs(),
-      drops: listDrops(),
-      configs: configSummary()
+      drops: listDrops()
     });
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/state') {
+    try {
+      json(res, 200, await getState());
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
     return;
   }
 
@@ -822,6 +948,45 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/config/teleport') {
+    try {
+      json(res, 200, teleportWorkbench.list());
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/teleport/detail') {
+    const key = url.searchParams.get('key') || '';
+    try {
+      json(res, 200, teleportWorkbench.detail(key));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/teleport/save') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, teleportWorkbench.save(body));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/teleport/create') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, teleportWorkbench.createNpc(body));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/config/npcwork') {
     json(res, 200, npcWorkbench.list());
     return;
@@ -966,6 +1131,26 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/scriptwork/search') {
     const q = url.searchParams.get('q') || '';
     json(res, 200, scriptWorkbench.search(q, url.searchParams.get('limit')));
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/scriptwork/check') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, scriptWorkbench.check(body.text));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/scriptwork/save') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, scriptWorkbench.save(body));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
     return;
   }
 
@@ -1350,6 +1535,10 @@ function start() {
         json(res, 500, { error: err.message || String(err) });
       } else {
         res.end();
+      }
+    }).finally(() => {
+      if (req.method === 'POST' && res.statusCode >= 200 && res.statusCode < 400) {
+        invalidateState();
       }
     });
   });

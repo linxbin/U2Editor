@@ -79,6 +79,7 @@ const WORK_GROUPS = [
       { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
       { target: 'nbw', name: 'NPC购买菜单', desc: '可视化增删改脚本里的购买项与价目' },
       { target: 'itwu', name: '物品使用触发', desc: '查看和编辑特殊物品使用后的效果函数与礼包' },
+      { target: 'tpw', name: '传送点', desc: '查看和编辑 ComTrans1 的 NPC 传送目的地' },
       { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
     ]
   },
@@ -662,6 +663,9 @@ function confirmDiscard() {
   if (S.mode === 'castlework') {
     return window.castleConfirmDiscard ? window.castleConfirmDiscard() : true;
   }
+  if (S.mode === 'scriptwork') {
+    return window.scriptConfirmDiscard ? window.scriptConfirmDiscard() : true;
+  }
   if (S.mode === 'db' && dirtyCount() > 0) {
     return confirm('当前数据库有未保存的修改，确定放弃并继续？');
   }
@@ -682,6 +686,7 @@ async function openDb(name, force) {
     if (window.hideNpcWorkView) window.hideNpcWorkView();
     if (window.hideNpcBuyView) window.hideNpcBuyView();
     if (window.hideItemUseView) window.hideItemUseView();
+    if (window.hideTeleportView) window.hideTeleportView();
     if (window.hideItemWorkView) window.hideItemWorkView();
     if (window.hideGrowthView) window.hideGrowthView();
     if (window.hideDropWorkView) window.hideDropWorkView();
@@ -728,6 +733,7 @@ async function openDrop(name, force) {
     if (window.hideNpcWorkView) window.hideNpcWorkView();
     if (window.hideNpcBuyView) window.hideNpcBuyView();
     if (window.hideItemUseView) window.hideItemUseView();
+    if (window.hideTeleportView) window.hideTeleportView();
     if (window.hideItemWorkView) window.hideItemWorkView();
     if (window.hideGrowthView) window.hideGrowthView();
     if (window.hideDropWorkView) window.hideDropWorkView();
@@ -844,8 +850,7 @@ async function saveDrop() {
   }
 }
 
-async function refreshState() {
-  const st = await api('/api/state');
+function applyState(st) {
   S.dbs = st.dbs;
   S.drops = st.drops;
   S.configs = st.configs || null;
@@ -858,6 +863,7 @@ async function refreshState() {
   if (window.refreshNpcWorkState) window.refreshNpcWorkState(st);
   if (window.refreshNpcBuyState) window.refreshNpcBuyState(st);
   if (window.refreshItemUseState) window.refreshItemUseState(st);
+  if (window.refreshTeleportState) window.refreshTeleportState(st);
   if (window.refreshItemWorkState) window.refreshItemWorkState(st);
   if (window.refreshGrowthState) window.refreshGrowthState(st);
   if (window.refreshDropWorkState) window.refreshDropWorkState(st);
@@ -872,22 +878,37 @@ async function refreshState() {
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
+async function refreshState() {
+  applyState(await api('/api/state'));
+}
+
 async function init() {
+  let boot;
   try {
-    await refreshState();
+    boot = await api('/api/state/bootstrap');
   } catch (e) {
     $('#statusText').textContent = '无法连接本地服务';
     toast('无法连接本地服务：' + e.message + '\n请通过启动编辑器.bat 启动', 'err');
     return;
   }
+  S.dbs = boot.dbs;
+  S.drops = boot.drops;
+  updateWorkNavBadges();
+  renderDbList();
+  renderDropList();
   const preferred =
     S.dbs.find((d) => d.name.toLowerCase() === 'stditems.db' && !d.error) ||
     S.dbs.find((d) => !d.error);
   if (preferred) {
-    await openDb(preferred.name, true);
+    try {
+      await openDb(preferred.name, true);
+    } catch (e) {
+      toast('读取数据库失败：' + e.message, 'err');
+    }
   } else {
     toast('数据库目录中没有可解析的 .db 文件', 'err');
   }
+  refreshState().catch(() => {});
 }
 
 $('#grid tbody').addEventListener('click', (e) => {
@@ -1033,6 +1054,10 @@ function openSideTarget(name) {
   }
   if (name === 'itwu' && window.openItemUseView) {
     window.openItemUseView();
+    return;
+  }
+  if (name === 'tpw' && window.openTeleportView) {
+    window.openTeleportView();
     return;
   }
   showSideTab(name);

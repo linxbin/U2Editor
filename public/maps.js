@@ -646,6 +646,7 @@ async function openMapView(sel) {
   if (window.hideNpcWorkView) window.hideNpcWorkView();
   if (window.hideNpcBuyView) window.hideNpcBuyView();
   if (window.hideItemUseView) window.hideItemUseView();
+  if (window.hideTeleportView) window.hideTeleportView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();

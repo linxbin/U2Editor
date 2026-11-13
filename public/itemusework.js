@@ -609,6 +609,7 @@ async function openItemUseView(sel) {
   S.mode = 'itemuse';
   if (typeof hideAllViews === 'function') hideAllViews();
   if (window.hideNpcBuyView) window.hideNpcBuyView();
+  if (window.hideTeleportView) window.hideTeleportView();
   const view = iuwEl('itemUseView');
   if (view) view.classList.remove('hidden');
   if (window.showSideTab) window.showSideTab('itwu');

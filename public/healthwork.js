@@ -417,6 +417,7 @@ async function openHealthWorkView(sel) {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideItemUseView) window.hideItemUseView();
+  if (window.hideTeleportView) window.hideTeleportView();
   const dbView = hwEl('dbView');
   const dropView = hwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

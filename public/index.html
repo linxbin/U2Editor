@@ -261,7 +261,7 @@
       </div>
 
       <div class="side-pane" data-side-pane="scw">
-        <input id="scwFilter" class="filter" placeholder="搜索脚本文件名..." autocomplete="off">
+        <input id="scwFilter" class="filter" placeholder="搜索脚本名 / NPC / 用途..." autocomplete="off">
         <div id="scwFlagFilter" class="mon-flag-filter">
           <button class="btn small active" data-scw-flag="all">全部</button>
           <button class="btn small" data-scw-flag="issues">有异常</button>
@@ -305,6 +305,14 @@
         <div id="iuwCatFilter" class="mon-flag-filter"></div>
         <ul id="iuwList" class="file-list"></ul>
         <div id="iuwListHint" class="side-note"></div>
+      </div>
+
+      <div class="side-pane" data-side-pane="tpw">
+        <input id="tpwFilter" class="filter" placeholder="搜索 NPC / 地图 / 目的地..." autocomplete="off">
+        <div id="tpwModeFilter" class="mon-flag-filter"></div>
+        <div class="nbw-actions tpw-add-row"><button id="btnTpwAdd" class="btn small primary">新增传送点</button></div>
+        <ul id="tpwList" class="file-list"></ul>
+        <div id="tpwListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -1154,6 +1162,19 @@
         <div id="iuwBody" class="nbw-body"></div>
       </section>
 
+      <section id="teleportView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>NPC 传送点</strong>
+            <span id="tpwMeta" class="muted">未选择传送点</span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnTpwReload" class="btn">重新检查</button>
+        </div>
+        <div id="tpwBody" class="nbw-body"></div>
+        <datalist id="tpwMapList"></datalist>
+      </section>
+
       <section id="scriptWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1287,5 +1308,6 @@
   <script src="starterwork.js"></script>
   <script src="healthwork.js"></script>
   <script src="itemusework.js"></script>
+  <script src="teleportwork.js"></script>
 </body>
 </html>

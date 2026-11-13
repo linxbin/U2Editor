@@ -21,7 +21,13 @@ const SCW = {
   lineFilter: '',
   targetLine: null,
   searchTimer: null,
-  lineTimer: null
+  lineTimer: null,
+  editing: false,
+  editText: '',
+  editOriginal: '',
+  editHash: '',
+  editSyntax: null,
+  editSaving: false
 };
 
 const SCW_TAB_KEYS = ['detail', 'search', 'health'];
@@ -217,7 +223,8 @@ function scwRenderList() {
   const rows = SCW.data.scripts.filter((row) => {
     if (SCW.flag === 'issues' && !row.issueCount) return false;
     if (SCW.flag === 'orphan' && !row.orphan) return false;
-    return !q || row.name.toLowerCase().includes(q) || row.base.toLowerCase().includes(q);
+    return !q || row.name.toLowerCase().includes(q) || row.base.toLowerCase().includes(q) ||
+      (row.desc || '').toLowerCase().includes(q);
   });
   const shown = rows.slice(0, SCW_LIST_LIMIT);
   for (const row of shown) {
@@ -231,6 +238,12 @@ function scwRenderList() {
     if (!row.encodingOk) name.appendChild(scwTag('编码异常', 'bad'));
     if (row.issueCount && !row.orphan) name.appendChild(scwTag('异常 ' + row.issueCount, 'warn'));
     li.appendChild(name);
+    if (row.desc) {
+      const desc = document.createElement('div');
+      desc.className = 'fmeta scw-desc';
+      desc.textContent = row.desc;
+      li.appendChild(desc);
+    }
     const meta = document.createElement('div');
     meta.className = 'fmeta';
     const parts = [row.lineCount + ' 行', 'NPC ' + row.npcCount, '任务 ' + row.taskCount];
@@ -356,6 +369,291 @@ function scwRenderMaps(refs) {
   return scwSection('涉及地图', maps.length + ' 张', '<div class="npw-orphans">' + tags + '</div>');
 }
 
+function scwEditDirty() {
+  return SCW.editing && SCW.editText !== SCW.editOriginal;
+}
+
+function scwStartEdit() {
+  if (!SCW.detail || SCW.editing) return;
+  SCW.editing = true;
+  SCW.editText = SCW.detail.lines.join('\n');
+  SCW.editOriginal = SCW.editText;
+  SCW.editHash = SCW.detail.hash || '';
+  SCW.editSyntax = null;
+  scwRenderDetail();
+}
+
+function scwCancelEdit() {
+  if (scwEditDirty() && !confirm('放弃当前脚本的未保存修改？')) return;
+  SCW.editing = false;
+  SCW.editSyntax = null;
+  scwRenderDetail();
+}
+
+function scwSyncGutterScroll() {
+  const ta = scwEl('scwEditor');
+  const gutter = scwEl('scwGutter');
+  if (ta && gutter) gutter.scrollTop = ta.scrollTop;
+}
+
+function scwUpdateGutter() {
+  const ta = scwEl('scwEditor');
+  const gutter = scwEl('scwGutter');
+  if (!ta || !gutter) return;
+  const count = ta.value.split('\n').length;
+  if (gutter.childElementCount !== count) {
+    let html = '';
+    for (let i = 1; i <= count; i++) html += '<div>' + i + '</div>';
+    gutter.innerHTML = html;
+  }
+  gutter.scrollTop = ta.scrollTop;
+}
+
+function scwEditLineCount() {
+  return SCW.editText ? SCW.editText.split('\n').length : 0;
+}
+
+function scwUpdateEditNote() {
+  const note = scwEl('scwEditNote');
+  if (!note) return;
+  const lines = scwEditLineCount();
+  const base = SCW.editOriginal ? SCW.editOriginal.split('\n').length : 0;
+  if (!scwEditDirty()) {
+    note.textContent = lines + ' 行 · 未修改';
+    return;
+  }
+  const delta = lines - base;
+  const deltaText = delta === 0 ? '' : (delta > 0 ? '，+' + delta + ' 行' : '，' + delta + ' 行');
+  note.textContent = lines + ' 行 · 已修改' + deltaText;
+}
+
+function scwStripComment(text) {
+  let quote = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === '#') return text.slice(0, i);
+  }
+  return text;
+}
+
+function scwEditorKeydown(e) {
+  const ta = e.currentTarget;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    scwSaveEdit();
+    return;
+  }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    ta.setRangeText('    ', ta.selectionStart, ta.selectionEnd, 'end');
+    SCW.editText = ta.value;
+    scwUpdateGutter();
+    scwUpdateEditNote();
+    return;
+  }
+  if (e.key === 'Enter' && ta.selectionStart === ta.selectionEnd) {
+    const value = ta.value;
+    const start = ta.selectionStart;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const before = value.slice(lineStart, start);
+    const indent = /^[ \t]*/.exec(before)[0];
+    const extra = /:\s*$/.test(scwStripComment(before)) ? '    ' : '';
+    if (indent || extra) {
+      e.preventDefault();
+      ta.setRangeText('\n' + indent + extra, start, ta.selectionEnd, 'end');
+      SCW.editText = ta.value;
+      scwUpdateGutter();
+      scwUpdateEditNote();
+    }
+  }
+}
+
+function scwGotoEditLine(line) {
+  if (!line) return;
+  const ta = scwEl('scwEditor');
+  if (!ta) return;
+  const lines = ta.value.split('\n');
+  let start = 0;
+  for (let i = 0; i < line - 1 && i < lines.length; i++) start += lines[i].length + 1;
+  const end = start + (lines[line - 1] || '').length;
+  ta.focus();
+  ta.setSelectionRange(start, end);
+  ta.scrollTop = Math.max(0, (line - 3) * 18);
+  scwSyncGutterScroll();
+}
+
+function scwRenderSyntaxPanel() {
+  const box = scwEl('scwSyntax');
+  if (!box) return;
+  const brief = scwEl('scwSyntaxBrief');
+  const res = SCW.editSyntax;
+  if (!res) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    if (brief) {
+      brief.textContent = '';
+      brief.className = 'scw-brief';
+    }
+    return;
+  }
+  box.classList.remove('hidden');
+  if (brief) {
+    if (res.ok) {
+      brief.textContent = '语法通过';
+      brief.className = 'scw-brief ok';
+    } else {
+      brief.textContent = res.errors.length + ' 个语法问题';
+      brief.className = 'scw-brief bad';
+    }
+  }
+  const engine = res.engine === 'python' ? 'Python 3 解析器' : '内置基础检查';
+  const head = res.ok
+    ? '<div class="scw-syntax-head ok">语法检测通过 · ' + engine + '</div>'
+    : '<div class="scw-syntax-head bad">检测到 ' + res.errors.length + ' 个问题 · ' + engine + '</div>';
+  const rows = [];
+  for (const err of res.errors || []) {
+    rows.push('<div class="scw-syntax-row err" data-scw-line="' + (err.line || 0) + '">' +
+      '<span class="scw-syntax-line">' + (err.line ? '第 ' + err.line + ' 行' : '—') + '</span>' +
+      '<span class="scw-syntax-msg">' + scwEsc(err.message) + '</span></div>');
+  }
+  if (res.warnings && res.warnings.length) {
+    rows.push('<div class="scw-syntax-sub">Python 2.4 兼容性提示</div>');
+    for (const warn of res.warnings) {
+      rows.push('<div class="scw-syntax-row warn" data-scw-line="' + (warn.line || 0) + '">' +
+        '<span class="scw-syntax-line">' + (warn.line ? '第 ' + warn.line + ' 行' : '—') + '</span>' +
+        '<span class="scw-syntax-msg">' + scwEsc(warn.message) + '</span></div>');
+    }
+  }
+  if (res.note) rows.push('<div class="scw-syntax-note">' + scwEsc(res.note) + '</div>');
+  box.innerHTML = head + rows.join('');
+  box.querySelectorAll('[data-scw-line]').forEach((row) => {
+    row.addEventListener('click', () => scwGotoEditLine(Number(row.dataset.scwLine)));
+  });
+  if (!res.ok || (res.warnings && res.warnings.length)) {
+    try {
+      box.scrollIntoView({ block: 'nearest' });
+    } catch (e) {
+    }
+  }
+}
+
+async function scwCheckEdit() {
+  const ta = scwEl('scwEditor');
+  if (ta) SCW.editText = ta.value;
+  const btn = document.querySelector('[data-scw-act="check"]');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api('/api/config/scriptwork/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: SCW.editText })
+    });
+    SCW.editSyntax = res;
+    scwRenderSyntaxPanel();
+    return res;
+  } catch (e) {
+    swToastSafe('语法检测失败：' + e.message);
+    return null;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function scwSaveEdit() {
+  if (!SCW.detail) return;
+  const ta = scwEl('scwEditor');
+  if (ta) SCW.editText = ta.value;
+  const checked = await scwCheckEdit();
+  if (!checked) {
+    if (!confirm('语法检测不可用，仍要保存吗？')) return;
+  } else if (checked.errors && checked.errors.length) {
+    const first = checked.errors[0];
+    const hint = first.line ? '（第 ' + first.line + ' 行：' + first.message + '）' : '';
+    if (!confirm('语法检测发现 ' + checked.errors.length + ' 个问题' + hint + '，仍要保存吗？')) return;
+  }
+  const btn = document.querySelector('[data-scw-act="save"]');
+  if (btn) btn.disabled = true;
+  SCW.editSaving = true;
+  try {
+    const out = await api('/api/config/scriptwork/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: SCW.detail.name, hash: SCW.editHash, text: SCW.editText })
+    });
+    if (out.changed) {
+      swToastSafe('已保存 ' + out.name + '（' + out.size + ' 字节 · ' + out.lineCount + ' 行）\n备份：' + out.backup, 'ok');
+    } else {
+      swToastSafe('内容没有变化，未写入文件', 'ok');
+    }
+    SCW.editing = false;
+    SCW.editSyntax = null;
+    SCW.stale = true;
+    SCW.detail = Object.assign({}, SCW.detail, {
+      hash: out.hash,
+      size: out.size,
+      lineCount: out.lineCount,
+      encodingOk: true,
+      lines: SCW.editText.split('\n')
+    });
+    scwRenderDetail();
+    scwLoad().then(() => scwRenderList()).catch(() => {});
+  } catch (e) {
+    if (e.status === 409) {
+      swToastSafe('保存失败：' + e.message + '\n请取消编辑后重新打开脚本再修改', 'err');
+    } else {
+      swToastSafe('保存失败：' + e.message, 'err');
+    }
+  } finally {
+    SCW.editSaving = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+function scwEditorHtml() {
+  const d = SCW.detail;
+  return '<div class="mpw-section"><div class="mpw-section-head"><strong>编辑脚本</strong>' +
+    '<span class="muted" id="scwEditNote">' + (d ? d.lineCount : 0) + ' 行</span>' +
+    '<span id="scwSyntaxBrief" class="scw-brief"></span>' +
+    '<div class="scw-edit-actions">' +
+    '<button class="btn small" data-scw-act="check">语法检测</button>' +
+    '<button class="btn small primary" data-scw-act="save">保存</button>' +
+    '<button class="btn small" data-scw-act="cancel">取消</button>' +
+    '</div></div>' +
+    '<div id="scwSyntax" class="scw-syntax hidden"></div>' +
+    '<div class="sw-editor"><div class="sw-gutter" id="scwGutter"></div>' +
+    '<textarea id="scwEditor" class="sw-textarea" spellcheck="false" wrap="off"></textarea></div>' +
+    '</div>';
+}
+
+function scwInitEditor() {
+  const ta = scwEl('scwEditor');
+  if (!ta) return;
+  ta.value = SCW.editText;
+  ta.addEventListener('input', () => {
+    SCW.editText = ta.value;
+    scwUpdateEditNote();
+    scwUpdateGutter();
+  });
+  ta.addEventListener('scroll', scwSyncGutterScroll);
+  ta.addEventListener('keydown', scwEditorKeydown);
+  scwUpdateGutter();
+  scwUpdateEditNote();
+  scwRenderSyntaxPanel();
+  ta.focus({ preventScroll: true });
+  ta.setSelectionRange(0, 0);
+  ta.scrollTop = 0;
+  scwSyncGutterScroll();
+}
+
 function scwRenderDetail() {
   const box = scwEl('scwDetail');
   const tools = scwEl('scwDetailTools');
@@ -374,6 +672,7 @@ function scwRenderDetail() {
     return;
   }
   if (tools) tools.classList.remove('hidden');
+  if (SCW.editing && tools) tools.classList.add('hidden');
   if (SCW.detailLoading && !SCW.detail) {
     box.innerHTML = '<div class="mpw-empty">正在读取「' + scwEsc(SCW.selected) + '」…</div>';
     scwUpdateLineInfo();
@@ -406,13 +705,17 @@ function scwRenderDetail() {
     scwKv('商店货品', refs.shops ? refs.shops.goodsCount + ' 条' : '0 条') +
     scwKv('脚本引用', (refs.importedBy || []).length + ' 被引用') +
     '</div>';
-  const code = '<div class="mpw-section"><div class="mpw-section-head"><strong>脚本内容</strong>' +
-    '<span class="muted" id="scwCodeNote">' + d.lineCount + ' 行</span></div>' +
-    '<div class="npw-script scw-code scw-code-wrap" id="scwCode"></div></div>';
+  const code = SCW.editing
+    ? scwEditorHtml()
+    : '<div class="mpw-section"><div class="mpw-section-head"><strong>脚本内容</strong>' +
+      '<span class="muted" id="scwCodeNote">' + d.lineCount + ' 行</span>' +
+      '<button class="btn small" data-scw-act="edit">编辑源码</button></div>' +
+      '<div class="npw-script scw-code scw-code-wrap" id="scwCode"></div></div>';
   box.innerHTML = head + overview + code + scwRenderNpcs(refs) + scwRenderShop(refs) +
     scwRenderTasks(refs) + scwRenderScriptRefs(refs) + scwRenderMaps(refs) +
     swRenderIssuesSafe(d.issues, '脚本体检');
-  scwDrawLines();
+  if (SCW.editing) scwInitEditor();
+  else scwDrawLines();
 }
 
 function swRenderIssuesSafe(issues, title) {
@@ -565,6 +868,11 @@ function scwRenderAll() {
 }
 
 async function scwOpen(name, line) {
+  if (scwEditDirty() && !confirm('当前脚本有未保存的修改，确定放弃并继续？')) return;
+  if (SCW.editing) {
+    SCW.editing = false;
+    SCW.editSyntax = null;
+  }
   const row = scwScriptRow(name);
   if (!row) {
     SCW.selected = null;
@@ -661,6 +969,10 @@ async function scwGotoTask(id) {
 async function openScriptView(sel) {
   if (S.mode !== 'scriptwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
   S.mode = 'scriptwork';
+  if (!scwEditDirty()) {
+    SCW.editing = false;
+    SCW.editSyntax = null;
+  }
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();
   if (window.hideActivityView) window.hideActivityView();
@@ -668,6 +980,7 @@ async function openScriptView(sel) {
   if (window.hideNpcWorkView) window.hideNpcWorkView();
   if (window.hideNpcBuyView) window.hideNpcBuyView();
   if (window.hideItemUseView) window.hideItemUseView();
+  if (window.hideTeleportView) window.hideTeleportView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
@@ -718,6 +1031,8 @@ async function openScriptView(sel) {
 }
 
 window.openScriptView = openScriptView;
+window.scriptConfirmDiscard = () => !scwEditDirty() ||
+  confirm('当前脚本有未保存的修改，确定放弃并继续？');
 window.hideScriptWorkView = () => {
   const view = scwEl('scriptWorkView');
   if (!view) return;
@@ -863,6 +1178,10 @@ function scwBindEvents() {
       else if (act === 'task') await scwGotoTask(Number(btn.dataset.id));
       else if (act === 'script') await scwOpen(btn.dataset.name, null);
       else if (act === 'issue-script' || act === 'issue-npc') await syncIssueAction(btn);
+      else if (act === 'edit') scwStartEdit();
+      else if (act === 'cancel') scwCancelEdit();
+      else if (act === 'save') await scwSaveEdit();
+      else if (act === 'check') await scwCheckEdit();
     });
   }
   const health = scwEl('scwHealthList');

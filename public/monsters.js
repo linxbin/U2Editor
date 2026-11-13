@@ -262,9 +262,6 @@ function monShowShell() {
   if (window.hideActivityView) window.hideActivityView();
   if (window.hideTaskView) window.hideTaskView();
   if (window.hideNpcWorkView) window.hideNpcWorkView();
-  if (window.hideNpcBuyView) window.hideNpcBuyView();
-  if (window.hideItemUseView) window.hideItemUseView();
-  if (window.hideTeleportView) window.hideTeleportView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
@@ -276,6 +273,7 @@ function monShowShell() {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideHealthWorkView) window.hideHealthWorkView();
+  if (window.hideYswView) window.hideYswView();
   if (window.showSideTab) window.showSideTab('mon');
   S.mode = 'monster';
   monEl('dbView').classList.add('hidden');

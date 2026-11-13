@@ -1117,9 +1117,6 @@ async function openTaskView(tab, id) {
   if (window.hideMonsterView) window.hideMonsterView();
   if (window.hideActivityView) window.hideActivityView();
   if (window.hideNpcWorkView) window.hideNpcWorkView();
-  if (window.hideNpcBuyView) window.hideNpcBuyView();
-  if (window.hideItemUseView) window.hideItemUseView();
-  if (window.hideTeleportView) window.hideTeleportView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
@@ -1131,6 +1128,7 @@ async function openTaskView(tab, id) {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideHealthWorkView) window.hideHealthWorkView();
+  if (window.hideYswView) window.hideYswView();
   const dbView = tskEl('dbView');
   const dropView = tskEl('dropView');
   if (dbView) dbView.classList.add('hidden');

@@ -669,9 +669,6 @@ async function openItemWorkView(index) {
   if (window.hideActivityView) window.hideActivityView();
   if (window.hideTaskView) window.hideTaskView();
   if (window.hideNpcWorkView) window.hideNpcWorkView();
-  if (window.hideNpcBuyView) window.hideNpcBuyView();
-  if (window.hideItemUseView) window.hideItemUseView();
-  if (window.hideTeleportView) window.hideTeleportView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
   if (window.hideSpawnWorkView) window.hideSpawnWorkView();
@@ -682,6 +679,7 @@ async function openItemWorkView(index) {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideHealthWorkView) window.hideHealthWorkView();
+  if (window.hideYswView) window.hideYswView();
   const dbView = itwEl('dbView');
   const dropView = itwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

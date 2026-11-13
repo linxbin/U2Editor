@@ -23,14 +23,12 @@ const dropWorkData = require('./lib/dropwork');
 const spawnWorkData = require('./lib/spawnwork');
 const mapWorkData = require('./lib/mapwork');
 const shopWorkData = require('./lib/shopwork');
-const npcBuyData = require('./lib/npcbuy');
 const scriptWorkData = require('./lib/scriptwork');
 const castleWorkData = require('./lib/castlework');
 const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
-const itemUseData = require('./lib/itemuse');
-const teleportData = require('./lib/teleport');
+const ysWorkData = require('./lib/yswork');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -131,29 +129,6 @@ const shopWorkbench = shopWorkData.create({
   mallFile: MALL_FILE
 });
 
-const npcBuyWorkbench = npcBuyData.create({
-  scriptDir: NPC_SCRIPT_DIR,
-  npcFile: NPC_FILE,
-  mapInfoFile: MAPINFO_FILE,
-  itemNames,
-  itemIndex
-});
-
-const itemUseWorkbench = itemUseData.create({
-  scriptDir: NPC_SCRIPT_DIR,
-  itemNames,
-  monsterNames,
-  mapCodes
-});
-
-const teleportWorkbench = teleportData.create({
-  scriptDir: NPC_SCRIPT_DIR,
-  npcFile: NPC_FILE,
-  mapCodes,
-  mapNames,
-  npcAdd: (row) => npcData.saveNpc(NPC_FILE, { added: [row] })
-});
-
 const scriptWorkbench = scriptWorkData.create({
   scriptDir: NPC_SCRIPT_DIR,
   npcFile: NPC_FILE,
@@ -195,6 +170,14 @@ const itemWorkbench = itemWorkData.create({
   goodsFile: GOODS_FILE,
   mallFile: MALL_FILE,
   taskWorkbench
+});
+
+const ysWorkbench = ysWorkData.create({
+  envirDir: ENVIR_DIR,
+  npcFile: NPC_FILE,
+  scriptDir: NPC_SCRIPT_DIR,
+  gameServerIni: path.join(ENVIR_DIR, '..', 'GameServer.ini'),
+  itemWorkbench
 });
 
 const healthWorkbench = healthWorkData.create({
@@ -328,14 +311,12 @@ const STATIC = {
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
   '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
   '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
-  '/npcbuywork.js': { file: 'npcbuywork.js', type: 'application/javascript; charset=utf-8' },
   '/scriptwork.js': { file: 'scriptwork.js', type: 'application/javascript; charset=utf-8' },
   '/castlework.js': { file: 'castlework.js', type: 'application/javascript; charset=utf-8' },
   '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
   '/starterwork.js': { file: 'starterwork.js', type: 'application/javascript; charset=utf-8' },
   '/healthwork.js': { file: 'healthwork.js', type: 'application/javascript; charset=utf-8' },
-  '/itemusework.js': { file: 'itemusework.js', type: 'application/javascript; charset=utf-8' },
-  '/teleportwork.js': { file: 'teleportwork.js', type: 'application/javascript; charset=utf-8' },
+  '/yswork.js': { file: 'yswork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -632,13 +613,6 @@ async function configSummary() {
       out.healthwork = { error: e.message };
     }
   });
-  steps.push(() => {
-    try {
-      out.itemuse = itemUseWorkbench.summary();
-    } catch (e) {
-      out.itemuse = { error: e.message };
-    }
-  });
   for (const step of steps) {
     step();
     await yieldTick();
@@ -886,107 +860,6 @@ async function handle(req, res) {
     return;
   }
 
-  if (req.method === 'GET' && pathname === '/api/config/npcbuy') {
-    if (url.searchParams.get('refresh') === '1') npcBuyWorkbench.invalidate();
-    json(res, 200, npcBuyWorkbench.list());
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/npcbuy/detail') {
-    const file = url.searchParams.get('file') || '';
-    try {
-      json(res, 200, npcBuyWorkbench.detail(file));
-    } catch (e) {
-      json(res, e.status || 400, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'POST' && pathname === '/api/config/npcbuy/save') {
-    const body = await readBody(req);
-    try {
-      json(res, 200, npcBuyWorkbench.save(body.file, body));
-    } catch (e) {
-      json(res, e.status || 500, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/itemuse') {
-    if (url.searchParams.get('refresh') === '1') {
-      itemUseWorkbench.invalidate();
-      cachedMapCodes = null;
-      cachedMonsterNames = null;
-      cachedItemNames = null;
-      cachedItemIndex = null;
-    }
-    try {
-      json(res, 200, itemUseWorkbench.list());
-    } catch (e) {
-      json(res, e.status || 500, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/itemuse/detail') {
-    const item = url.searchParams.get('item') || '';
-    try {
-      json(res, 200, itemUseWorkbench.detail(item));
-    } catch (e) {
-      json(res, e.status || 400, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'POST' && pathname === '/api/config/itemuse/save') {
-    const body = await readBody(req);
-    try {
-      json(res, 200, itemUseWorkbench.save(body));
-    } catch (e) {
-      json(res, e.status || 500, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/teleport') {
-    try {
-      json(res, 200, teleportWorkbench.list());
-    } catch (e) {
-      json(res, e.status || 500, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/teleport/detail') {
-    const key = url.searchParams.get('key') || '';
-    try {
-      json(res, 200, teleportWorkbench.detail(key));
-    } catch (e) {
-      json(res, e.status || 400, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'POST' && pathname === '/api/config/teleport/save') {
-    const body = await readBody(req);
-    try {
-      json(res, 200, teleportWorkbench.save(body));
-    } catch (e) {
-      json(res, e.status || 500, { error: e.message });
-    }
-    return;
-  }
-
-  if (req.method === 'POST' && pathname === '/api/config/teleport/create') {
-    const body = await readBody(req);
-    try {
-      json(res, 200, teleportWorkbench.createNpc(body));
-    } catch (e) {
-      json(res, e.status || 500, { error: e.message });
-    }
-    return;
-  }
-
   if (req.method === 'GET' && pathname === '/api/config/npcwork') {
     json(res, 200, npcWorkbench.list());
     return;
@@ -1225,6 +1098,12 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/config/yswork') {
+    if (url.searchParams.get('refresh') === '1') ysWorkbench.invalidate();
+    json(res, 200, ysWorkbench.list());
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/config/itemwork') {
     json(res, 200, itemWorkbench.list());
     return;
@@ -1343,7 +1222,6 @@ async function handle(req, res) {
     const body = await readBody(req);
     const result = mapData.saveMapInfo(MAPINFO_FILE, body);
     cachedMapCodes = null;
-    itemUseWorkbench.invalidate();
     json(res, 200, { file: 'MapInfo', ...result });
     return;
   }

@@ -155,12 +155,6 @@
         <div id="npwListHint" class="side-note"></div>
       </div>
 
-      <div class="side-pane" data-side-pane="nbw">
-        <input id="nbwFilter" class="filter" placeholder="搜索脚本 / NPC / 地图..." autocomplete="off">
-        <ul id="nbwList" class="file-list"></ul>
-        <div id="nbwListHint" class="side-note"></div>
-      </div>
-
       <div class="side-pane" data-side-pane="itemw">
         <input id="itwFilter" class="filter" placeholder="搜索物品 / Idx / 类型..." autocomplete="off">
         <select id="itwType" class="filter itw-type" title="按类型筛选">
@@ -300,19 +294,10 @@
         <div id="hwListHint" class="side-note"></div>
       </div>
 
-      <div class="side-pane" data-side-pane="itwu">
-        <input id="iuwFilter" class="filter" placeholder="搜索物品 / 效果函数 / 分类..." autocomplete="off">
-        <div id="iuwCatFilter" class="mon-flag-filter"></div>
-        <ul id="iuwList" class="file-list"></ul>
-        <div id="iuwListHint" class="side-note"></div>
-      </div>
-
-      <div class="side-pane" data-side-pane="tpw">
-        <input id="tpwFilter" class="filter" placeholder="搜索 NPC / 地图 / 目的地..." autocomplete="off">
-        <div id="tpwModeFilter" class="mon-flag-filter"></div>
-        <div class="nbw-actions tpw-add-row"><button id="btnTpwAdd" class="btn small primary">新增传送点</button></div>
-        <ul id="tpwList" class="file-list"></ul>
-        <div id="tpwListHint" class="side-note"></div>
+      <div class="side-pane" data-side-pane="ysw">
+        <input id="yswFilter" class="filter" placeholder="搜索物品 / 脚本 / 怪物..." autocomplete="off">
+        <ul id="yswNavList" class="file-list"></ul>
+        <div id="yswListHint" class="side-note"></div>
       </div>
       </div>
     </aside>
@@ -1138,41 +1123,21 @@
         </div>
       </section>
 
-      <section id="npcBuyView" class="view hidden">
+      <section id="ysworkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
-            <strong>NPC 购买菜单</strong>
-            <span id="nbwMeta" class="muted">未选择脚本</span>
+            <strong>元神工作台</strong>
+            <span id="yswMeta" class="muted"></span>
           </div>
           <div class="spacer"></div>
-          <button id="btnNbwReload" class="btn">重新检查</button>
+          <button id="btnYswReload" class="btn">重新检查</button>
         </div>
-        <div id="nbwBody" class="nbw-body"></div>
-      </section>
-
-      <section id="itemUseView" class="view hidden">
-        <div class="toolbar">
-          <div class="title-block">
-            <strong>物品使用触发</strong>
-            <span id="iuwMeta" class="muted">未选择物品</span>
+        <div class="mpw-body">
+          <div class="mpw-pane">
+            <div id="yswSummary"></div>
+            <div id="yswContent"></div>
           </div>
-          <div class="spacer"></div>
-          <button id="btnIuwReload" class="btn">重新检查</button>
         </div>
-        <div id="iuwBody" class="nbw-body"></div>
-      </section>
-
-      <section id="teleportView" class="view hidden">
-        <div class="toolbar">
-          <div class="title-block">
-            <strong>NPC 传送点</strong>
-            <span id="tpwMeta" class="muted">未选择传送点</span>
-          </div>
-          <div class="spacer"></div>
-          <button id="btnTpwReload" class="btn">重新检查</button>
-        </div>
-        <div id="tpwBody" class="nbw-body"></div>
-        <datalist id="tpwMapList"></datalist>
       </section>
 
       <section id="scriptWorkView" class="view hidden">
@@ -1301,13 +1266,11 @@
   <script src="spawns.js"></script>
   <script src="maps.js"></script>
   <script src="shopwork.js"></script>
-  <script src="npcbuywork.js"></script>
   <script src="scriptwork.js"></script>
   <script src="castlework.js"></script>
   <script src="textwork.js"></script>
   <script src="starterwork.js"></script>
   <script src="healthwork.js"></script>
-  <script src="itemusework.js"></script>
-  <script src="teleportwork.js"></script>
+  <script src="yswork.js"></script>
 </body>
 </html>

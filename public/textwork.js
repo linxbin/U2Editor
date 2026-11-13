@@ -597,9 +597,6 @@ async function openTextWorkView(sel) {
   if (window.hideActivityView) window.hideActivityView();
   if (window.hideTaskView) window.hideTaskView();
   if (window.hideNpcWorkView) window.hideNpcWorkView();
-  if (window.hideNpcBuyView) window.hideNpcBuyView();
-  if (window.hideItemUseView) window.hideItemUseView();
-  if (window.hideTeleportView) window.hideTeleportView();
   if (window.hideItemWorkView) window.hideItemWorkView();
   if (window.hideGrowthView) window.hideGrowthView();
   if (window.hideDropWorkView) window.hideDropWorkView();
@@ -611,6 +608,7 @@ async function openTextWorkView(sel) {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideHealthWorkView) window.hideHealthWorkView();
+  if (window.hideYswView) window.hideYswView();
   const dbView = txwEl('dbView');
   const dropView = txwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

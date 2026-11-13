@@ -13,7 +13,9 @@ const MPW = {
   tab: 'detail',
   filter: '',
   flag: 'all',
-  searchTimer: null
+  searchTimer: null,
+  regSaving: false,
+  regDraft: null
 };
 
 const MPW_TAB_KEYS = ['detail', 'health'];
@@ -336,6 +338,97 @@ function mpwRenderOverview(map, d) {
   ).join('') + '</div>';
 }
 
+function mpwRenderRegister(map) {
+  if (map.known) return '';
+  const value = MPW.regDraft && MPW.regDraft.key === map.key
+    ? MPW.regDraft.name
+    : (map.name || map.miniName || '');
+  const warning = map.file ? '' :
+    '<div class="mpw-register-warn">该地图缺少 map/' + mpwEsc(map.map) +
+    '.map 文件。登记后告警会从「未登记」变为「地图文件缺失」，地图文件仍需另行补充。</div>';
+  return '<div class="mpw-section mpw-register">' +
+    '<div class="mpw-section-head"><strong>登记到 MapInfo</strong>' +
+    '<span class="muted">写入 [MAPLOAD]，自动备份</span></div>' +
+    '<div class="mpw-register-body">' +
+    '<div class="mpw-register-field"><label>地图编号</label>' +
+    '<input class="filter" id="mpwRegCode" value="' + mpwEsc(map.map) +
+    '" readonly></div>' +
+    '<div class="mpw-register-field"><label>地图名称</label>' +
+    '<input class="filter" id="mpwRegName" maxlength="64" autocomplete="off" ' +
+    'spellcheck="false" placeholder="例如：比奇省" value="' + mpwEsc(value) + '"></div>' +
+    '<div class="mpw-register-actions">' +
+    '<button class="btn btn-sm" data-mpw-act="register">登记到 MapInfo</button>' +
+    '<span class="muted">将新增一行“编号 , 名称 , 0”；写入前自动备份 MapInfo。</span></div>' +
+    warning +
+    '</div></div>';
+}
+
+async function mpwRegisterMap(btn) {
+  const map = MPW.detail && MPW.detail.map;
+  if (!map || map.known || MPW.regSaving) return;
+  const input = mpwEl('mpwRegName');
+  const name = input ? input.value.trim() : '';
+  if (!name) {
+    toast('请填写地图名称', 'err');
+    if (input) input.focus();
+    return;
+  }
+  if (/[,\t\r\n]/.test(name)) {
+    toast('地图名称不能包含英文逗号、制表符或换行', 'err');
+    if (input) input.focus();
+    return;
+  }
+  if (/^[;#]/.test(name)) {
+    toast('地图名称不能以 ; 或 # 开头', 'err');
+    if (input) input.focus();
+    return;
+  }
+  if (Array.from(name).length > 64) {
+    toast('地图名称太长（最多 64 字符）', 'err');
+    if (input) input.focus();
+    return;
+  }
+  const missing = map.file ? '' :
+    '\n该地图仍缺少 map/' + map.map + '.map 文件，登记后告警会变为「地图文件缺失」。';
+  if (!confirm('将把「' + map.map + ' · ' + name +
+    '」写入 MapInfo 的 [MAPLOAD] 段，写入前会自动备份。' + missing + '\n继续？')) return;
+
+  MPW.regSaving = true;
+  if (btn) btn.disabled = true;
+  let res;
+  try {
+    res = await api('/api/config/mapinfo/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: map.map, name })
+    });
+  } catch (e) {
+    toast('登记失败：' + e.message, 'err');
+    if (btn) btn.disabled = false;
+    MPW.regSaving = false;
+    return;
+  }
+
+  MPW.regDraft = null;
+  const backup = res.backup ? '，备份 ' + String(res.backup).split(/[\\/]/).pop() : '';
+  toast('已登记地图「' + res.entry.code + '」到 MapInfo 第 ' + res.line + ' 行' + backup, 'ok');
+  try {
+    await refreshState();
+  } catch (e) {
+  }
+  MPW.stale = true;
+  try {
+    await mpwLoad(true);
+    await mpwSelectMap(res.entry.code);
+    mpwRenderAll();
+  } catch (e) {
+    toast('登记成功，但刷新地图数据失败：' + e.message, 'err');
+    if (btn) btn.disabled = false;
+  } finally {
+    MPW.regSaving = false;
+  }
+}
+
 function mpwRenderRules(map, d) {
   const sections = MPW_RULE_ORDER.filter((key) => d.rules[key] && d.rules[key].length);
   if (!sections.length) return '<div class="mpw-empty">这张地图没有可解析的 MapInfo 规则。</div>';
@@ -484,7 +577,8 @@ function mpwRenderDetail() {
     (map.spawns ? '<button class="btn btn-sm" data-mpw-act="spawn-map" data-key="' + mpwEsc(map.key) + '">在刷怪工作台查看</button>' : '') +
     (d.npcs.length ? '<button class="btn btn-sm" data-mpw-act="npc-map" data-key="' + mpwEsc(map.key) + '">在 NPC 工作台筛选本图</button>' : '') +
     '</div>';
-  box.innerHTML = head + actions + mpwRenderOverview(map, d) +
+  box.innerHTML = head + actions + (map.known ? '' : mpwRenderRegister(map)) +
+    mpwRenderOverview(map, d) +
     mpwRenderRules(map, d) + mpwRenderIncoming(map, d) +
     mpwRenderNpcs(map, d) + mpwRenderSpawns(map, d) + mpwRenderMapIssues(d);
 }
@@ -755,6 +849,7 @@ function mpwBindEvents() {
       else if (act === 'npc') mpwGotoNpc(Number(btn.dataset.index));
       else if (act === 'npc-map') mpwGotoNpcMap(btn.dataset.key);
       else if (act === 'map') mpwGotoMap(btn.dataset.key);
+      else if (act === 'register') mpwRegisterMap(btn);
       else if (act === 'issue') {
         mpwJumpAction({
           view: btn.dataset.view,
@@ -764,6 +859,11 @@ function mpwBindEvents() {
           map: btn.dataset.map,
           name: btn.dataset.name
         });
+      }
+    });
+    main.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'mpwRegName') {
+        MPW.regDraft = { key: MPW.key, name: e.target.value };
       }
     });
   }

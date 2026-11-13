@@ -1647,6 +1647,43 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .mpw-issue .mon-issue-body { min-width: 0; flex: 1; }
 .mpw-issue .mon-issue-msg { color: #cfd9e8; font-size: 12px; }
 .mpw-issue .mon-issue-meta { color: #6f7f95; font-size: 10.5px; margin-top: 2px; }
+.mpw-register { border-color: #3a4a63; background: #161f2c; }
+.mpw-register .mpw-section-head { background: #1c2738; border-bottom-color: #3a4a63; }
+.mpw-register-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  align-items: flex-end;
+}
+.mpw-register-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.mpw-register-field label { color: #8ea3bf; font-size: 10.5px; }
+.mpw-register-field .filter { width: 100%; margin-bottom: 0; }
+.mpw-register-field input[readonly] { color: #9fb0c8; background: #10151d; }
+.mpw-register-actions {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+.mpw-register-actions .muted { font-size: 10.5px; }
+.mpw-register-warn {
+  flex-basis: 100%;
+  color: #f0c674;
+  font-size: 11px;
+  line-height: 1.6;
+  background: #2a2418;
+  border: 1px solid #4a3d20;
+  border-radius: 7px;
+  padding: 6px 9px;
+}
 
 /* ---------------- 合成 / 商城工作台 ---------------- */
 .sw-source-tabs {

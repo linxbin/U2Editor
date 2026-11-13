@@ -1318,6 +1318,23 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'POST' && pathname === '/api/config/mapinfo/register') {
+    const body = await readBody(req);
+    try {
+      const result = mapData.registerMapLoad(MAPINFO_FILE, body);
+      cachedMapCodes = null;
+      mapWorkbench.invalidate();
+      spawnWorkbench.invalidate();
+      npcWorkbench.invalidate();
+      monsterWorkbench.invalidate();
+      invalidateState();
+      json(res, 200, result);
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/config/ops') {
     json(res, 200, opsData.parseOps(ENVIR_DIR));
     return;

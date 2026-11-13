@@ -75,6 +75,7 @@ const WORK_GROUPS = [
   {
     name: '世界与 NPC',
     items: [
+      { target: 'mon', name: '怪物', desc: '查看怪物属性、刷怪点与爆率' },
       { target: 'mpw', name: '地图', desc: '查看地图、NPC、刷怪与跳转规则' },
       { target: 'spw', name: '刷怪', desc: '按地图检查刷怪范围、数量与间隔' },
       { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
@@ -84,8 +85,7 @@ const WORK_GROUPS = [
   {
     name: '物品与经济',
     items: [
-      { target: 'itemw', name: '物品', desc: '按物品查看来源、用途与配置问题' },
-      { target: 'dpw', name: '掉落', desc: '按物品反查爆率来源与异常' },
+      { target: 'idw', name: '物品与掉落', desc: '按物品查看属性与来源，反查爆率文件与配置问题' },
       { target: 'shw', name: '合成商城', desc: '检查配方、商品与跨商城重复' },
       { target: 'stw', name: '新手充值', desc: '礼包、充值档位与账号名单' }
     ]
@@ -108,9 +108,8 @@ const WORK_GROUPS = [
 ];
 
 const NAV_HEALTH_SOURCE = {
-  itemw: 'itemwork',
+  idw: 'itemdrop',
   grw: 'growth',
-  dpw: 'dropwork',
   spw: 'spawnwork',
   mpw: 'mapwork',
   shw: 'shopwork',
@@ -577,18 +576,13 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
-  if (S.mode === 'item') {
-    if (window.updateItemWorkMeta) window.updateItemWorkMeta();
+  if (S.mode === 'itemdrop') {
+    if (window.updateItemDropMeta) window.updateItemDropMeta();
     dot.classList.toggle('on', false);
     return;
   }
   if (S.mode === 'growth') {
     if (window.updateGrowthMeta) window.updateGrowthMeta();
-    dot.classList.toggle('on', false);
-    return;
-  }
-  if (S.mode === 'drops') {
-    if (window.updateDropWorkMeta) window.updateDropWorkMeta();
     dot.classList.toggle('on', false);
     return;
   }
@@ -685,12 +679,13 @@ const NAV_LABELS = {
   __drop: '爆率',
   openMonsterWorkbench: '怪物',
   openNpcWorkView: 'NPC 工作台',
-  openItemWorkView: '物品工作台',
+  openItemDropView: '物品与掉落',
+  openItemWorkView: '物品与掉落',
   openScriptView: '脚本工作台',
   openActivityView: '活动',
   openTaskView: '任务',
   openGrowthView: '成长',
-  openDropsView: '掉落',
+  openDropsView: '物品与掉落',
   openSpawnView: '刷怪',
   openMapView: '地图',
   openShopView: '商店',
@@ -768,6 +763,7 @@ function navMatches(entry) {
 
 const NAV_HASH_RESTORE = {
   openNpcWorkView: /^#npcw=\d+/,
+  openItemDropView: /^#(idw(?:=|$)|item=\d+|drops(?:=|$))/,
   openItemWorkView: /^#item=\d+/,
   openScriptView: /^#scripts=/,
   openMonsterWorkbench: /^#monster=/,
@@ -802,7 +798,7 @@ async function navInvoke(name, orig, args) {
   }
 }
 
-const NAV_SKIP = new Set(['openSideTarget', 'openBasicTab', 'openDb', 'openDrop']);
+const NAV_SKIP = new Set(['openSideTarget', 'openBasicTab', 'openDb', 'openDrop', 'openItemWorkView', 'openDropsView']);
 
 function navInstall() {
   const names = Object.keys(window).filter((n) =>
@@ -1063,9 +1059,8 @@ function applyState(st) {
   if (window.refreshActivityState) window.refreshActivityState(st);
   if (window.refreshTaskState) window.refreshTaskState(st);
   if (window.refreshNpcWorkState) window.refreshNpcWorkState(st);
-  if (window.refreshItemWorkState) window.refreshItemWorkState(st);
+  if (window.refreshItemDropState) window.refreshItemDropState(st);
   if (window.refreshGrowthState) window.refreshGrowthState(st);
-  if (window.refreshDropWorkState) window.refreshDropWorkState(st);
   if (window.refreshSpawnWorkState) window.refreshSpawnWorkState(st);
   if (window.refreshMapWorkState) window.refreshMapWorkState(st);
   if (window.refreshShopWorkState) window.refreshShopWorkState(st);
@@ -1205,12 +1200,8 @@ function openSideTarget(name) {
     window.openNpcWorkView();
     return;
   }
-  if (name === 'itemw' && window.openItemWorkView) {
-    window.openItemWorkView();
-    return;
-  }
-  if (name === 'dpw' && window.openDropsView) {
-    window.openDropsView();
+  if ((name === 'idw' || name === 'itemw' || name === 'dpw') && window.openItemDropView) {
+    window.openItemDropView();
     return;
   }
   if (name === 'spw' && window.openSpawnView) {

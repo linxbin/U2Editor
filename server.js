@@ -182,9 +182,31 @@ const ysWorkbench = ysWorkData.create({
 
 const healthWorkbench = healthWorkData.create({
   sources: [
-    { key: 'itemwork', label: '物品 / 装备', health: () => itemWorkbench.health(), invalidate: () => itemWorkbench.invalidate() },
+    {
+      key: 'itemdrop',
+      label: '物品与掉落',
+      health: () => {
+        const issues = [];
+        let error = '';
+        try {
+          const r = itemWorkbench.health();
+          if (r && r.error) error = r.error;
+          if (r && Array.isArray(r.issues)) issues.push(...r.issues);
+        } catch (e) {
+          error = error || e.message;
+        }
+        try {
+          const r = dropWorkbench.health();
+          if (r && r.error && !error) error = r.error;
+          if (r && Array.isArray(r.issues)) issues.push(...r.issues);
+        } catch (e) {
+          if (!error) error = e.message;
+        }
+        return { generatedAt: new Date().toISOString(), issues, error };
+      },
+      invalidate: () => { itemWorkbench.invalidate(); dropWorkbench.invalidate(); }
+    },
     { key: 'growth', label: '数值 / 成长', health: () => growthWorkbench.health(), invalidate: () => growthWorkbench.invalidate() },
-    { key: 'dropwork', label: '爆率', health: () => dropWorkbench.health(), invalidate: () => dropWorkbench.invalidate() },
     { key: 'spawnwork', label: '刷怪', health: () => spawnWorkbench.health(), invalidate: () => spawnWorkbench.invalidate() },
     { key: 'mapwork', label: '地图', health: () => mapWorkbench.health(), invalidate: () => mapWorkbench.invalidate() },
     { key: 'shopwork', label: '合成 / 商城', health: () => shopWorkbench.health(), invalidate: () => shopWorkbench.invalidate() },
@@ -305,9 +327,8 @@ const STATIC = {
   '/activity.js': { file: 'activity.js', type: 'application/javascript; charset=utf-8' },
   '/tasks.js': { file: 'tasks.js', type: 'application/javascript; charset=utf-8' },
   '/npcwork.js': { file: 'npcwork.js', type: 'application/javascript; charset=utf-8' },
-  '/itemwork.js': { file: 'itemwork.js', type: 'application/javascript; charset=utf-8' },
+  '/itemdrop.js': { file: 'itemdrop.js', type: 'application/javascript; charset=utf-8' },
   '/growth.js': { file: 'growth.js', type: 'application/javascript; charset=utf-8' },
-  '/drops.js': { file: 'drops.js', type: 'application/javascript; charset=utf-8' },
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
   '/maps.js': { file: 'maps.js', type: 'application/javascript; charset=utf-8' },
   '/shopwork.js': { file: 'shopwork.js', type: 'application/javascript; charset=utf-8' },
@@ -537,10 +558,16 @@ async function configSummary() {
     }
   });
   steps.push(() => {
+    out.itemdrop = {};
     try {
-      out.itemwork = itemWorkbench.summary();
+      out.itemdrop.item = itemWorkbench.summary();
     } catch (e) {
-      out.itemwork = { error: e.message };
+      out.itemdrop.item = { error: e.message };
+    }
+    try {
+      out.itemdrop.drop = dropWorkbench.summary();
+    } catch (e) {
+      out.itemdrop.drop = { error: e.message };
     }
   });
   steps.push(() => {
@@ -548,13 +575,6 @@ async function configSummary() {
       out.growth = growthWorkbench.summary();
     } catch (e) {
       out.growth = { error: e.message };
-    }
-  });
-  steps.push(() => {
-    try {
-      out.dropwork = dropWorkbench.summary();
-    } catch (e) {
-      out.dropwork = { error: e.message };
     }
   });
   steps.push(() => {
@@ -891,12 +911,42 @@ async function handle(req, res) {
     return;
   }
 
-  if (req.method === 'GET' && pathname === '/api/config/drops') {
-    json(res, 200, dropWorkbench.list());
+  if (req.method === 'GET' && pathname === '/api/config/itemdrop') {
+    if (url.searchParams.get('refresh') === '1') {
+      itemWorkbench.invalidate();
+      dropWorkbench.invalidate();
+    }
+    const out = {};
+    try {
+      out.item = itemWorkbench.list();
+    } catch (e) {
+      out.item = { error: e.message };
+    }
+    try {
+      out.drop = dropWorkbench.list();
+    } catch (e) {
+      out.drop = { error: e.message };
+    }
+    json(res, 200, out);
     return;
   }
 
-  if (req.method === 'GET' && pathname === '/api/config/drops/item') {
+  if (req.method === 'GET' && pathname === '/api/config/itemdrop/item') {
+    const raw = url.searchParams.get('index');
+    if (raw == null || !/^\d+$/.test(raw)) {
+      json(res, 400, { error: '物品序号无效' });
+      return;
+    }
+    const detail = itemWorkbench.detail(Number(raw));
+    if (!detail) {
+      json(res, 404, { error: '未找到物品' });
+      return;
+    }
+    json(res, 200, detail);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/itemdrop/drop') {
     const key = url.searchParams.get('key');
     if (key == null || key === '') {
       json(res, 400, { error: '物品名称无效' });
@@ -1101,26 +1151,6 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/yswork') {
     if (url.searchParams.get('refresh') === '1') ysWorkbench.invalidate();
     json(res, 200, ysWorkbench.list());
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/itemwork') {
-    json(res, 200, itemWorkbench.list());
-    return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/config/itemwork/detail') {
-    const raw = url.searchParams.get('index');
-    if (raw == null || !/^\d+$/.test(raw)) {
-      json(res, 400, { error: '物品序号无效' });
-      return;
-    }
-    const detail = itemWorkbench.detail(Number(raw));
-    if (!detail) {
-      json(res, 404, { error: '未找到物品' });
-      return;
-    }
-    json(res, 200, detail);
     return;
   }
 

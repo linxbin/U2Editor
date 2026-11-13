@@ -95,6 +95,7 @@ function hwHashState() {
     if (part.startsWith('source-')) state.source = part.slice(7) || 'all';
     else if (/^(error|warn|info)$/.test(part)) state.severity = part;
   }
+  if (state.source === 'itemwork' || state.source === 'dropwork') state.source = 'itemdrop';
   return state;
 }
 
@@ -304,7 +305,7 @@ async function hwJump(issue) {
   if (!issue) return;
   const a = issue.action || {};
   const source = issue.source;
-  if (source === 'itemwork') {
+  if (source === 'itemdrop') {
     if (a.view === 'monster' && a.name) return hwOpenMonster(a.name, 'drop');
     if (a.view === 'shop' && a.search && window.openShopsConfig) {
       await window.openShopsConfig();
@@ -319,7 +320,13 @@ async function hwJump(issue) {
     if (a.view === 'make' && window.openMakeitem) return window.openMakeitem();
     if (a.view === 'goods' && window.openGoodsConfig) return window.openGoodsConfig();
     if (a.view === 'mall' && window.openMallConfig) return window.openMallConfig();
-    if (window.openItemWorkView) return window.openItemWorkView(issue.index == null ? undefined : Number(issue.index));
+    if (a.view === 'item' && a.key && window.openItemDropView) {
+      return window.openItemDropView({ dropKey: a.key });
+    }
+    if (window.openItemDropView) {
+      await window.openItemDropView({ tab: 'health' });
+      if (typeof window.idwJumpIssue === 'function') return window.idwJumpIssue(issue);
+    }
     return;
   }
   if (source === 'growth') {
@@ -329,15 +336,6 @@ async function hwJump(issue) {
     else if (a.view === 'upgrade') sel = { tab: 'upgrades', upgradeLevel: a.level };
     else if (a.view === 'pet') sel = { tab: 'pets', petKey: a.key };
     if (window.openGrowthView) return window.openGrowthView(sel);
-    return;
-  }
-  if (source === 'dropwork') {
-    if (a.view === 'monster' && a.name) return hwOpenMonster(a.name, 'drop');
-    if (a.view === 'item' && a.key && window.openDropsView) return window.openDropsView({ tab: 'items', key: a.key });
-    if (window.openDropsView) {
-      await window.openDropsView();
-      if (typeof window.dpwJumpIssue === 'function') return window.dpwJumpIssue(issue);
-    }
     return;
   }
   if (source === 'spawnwork') {

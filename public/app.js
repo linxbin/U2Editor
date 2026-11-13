@@ -678,8 +678,208 @@ function confirmDiscard() {
   return true;
 }
 
+const NAV = { stack: [], current: null, applying: false, depth: 0 };
+const NAV_WRAPPED = new Set();
+const NAV_LABELS = {
+  __db: '数据库',
+  __drop: '爆率',
+  openMonsterWorkbench: '怪物',
+  openNpcWorkView: 'NPC 工作台',
+  openItemWorkView: '物品工作台',
+  openScriptView: '脚本工作台',
+  openActivityView: '活动',
+  openTaskView: '任务',
+  openGrowthView: '成长',
+  openDropsView: '掉落',
+  openSpawnView: '刷怪',
+  openMapView: '地图',
+  openShopView: '商店',
+  openCastleView: '沙城攻城',
+  openTextWorkView: '文案对话',
+  openStarterWorkView: '新手充值',
+  openHealthWorkView: '配置体检',
+  openYswView: '元神',
+  openNpcConfig: 'NPC 分布',
+  openShopsConfig: '商店货品',
+  openShopsByScript: '商店货品',
+  openGoodsConfig: '商城商品',
+  openSummonsConfig: '召唤关系',
+  openMallConfig: '商城配置',
+  openMapinfoConfig: '地图规则',
+  openOpsConfig: '运营配置',
+  openExtraConfig: '扩展配置',
+  openServerConfig: '服务器配置',
+  openMakeitem: '合成配方',
+  openMakeitemAt: '合成配方',
+  openGoodsAt: '商城商品',
+  openMallAt: '商城配置',
+  openMapinfoAt: '地图规则',
+  openMongenAt: '刷怪',
+  openExtraKey: '扩展配置',
+  openExtraKeyAt: '扩展配置',
+  openTextEntryForItem: '文案对话',
+  openTextWorkSource: '文案对话'
+};
+
+function navLabel(name) {
+  return NAV_LABELS[name] || '上一页';
+}
+
+function navUpdate() {
+  const btn = $('#btnNavBack');
+  if (!btn) return;
+  const top = NAV.stack[NAV.stack.length - 1];
+  btn.disabled = !top;
+  btn.title = top ? '返回：' + navLabel(top.name) : '返回上一页';
+}
+
+function navRecord(name, args, hash) {
+  if (NAV.applying) return;
+  const entry = {
+    name,
+    args: (args || []).slice(),
+    hash: hash == null ? (location.hash || '') : hash,
+    mode: S.mode
+  };
+  const cur = NAV.current;
+  if (cur && cur.name === entry.name && cur.hash === entry.hash &&
+      JSON.stringify(cur.args) === JSON.stringify(entry.args)) {
+    NAV.current = entry;
+    navUpdate();
+    return;
+  }
+  if (cur) NAV.stack.push(cur);
+  NAV.current = entry;
+  navUpdate();
+}
+
+function navTouch() {
+  if (NAV.applying || !NAV.current) return;
+  if (NAV.current.name === '__db' && S.mode !== 'db') { NAV.current = null; return; }
+  if (NAV.current.name === '__drop' && S.mode !== 'drop') { NAV.current = null; return; }
+  NAV.current.hash = location.hash || '';
+  NAV.current.mode = S.mode;
+}
+
+function navMatches(entry) {
+  if (S.mode !== entry.mode) return false;
+  return !entry.hash || (location.hash || '') === entry.hash;
+}
+
+const NAV_HASH_RESTORE = {
+  openNpcWorkView: /^#npcw=\d+/,
+  openItemWorkView: /^#item=\d+/,
+  openScriptView: /^#scripts=/,
+  openMonsterWorkbench: /^#monster=/,
+  openMapView: /^#maps=/,
+  openSpawnView: /^#spawns=/,
+  openShopView: /^#shop=/,
+  openCastleView: /^#castle=/,
+  openGrowthView: /^#growth=/,
+  openTextWorkView: /^#text=/,
+  openStarterWorkView: /^#starter=/,
+  openHealthWorkView: /^#healthwork/,
+  openDropsView: /^#drops/,
+  openActivityView: /^#activity=/,
+  openTaskView: /^#task=/
+};
+
+async function navInvoke(name, orig, args) {
+  if (NAV.applying || NAV.depth > 0) return orig.apply(window, args);
+  navTouch();
+  const beforeHash = location.hash || '';
+  const beforeMode = S.mode;
+  NAV.depth++;
+  try {
+    const out = await orig.apply(window, args);
+    const afterHash = location.hash || '';
+    if (afterHash !== beforeHash || S.mode !== beforeMode) {
+      navRecord(name, args, afterHash);
+    }
+    return out;
+  } finally {
+    NAV.depth--;
+  }
+}
+
+const NAV_SKIP = new Set(['openSideTarget', 'openBasicTab', 'openDb', 'openDrop']);
+
+function navInstall() {
+  const names = Object.keys(window).filter((n) =>
+    /^open[A-Z][A-Za-z0-9]*$/.test(n) && !NAV_SKIP.has(n) &&
+    typeof window[n] === 'function' && !NAV_WRAPPED.has(n));
+  for (const name of names) {
+    const orig = window[name];
+    NAV_WRAPPED.add(name);
+    window[name] = function (...args) {
+      return navInvoke(name, orig, args);
+    };
+  }
+}
+
+function navPlaceBack() {
+  const btn = $('#btnNavBack');
+  if (!btn) return;
+  const views = [...document.querySelectorAll('.main > .view')]
+    .filter((v) => !v.classList.contains('hidden'));
+  const view = views[views.length - 1];
+  if (!view) return;
+  const toolbar = view.querySelector(':scope > .toolbar');
+  if (!toolbar) return;
+  const spacer = [...toolbar.children].find((el) => el.classList.contains('spacer'));
+  if (spacer) {
+    if (btn.parentElement !== toolbar || btn.previousElementSibling !== spacer) {
+      if (spacer.nextElementSibling) toolbar.insertBefore(btn, spacer.nextElementSibling);
+      else toolbar.appendChild(btn);
+    }
+    return;
+  }
+  if (btn.parentElement !== toolbar || btn.nextElementSibling) {
+    toolbar.appendChild(btn);
+  }
+}
+
+async function navBack() {
+  if (NAV.applying || !NAV.stack.length) return;
+  const entry = NAV.stack.pop();
+  const fromHash = location.hash || '';
+  NAV.applying = true;
+  try {
+    if (entry.hash !== (location.hash || '')) {
+      try {
+        history.replaceState(null, '', location.pathname + location.search + (entry.hash || ''));
+      } catch (e) {
+      }
+    }
+    if (entry.name === '__db') {
+      await openDb(entry.args[0]);
+    } else if (entry.name === '__drop') {
+      await openDrop(entry.args[0]);
+    } else {
+      const fn = window[entry.name];
+      const hashRestores = NAV_HASH_RESTORE[entry.name] && NAV_HASH_RESTORE[entry.name].test(entry.hash || '');
+      if (typeof fn === 'function') await fn.apply(window, hashRestores ? [] : entry.args);
+    }
+    if (navMatches(entry)) {
+      NAV.current = entry;
+    } else {
+      NAV.stack.push(entry);
+      if (fromHash !== (location.hash || '')) {
+        try {
+          history.replaceState(null, '', location.pathname + location.search + fromHash);
+        } catch (e) {
+        }
+      }
+    }
+  } finally {
+    NAV.applying = false;
+    navUpdate();
+  }
+}
+
 async function openDb(name, force) {
   if (!force && !confirmDiscard()) return;
+  navTouch();
   try {
     const data = await api('/api/db?file=' + encodeURIComponent(name));
     if (window.hideConfigViews) window.hideConfigViews();
@@ -718,6 +918,7 @@ async function openDb(name, force) {
     renderDbList();
     renderDropList();
     updateMeta();
+    navRecord('__db', [name]);
   } catch (e) {
     toast('打开失败：' + e.message, 'err');
   }
@@ -725,6 +926,7 @@ async function openDb(name, force) {
 
 async function openDrop(name, force) {
   if (!force && !confirmDiscard()) return;
+  navTouch();
   try {
     const data = await api('/api/drop?file=' + encodeURIComponent(name));
     if (window.hideConfigViews) window.hideConfigViews();
@@ -761,6 +963,7 @@ async function openDrop(name, force) {
     renderDbList();
     renderDropStats();
     updateMeta();
+    navRecord('__drop', [name]);
   } catch (e) {
     toast('打开失败：' + e.message, 'err');
   }
@@ -1127,6 +1330,25 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 renderWorkNav();
+
+const navBackBtn = $('#btnNavBack');
+if (navBackBtn) navBackBtn.addEventListener('click', navBack);
+document.addEventListener('keydown', (e) => {
+  if (e.altKey && e.key === 'ArrowLeft' && !e.defaultPrevented) {
+    e.preventDefault();
+    navBack();
+  }
+});
+const navViewObserver = new MutationObserver(() => navPlaceBack());
+document.querySelectorAll('.main > .view').forEach((view) => {
+  navViewObserver.observe(view, { attributes: true, attributeFilter: ['class'] });
+});
+
+window.addEventListener('load', () => {
+  navInstall();
+  navPlaceBack();
+  navUpdate();
+});
 
 window.appReady = init();
 window.appReady.then(() => window.dispatchEvent(new Event('app-ready')));

@@ -296,6 +296,7 @@ function npwRenderDetail() {
         '<span>GBK' + (info.encoding === 'gbk-lossy' ? '（含不可逆字符）' : '') + '</span>' : '') +
       '<span class="spacer"></span>' +
       '<button class="btn btn-sm" data-npw-act="script">打开脚本标签</button>' +
+      '<button class="btn btn-sm" data-npw-act="scriptwork" data-name="' + npwEsc(n.scriptFile) + '">在脚本工作台定位</button>' +
       '</div>';
     if (info) {
       const preview = info.lines.slice(0, 14).join('\n');
@@ -373,6 +374,8 @@ function npwRenderScript() {
   const view = npwEl('npwScriptView');
   const info = npwEl('npwScriptInfo');
   if (!view) return;
+  const workBtn = npwEl('btnNpwScriptWork');
+  if (workBtn) workBtn.disabled = !NPW.script;
   if (!NPW.script) {
     npwClear(view);
     const none = document.createElement('div');
@@ -628,6 +631,14 @@ async function npwGotoShop(search) {
   }
 }
 
+async function npwGotoScriptWork(name) {
+  if (!window.openScriptView) {
+    toast('脚本工作台不可用', 'err');
+    return;
+  }
+  await window.openScriptView({ tab: 'detail', name });
+}
+
 async function npwGotoTasks(search) {
   if (!window.openTaskView) return;
   await window.openTaskView();
@@ -785,6 +796,8 @@ function npwBindEvents() {
           const n = NPW.detail && NPW.detail.npc;
           if (n) await npwOpenScript(n.scriptFile);
         })();
+      } else if (act === 'scriptwork') {
+        npwGotoScriptWork(btn.dataset.name);
       } else if (act === 'ranking') {
         if (window.openActivityView) window.openActivityView('rankings');
       }
@@ -795,6 +808,12 @@ function npwBindEvents() {
     scriptSearch.addEventListener('input', () => {
       NPW.scriptSearch = scriptSearch.value;
       npwRenderScript();
+    });
+  }
+  const scriptWorkBtn = npwEl('btnNpwScriptWork');
+  if (scriptWorkBtn) {
+    scriptWorkBtn.addEventListener('click', () => {
+      if (NPW.script) npwGotoScriptWork(NPW.script.name);
     });
   }
   const reload = npwEl('btnNpwReload');

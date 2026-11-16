@@ -58,7 +58,7 @@ const CFG_MODES = {
 };
 
 const CFG = {
-  mongen: { data: null, edits: new Map(), added: [], deleted: new Set(), page: 0, pageSize: 100, mapFilter: '', search: '', selected: -1 },
+  mongen: { data: null, edits: new Map(), added: [], deleted: new Set(), page: 0, pageSize: 100, mapFilter: '', search: '', selected: -1, mapNames: {} },
   makeitem: { data: null, edits: new Map(), added: [], deleted: new Set(), search: '', selected: -1 },
   appellation: { data: null, edits: new Map(), added: [], deleted: new Set(), page: 0, pageSize: 100, classFilter: '', search: '', selected: -1 },
   npc: { data: null, edits: new Map(), added: [], deleted: new Set(), page: 0, pageSize: 100, mapFilter: '', search: '', selected: -1 },
@@ -189,13 +189,21 @@ function cfgText(value, listId, maxLength) {
 
 function cfgSelect(options, value) {
   const sel = document.createElement('select');
+  const values = [];
   for (const opt of options) {
     const o = document.createElement('option');
-    o.value = opt;
-    o.textContent = opt;
+    if (opt && typeof opt === 'object') {
+      o.value = opt.value;
+      o.textContent = opt.label;
+      values.push(opt.value);
+    } else {
+      o.value = opt;
+      o.textContent = opt;
+      values.push(opt);
+    }
     sel.appendChild(o);
   }
-  if (options.includes(value)) sel.value = value;
+  if (values.includes(value)) sel.value = value;
   return sel;
 }
 
@@ -406,13 +414,13 @@ function mongenList() {
     if (m.deleted.has(i)) continue;
     const row = m.edits.get(i) || m.data.entries[i];
     if (m.mapFilter && row.map !== m.mapFilter) continue;
-    if (q && !String(row.monster).toLowerCase().includes(q)) continue;
+    if (!mongenSearchHit(row, q)) continue;
     out.push({ index: i, row, added: false });
   }
   for (let k = 0; k < m.added.length; k++) {
     const row = m.added[k];
     if (m.mapFilter && row.map !== m.mapFilter) continue;
-    if (q && !String(row.monster).toLowerCase().includes(q)) continue;
+    if (!mongenSearchHit(row, q)) continue;
     out.push({ index: m.data.entries.length + k, row, added: true });
   }
   return out;
@@ -436,6 +444,17 @@ function setMongenRow(index, row) {
   else m.edits.set(index, row);
 }
 
+function mongenMapLabel(code) {
+  return (CFG.mongen.mapNames && CFG.mongen.mapNames[code]) || '';
+}
+
+function mongenSearchHit(row, q) {
+  if (!q) return true;
+  return String(row.monster).toLowerCase().includes(q) ||
+    String(row.map).toLowerCase().includes(q) ||
+    mongenMapLabel(row.map).toLowerCase().includes(q);
+}
+
 function buildMongenMapSelect() {
   const m = CFG.mongen;
   const sel = cfgEl('mongenMap');
@@ -447,7 +466,9 @@ function buildMongenMapSelect() {
     sel.appendChild(o);
   };
   add('', `全部地图 (${m.data.maps.length})`);
-  for (const map of m.data.maps) add(map.name, `${map.name} (${map.count})`);
+  for (const map of m.data.maps) {
+    add(map.name, `${map.name}${map.label ? ' · ' + map.label : ''} (${map.count})`);
+  }
   sel.value = m.mapFilter;
 }
 
@@ -489,7 +510,18 @@ function renderMongen() {
     ];
     values.forEach((v, i) => {
       const td = document.createElement('td');
-      td.textContent = v == null ? '' : v;
+      if (i === 1) {
+        td.appendChild(document.createTextNode(v == null ? '' : String(v)));
+        const label = mongenMapLabel(item.row.map);
+        if (label) {
+          const span = document.createElement('span');
+          span.className = 'muted';
+          span.textContent = ' · ' + label;
+          td.appendChild(span);
+        }
+      } else {
+        td.textContent = v == null ? '' : v;
+      }
       if (i === 0) td.className = 'col-idx';
       else if (i >= 2 && i !== 4) td.className = 'num';
       else if (i === 4) td.className = 'str namecell';
@@ -521,15 +553,26 @@ function buildMongenForm(index) {
   const form = cfgEl('cfgForm');
   cfgClear(form);
   cfgEl('cfgDetail').classList.remove('hidden');
-  cfgEl('cfgDetailTitle').textContent = added ? '新增刷怪' : `${row.map} · ${row.monster}`;
+  const rowMapLabel = mongenMapLabel(row.map);
+  cfgEl('cfgDetailTitle').textContent = added
+    ? '新增刷怪'
+    : `${row.map}${rowMapLabel ? ' · ' + rowMapLabel : ''} · ${row.monster}`;
   cfgEl('cfgDetailSub').textContent = added
     ? '新增记录（保存后写入文件）'
     : `第 ${index + 1} 条`;
   cfgEl('cfgNote').textContent = '刷怪格式：地图 X Y 怪物 范围 数量 间隔。保存时只改写修改过的行，其余内容保持不变。';
 
-  const mapNames = m.data.maps.map((x) => x.name);
-  if (!mapNames.includes(row.map)) mapNames.push(row.map);
-  const mapSel = cfgSelect(mapNames, row.map);
+  const mapOptions = m.data.maps.map((x) => ({
+    value: x.name,
+    label: `${x.name}${x.label ? ' · ' + x.label : ''}`
+  }));
+  if (!mapOptions.some((x) => x.value === row.map)) {
+    mapOptions.push({
+      value: row.map,
+      label: `${row.map}${rowMapLabel ? ' · ' + rowMapLabel : ''}`
+    });
+  }
+  const mapSel = cfgSelect(mapOptions, row.map);
   const monster = cfgText(row.monster, 'monsterList', 32);
   const x = cfgNumber(row.x, 0, 100000);
   const y = cfgNumber(row.y, 0, 100000);
@@ -541,8 +584,10 @@ function buildMongenForm(index) {
     const cur = { ...getMongenRow(index) };
     cur[key] = key === 'map' || key === 'monster' ? value : cfgNum(value);
     setMongenRow(index, cur);
-    cfgEl('cfgDetailTitle').textContent =
-      index >= m.data.entries.length ? '新增刷怪' : `${cur.map} · ${cur.monster}`;
+    const label = mongenMapLabel(cur.map);
+    cfgEl('cfgDetailTitle').textContent = index >= m.data.entries.length
+      ? '新增刷怪'
+      : `${cur.map}${label ? ' · ' + label : ''} · ${cur.monster}`;
     renderMongen();
     updateMeta();
   };
@@ -609,9 +654,10 @@ async function mongenDelete() {
   const index = m.selected;
   const row = getMongenRow(index);
   if (!row) return;
+  const label = mongenMapLabel(row.map);
   if (!(await uiConfirm({
     title: '删除刷怪',
-    message: `删除刷怪：${row.map} · ${row.monster}？`,
+    message: `删除刷怪：${row.map}${label ? ' · ' + label : ''} · ${row.monster}？`,
     okText: '删除',
     danger: true
   }))) return;
@@ -640,9 +686,10 @@ async function mongenBatch() {
     if (m.added[k].map === m.mapFilter) targets.push(m.data.entries.length + k);
   }
   if (!targets.length) return toast('这张地图没有可调整的刷怪记录', 'err');
+  const filterLabel = mongenMapLabel(m.mapFilter);
   if (!(await uiConfirm({
     title: '批量调整刷怪数量',
-    message: `将地图 ${m.mapFilter} 的 ${targets.length} 条刷怪数量乘以 ${factor}（最小为 1）？`,
+    message: `将地图 ${m.mapFilter}${filterLabel ? ' · ' + filterLabel : ''} 的 ${targets.length} 条刷怪数量乘以 ${factor}（最小为 1）？`,
     okText: '调整'
   }))) return;
   for (const index of targets) {
@@ -668,6 +715,7 @@ async function openMongen(force) {
     m.mapFilter = '';
     m.search = '';
     m.selected = -1;
+    m.mapNames = data.mapNames || {};
     cfgSetMode('cfgMongen');
     cfgEl('mongenSearch').value = '';
     buildMongenMapSelect();

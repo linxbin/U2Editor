@@ -916,13 +916,15 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && pathname === '/api/config/mongen') {
     const parsed = configs.parseMongen(MONGEN_FILE);
+    const labels = mapNames();
     json(res, 200, {
       file: 'Mongen.txt',
       entries: parsed.entries.map((e) => ({
         map: e.map, x: e.x, y: e.y, monster: e.monster,
         range: e.range, count: e.count, interval: e.interval
       })),
-      maps: parsed.maps,
+      maps: parsed.maps.map((m) => ({ name: m.name, count: m.count, label: labels[m.name] || '' })),
+      mapNames: labels,
       invalid: parsed.special.map((s) => s.text),
       monsters: monsterNames()
     });

@@ -282,7 +282,7 @@ function monShowShell() {
   monEl('monsterView').classList.remove('hidden');
 }
 
-function monConfirmLeave() {
+async function monConfirmLeave() {
   if (typeof confirmDiscard === 'function') return confirmDiscard();
   return window.monsterConfirmDiscard ? window.monsterConfirmDiscard() : true;
 }
@@ -294,7 +294,7 @@ async function openMonsterWorkbench(name, force) {
     monRenderAll();
     return;
   }
-  if (!force && !monConfirmLeave()) return;
+  if (!force && !(await monConfirmLeave())) return;
   try {
     await monLoadList();
   } catch (e) {
@@ -1031,7 +1031,12 @@ async function monLoadDropFile(file) {
 
 async function monSwitchDrop(file) {
   if (file === MON.drop.file) return;
-  if (monTabDirty('drop') && !confirm(`当前爆率文件有未保存修改，确定放弃并切换到 ${file}？`)) return;
+  if (monTabDirty('drop') && !(await uiConfirm({
+    title: '放弃未保存的修改',
+    message: `当前爆率文件有未保存修改，确定放弃并切换到 ${file}？`,
+    danger: true,
+    okText: '放弃修改'
+  }))) return;
   try {
     await monLoadDropFile(file);
     monRenderDrop();
@@ -1041,7 +1046,7 @@ async function monSwitchDrop(file) {
   }
 }
 
-function monStartNewDrop(file) {
+async function monStartNewDrop(file) {
   const clean = String(file == null ? '' : file).trim();
   if (!clean || !/^[^\\/:*?"<>|]+\.txt$/i.test(clean) || /[\x00-\x1f]/.test(clean)) {
     toast('文件名不合法，只能使用 <名称>.txt', 'err');
@@ -1055,7 +1060,12 @@ function monStartNewDrop(file) {
     }
   }
   if (clean === MON.drop.file && MON.drop.create) return;
-  if (monTabDirty('drop') && !confirm('当前爆率修改尚未保存，确定放弃并新建文件？')) return;
+  if (monTabDirty('drop') && !(await uiConfirm({
+    title: '放弃未保存的修改',
+    message: '当前爆率修改尚未保存，确定放弃并新建文件？',
+    danger: true,
+    okText: '放弃修改'
+  }))) return;
   MON.drop.file = clean;
   MON.drop.data = null;
   MON.drop.create = true;
@@ -1603,7 +1613,12 @@ async function monJump(jump) {
   if (!jump || !jump.tab || jump.tab === 'health') return;
   switchMonTab(jump.tab);
   if (jump.tab === 'drop' && jump.file && (!MON.drop.data || MON.drop.file !== jump.file)) {
-    if (monTabDirty('drop') && !confirm('当前爆率文件有未保存修改，确定放弃并跳转？')) return;
+    if (monTabDirty('drop') && !(await uiConfirm({
+      title: '放弃未保存的修改',
+      message: '当前爆率文件有未保存修改，确定放弃并跳转？',
+      danger: true,
+      okText: '放弃修改'
+    }))) return;
     try {
       await monLoadDropFile(jump.file);
       monRenderDrop();
@@ -1817,7 +1832,7 @@ function monSaveCurrent() {
 }
 
 async function monReload() {
-  if (!window.monsterConfirmDiscard()) return;
+  if (!(await window.monsterConfirmDiscard())) return;
   MON.list = null;
   try {
     await monLoadList(true);
@@ -1914,10 +1929,16 @@ window.hideMonsterView = () => {
   }
 };
 window.monsterAnyDirty = () => monTotalDirty() > 0;
-window.monsterConfirmDiscard = () => {
+window.monsterConfirmDiscard = async () => {
   const n = monTotalDirty();
   if (!n) return true;
-  if (!confirm(`怪物工作台有 ${n} 处未保存修改，确定放弃并继续？`)) return false;
+  const ok = await uiConfirm({
+    title: '放弃未保存的修改',
+    message: `怪物工作台有 ${n} 处未保存修改，确定放弃并继续？`,
+    danger: true,
+    okText: '放弃修改'
+  });
+  if (!ok) return false;
   monDiscardEdits();
   return true;
 };

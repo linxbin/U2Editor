@@ -229,13 +229,18 @@ function npcAdd(source) {
   updateMeta();
 }
 
-function npcDelete() {
+async function npcDelete() {
   const s = CFG.npc;
   if (s.selected < 0) return toast('请先选择一个 NPC', 'err');
   const index = s.selected;
   const row = getNpcRow(index);
   if (!row) return;
-  if (!confirm(`删除 NPC：${row.name}（${row.map} ${row.x},${row.y}）？`)) return;
+  if (!(await uiConfirm({
+    title: '删除 NPC',
+    message: `删除 NPC：${row.name}（${row.map} ${row.x},${row.y}）？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= s.data.rows.length) {
     s.added.splice(index - s.data.rows.length, 1);
   } else {
@@ -248,7 +253,7 @@ function npcDelete() {
 }
 
 async function openNpcConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/npc');
     const s = CFG.npc;
@@ -644,12 +649,18 @@ function shopAddGood() {
   updateMeta();
 }
 
-function shopDeleteGood() {
+async function shopDeleteGood() {
   const s = CFG.shops;
   if (!s.goodKey) return toast('请先选择一条货品', 'err');
   const row = getGoodRow(s.goodKey);
   if (!row) return;
-  if (!confirm(`删除货品：${row.item}（${row.file}）？\n该脚本被 ${row.shared} 个 NPC 使用。`)) return;
+  if (!(await uiConfirm({
+    title: '删除货品',
+    message: `删除货品：${row.item}（${row.file}）？`,
+    sections: row.shared ? [{ title: '脚本共用情况', lines: [`该脚本被 ${row.shared} 个 NPC 使用。`] }] : [],
+    okText: '删除',
+    danger: true
+  }))) return;
   const pos = s.goodKey.lastIndexOf('#');
   const file = s.goodKey.slice(0, pos);
   const token = s.goodKey.slice(pos + 1);
@@ -668,7 +679,7 @@ function shopDeleteGood() {
 }
 
 async function openShopsConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/shops');
     const s = CFG.shops;

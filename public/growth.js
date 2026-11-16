@@ -757,7 +757,7 @@ function grwSelectSkill(id) {
 }
 
 async function openGrowthView(sel) {
-  if (S.mode !== 'growth' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'growth' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'growth';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

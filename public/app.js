@@ -196,6 +196,25 @@ function dirtyCount() {
   return S.edits.size + S.added.length;
 }
 
+function isItemDb() {
+  return Boolean(S.dbFile) && S.dbFile.toLowerCase() === 'stditems.db';
+}
+
+function rowName(row) {
+  if (!row || !S.schema || !S.schema.nameField) return '';
+  const value = row[S.schema.nameField];
+  return String(value == null ? '' : value).trim();
+}
+
+function sameExceptIdx(a, b) {
+  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+  for (const key of keys) {
+    if (key === 'Idx') continue;
+    if ((a ? a[key] : undefined) !== (b ? b[key] : undefined)) return false;
+  }
+  return true;
+}
+
 function isDirtyField(index, field) {
   return index < S.rows.length && S.edits.has(index + ':' + field);
 }
@@ -407,6 +426,16 @@ function renderGrid() {
   thead.appendChild(htr);
   tbody.innerHTML = '';
 
+  let dupCount = null;
+  if (isItemDb() && S.schema.nameField) {
+    dupCount = new Map();
+    for (const row of S.rows) {
+      const name = rowName(row);
+      if (!name) continue;
+      dupCount.set(name, (dupCount.get(name) || 0) + 1);
+    }
+  }
+
   const list = visibleRows();
   const totalPages = Math.max(1, Math.ceil(list.length / S.pageSize));
   if (S.page >= totalPages) S.page = totalPages - 1;
@@ -428,6 +457,16 @@ function renderGrid() {
       tag.className = 'new-tag';
       tag.textContent = '新';
       idxTd.appendChild(tag);
+    } else if (dupCount) {
+      const name = rowName(item.row);
+      const count = name ? dupCount.get(name) : 0;
+      if (count > 1) {
+        const tag = document.createElement('span');
+        tag.className = 'dup-tag';
+        tag.textContent = '重';
+        tag.title = `同名记录共 ${count} 条`;
+        idxTd.appendChild(tag);
+      }
     }
     tr.appendChild(idxTd);
 
@@ -504,6 +543,296 @@ function buildDetail(index) {
     wrap.appendChild(input);
     form.appendChild(wrap);
   }
+  renderDetailExtra(index);
+}
+
+function renderDetailExtra(index) {
+  const box = $('#detailExtra');
+  if (!box) return;
+  box.innerHTML = '';
+  const added = index >= S.rows.length;
+
+  if (added) {
+    const note = document.createElement('div');
+    note.className = 'detail-extra-note';
+    note.textContent = '未保存的新增记录，保存前不会写入文件。';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn danger small';
+    btn.textContent = '移除新增记录';
+    btn.addEventListener('click', () => removeAddedRow(index));
+    box.appendChild(note);
+    box.appendChild(btn);
+    return;
+  }
+
+  if (!isItemDb()) {
+    const note = document.createElement('div');
+    note.className = 'detail-extra-note';
+    note.textContent = '暂仅支持在物品数据表（stditems.db）删除记录。';
+    box.appendChild(note);
+    return;
+  }
+
+  const row = S.rows[index];
+  const name = rowName(row);
+  const same = [];
+  const dupIdx = [];
+  const hasIdx = row.Idx != null && row.Idx !== '';
+  for (let i = 0; i < S.rows.length; i++) {
+    if (i === index) continue;
+    if (name && rowName(S.rows[i]) === name) {
+      same.push({
+        index: i,
+        idx: S.rows[i].Idx,
+        sameFields: sameExceptIdx(S.rows[i], row)
+      });
+    }
+    if (hasIdx && Number(S.rows[i].Idx) === Number(row.Idx)) {
+      dupIdx.push({ index: i, name: rowName(S.rows[i]) });
+    }
+  }
+
+  const head = document.createElement('div');
+  head.className = 'detail-extra-title';
+  const headLabel = document.createElement('span');
+  headLabel.textContent = '同名记录';
+  const headCount = document.createElement('span');
+  headCount.className = 'muted';
+  headCount.textContent = name ? (same.length ? same.length + ' 条' : '无') : '名称为空';
+  head.appendChild(headLabel);
+  head.appendChild(headCount);
+  box.appendChild(head);
+
+  if (same.length) {
+    const list = document.createElement('div');
+    list.className = 'dup-list';
+    for (const s of same) {
+      const item = document.createElement('div');
+      item.className = 'dup-row';
+      const meta = document.createElement('span');
+      meta.className = 'dup-meta';
+      meta.textContent = `第 ${s.index + 1} 行 · Idx ${s.idx == null || s.idx === '' ? '-' : s.idx}`;
+      const flag = document.createElement('span');
+      flag.className = s.sameFields ? 'dup-same' : 'dup-diff';
+      flag.textContent = s.sameFields ? '属性一致' : '属性不同';
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.className = 'btn ghost small';
+      go.textContent = '定位';
+      go.addEventListener('click', () => jumpToRow(s.index));
+      item.appendChild(meta);
+      item.appendChild(flag);
+      item.appendChild(go);
+      list.appendChild(item);
+    }
+    box.appendChild(list);
+  }
+
+  if (dupIdx.length) {
+    const warn = document.createElement('div');
+    warn.className = 'detail-extra-warn';
+    warn.textContent = `Idx ${row.Idx} 与 ${dupIdx.length} 条记录重复：` +
+      dupIdx.map((d) => `第 ${d.index + 1} 行「${d.name || '空名称'}」`).join('、');
+    box.appendChild(warn);
+  }
+
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'btn danger small';
+  del.textContent = '删除此记录';
+  del.addEventListener('click', () => deleteRow(index));
+  box.appendChild(del);
+}
+
+function jumpToRow(index) {
+  if (!S.schema || index < 0 || index >= S.rows.length) return;
+  S.filter = '';
+  $('#rowSearch').value = '';
+  S.page = Math.floor(index / S.pageSize);
+  renderGrid();
+  selectRow(index);
+  const tr = document.querySelector(`#grid tbody tr[data-index="${index}"]`);
+  if (tr && tr.scrollIntoView) tr.scrollIntoView({ block: 'center' });
+}
+
+function removeAddedRow(index) {
+  if (index < S.rows.length) return;
+  const k = index - S.rows.length;
+  if (k < 0 || k >= S.added.length) return;
+  S.added.splice(k, 1);
+  closeDetail();
+  const total = S.rows.length + S.added.length;
+  const totalPages = Math.max(1, Math.ceil(total / S.pageSize));
+  if (S.page >= totalPages) S.page = totalPages - 1;
+  renderGrid();
+  updateMeta();
+  toast('已移除新增记录（尚未写入文件）', 'ok');
+}
+
+function updateRowActions() {
+  const btn = $('#btnDeleteRow');
+  if (!btn) return;
+  if (S.mode !== 'db' || S.selected < 0) {
+    btn.disabled = true;
+    btn.textContent = '删除记录';
+    return;
+  }
+  if (S.selected >= S.rows.length) {
+    btn.disabled = false;
+    btn.textContent = '移除新增';
+    return;
+  }
+  if (!isItemDb()) {
+    btn.disabled = true;
+    btn.textContent = '删除记录';
+    return;
+  }
+  btn.disabled = false;
+  btn.textContent = '删除记录';
+}
+
+function buildDeleteDialog(check) {
+  const c = check.checks[0];
+  const target = c.targets[0];
+  const idxText = target.idx == null || target.idx === '' ? '-' : target.idx;
+  const sections = [];
+
+  if (c.remainingSameName.length) {
+    const lines = c.remainingSameName.slice(0, 8).map((s) => {
+      const sidx = s.idx == null || s.idx === '' ? '-' : s.idx;
+      return `第 ${s.index + 1} 行 · Idx ${sidx} · ${s.sameFields ? '属性一致' : '属性不同'}`;
+    });
+    if (c.remainingSameName.length > 8) {
+      lines.push(`…另有 ${c.remainingSameName.length - 8} 条`);
+    }
+    lines.push('删除后配置中的名称引用会解析到剩余的同名记录。');
+    sections.push({ title: `同名记录还有 ${c.remainingSameName.length} 条`, lines });
+  }
+
+  if (c.duplicateIdx.length) {
+    const lines = c.duplicateIdx.slice(0, 5).map(
+      (d) => `第 ${d.index + 1} 行「${d.name || '空名称'}」也使用 Idx ${d.idx}`
+    );
+    if (c.duplicateIdx.length > 5) {
+      lines.push(`…另有 ${c.duplicateIdx.length - 5} 条`);
+    }
+    sections.push({ title: 'Idx 重复', lines });
+  }
+
+  const blocks = c.references.filter((g) => g.severity === 'block');
+  const hints = c.references.filter((g) => g.severity !== 'block');
+  if (blocks.length) {
+    const lines = [
+      c.lastOfName
+        ? '这是该名称的最后一条记录，删除后以下配置将找不到该物品：'
+        : '检测到以下引用：'
+    ];
+    for (const g of blocks) {
+      lines.push(`${g.label}：${g.count} 处`);
+      for (const s of g.samples.slice(0, 4)) lines.push(`  ${s}`);
+      if (g.count > 4) lines.push(`  …共 ${g.count} 处`);
+    }
+    sections.push({ title: '仍被引用的配置', tone: 'warn', lines });
+  } else {
+    sections.push({ title: '引用检查', lines: ['未检测到爆率、商店、任务、合成或礼包等引用。'] });
+  }
+
+  if (hints.length) {
+    const lines = [];
+    for (const g of hints) {
+      lines.push(`${g.label}：${g.count} 处`);
+      for (const s of g.samples.slice(0, 3)) lines.push(`  ${s}`);
+      if (g.count > 3) lines.push(`  …共 ${g.count} 处`);
+    }
+    sections.push({ title: '以下内容仅供参考', lines });
+  }
+
+  return {
+    title: '删除物品记录',
+    message: `确定删除物品记录「${c.name || '(空名称)'}」（第 ${target.index + 1} 行，Idx ${idxText}）？`,
+    sections,
+    note: '删除前会自动备份到 DB\\备份，此操作不可撤销。',
+    okText: '确认删除',
+    danger: true
+  };
+}
+
+async function deleteRow(index) {
+  if (S.mode !== 'db' || !S.dbFile || !S.schema) return;
+  if (index < 0) return toast('请先选择一行记录', 'err');
+  if (index >= S.rows.length) {
+    removeAddedRow(index);
+    return;
+  }
+  if (!isItemDb()) return toast('暂仅支持物品数据表删除记录', 'err');
+  if (dirtyCount() > 0) return toast('请先保存或放弃当前修改，再删除记录', 'err');
+
+  const row = S.rows[index];
+  const target = {
+    index,
+    name: rowName(row),
+    idx: row.Idx == null || row.Idx === '' ? null : Number(row.Idx)
+  };
+  const btn = $('#btnDeleteRow');
+  if (btn) btn.disabled = true;
+
+  let check;
+  try {
+    check = await api('/api/db/references', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: S.dbFile, indices: [index], targets: [target] })
+    });
+  } catch (e) {
+    toast('检查引用失败，已取消删除：' + e.message, 'err');
+    updateRowActions();
+    return;
+  }
+  if (!check.checks || !check.checks.length) {
+    toast('未获取到记录信息，请重新加载后再试', 'err');
+    updateRowActions();
+    return;
+  }
+  if (!(await uiConfirm(buildDeleteDialog(check)))) {
+    updateRowActions();
+    return;
+  }
+
+  const keepFilter = S.filter;
+  const keepPage = S.page;
+  try {
+    const res = await api('/api/db/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file: S.dbFile,
+        indices: [index],
+        targets: [target],
+        force: check.blocked === true
+      })
+    });
+    await refreshState();
+    await openDb(S.dbFile, true);
+    if (keepFilter) {
+      S.filter = keepFilter;
+      $('#rowSearch').value = keepFilter;
+    }
+    S.page = keepPage;
+    renderGrid();
+    let msg = `已删除 ${res.deletedRows} 条记录，当前 ${res.count}/${res.capacity} 条。`;
+    if (res.backup) msg += '\n备份：' + res.backup;
+    toast(msg, 'ok');
+  } catch (e) {
+    if (e.status === 409) {
+      toast('删除失败：' + e.message + '\n已重新加载数据。', 'err');
+      await openDb(S.dbFile, true);
+    } else {
+      const backup = e.data && e.data.backup ? '\n备份：' + e.data.backup : '';
+      toast('删除失败：' + e.message + backup, 'err');
+      updateRowActions();
+    }
+  }
 }
 
 function onFieldInput(index, field, input) {
@@ -530,12 +859,14 @@ function selectRow(index) {
   if (tr) tr.classList.add('selected');
   $('#detail').classList.remove('hidden');
   buildDetail(index);
+  updateRowActions();
 }
 
 function closeDetail() {
   S.selected = -1;
   $('#detail').classList.add('hidden');
   document.querySelectorAll('#grid tbody tr.selected').forEach((tr) => tr.classList.remove('selected'));
+  updateRowActions();
 }
 
 function updateDbHeader() {
@@ -639,6 +970,7 @@ function updateMeta() {
       ? `已打开 ${S.dbFile}${n ? ` · ${n} 处未保存` : ''}`
       : '未选择数据库';
     updateDbHeader();
+    updateRowActions();
   } else if (S.mode === 'drop') {
     const d = Boolean(S.dropFile) && S.dropText !== S.dropOriginal;
     dot.classList.toggle('on', d);
@@ -651,7 +983,7 @@ function updateMeta() {
   }
 }
 
-function confirmDiscard() {
+async function confirmDiscard() {
   if (S.mode === 'monster') {
     return window.monsterConfirmDiscard ? window.monsterConfirmDiscard() : true;
   }
@@ -665,10 +997,20 @@ function confirmDiscard() {
     return window.scriptConfirmDiscard ? window.scriptConfirmDiscard() : true;
   }
   if (S.mode === 'db' && dirtyCount() > 0) {
-    return confirm('当前数据库有未保存的修改，确定放弃并继续？');
+    return uiConfirm({
+      title: '放弃未保存的修改',
+      message: '当前数据库有未保存的修改，确定放弃并继续？',
+      danger: true,
+      okText: '放弃修改'
+    });
   }
   if (S.mode === 'drop' && S.dropFile && S.dropText !== S.dropOriginal) {
-    return confirm('当前爆率文件有未保存的修改，确定放弃并继续？');
+    return uiConfirm({
+      title: '放弃未保存的修改',
+      message: '当前爆率文件有未保存的修改，确定放弃并继续？',
+      danger: true,
+      okText: '放弃修改'
+    });
   }
   return true;
 }
@@ -875,7 +1217,7 @@ async function navBack() {
 }
 
 async function openDb(name, force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   navTouch();
   try {
     const data = await api('/api/db?file=' + encodeURIComponent(name));
@@ -922,7 +1264,7 @@ async function openDb(name, force) {
 }
 
 async function openDrop(name, force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   navTouch();
   try {
     const data = await api('/api/drop?file=' + encodeURIComponent(name));
@@ -1051,7 +1393,7 @@ async function saveDrop() {
 
 async function deleteDrop() {
   if (!S.dropFile) return toast('请先选择爆率文件', 'err');
-  if (!confirmDiscard()) return;
+  if (!(await confirmDiscard())) return;
   const name = S.dropFile;
   let refs;
   try {
@@ -1060,26 +1402,38 @@ async function deleteDrop() {
     toast('检查引用失败，已取消删除：' + e.message, 'err');
     return;
   }
-  const parts = [];
   const monsterNames = refs.monsterNames || [];
   const spawnMaps = refs.spawnMaps || [];
+  const sections = [];
   if (monsterNames.length) {
-    const head = monsterNames.slice(0, 8).join('、');
-    parts.push(`Monster.DB：${monsterNames.length} 个怪物（${head}${monsterNames.length > 8 ? ' 等' : ''}）`);
+    const lines = monsterNames.slice(0, 8).join('、') + (monsterNames.length > 8 ? ' 等' : '');
+    sections.push({ title: `Monster.DB 引用 ${monsterNames.length} 个怪物`, lines: [lines] });
   }
   if (refs.spawnCount) {
     const maps = spawnMaps.slice(0, 6).join('、');
-    parts.push(`Mongen.txt：${refs.spawnCount} 条刷怪${maps ? `（${maps}${spawnMaps.length > 6 ? ' 等' : ''}）` : ''}`);
+    sections.push({
+      title: `Mongen.txt 引用 ${refs.spawnCount} 条刷怪`,
+      lines: [maps ? maps + (spawnMaps.length > 6 ? ' 等' : '') : '']
+    });
   }
-  let msg = `确定删除爆率文件「${name}」？\n\n`;
   if (refs.referenced) {
-    msg += '检测到该文件仍被引用：\n' + parts.join('\n') +
-      '\n\n删除后这些怪物将失去该爆率文件。\n';
+    sections.unshift({
+      title: '仍被引用的配置',
+      tone: 'warn',
+      lines: ['删除后这些怪物将失去该爆率文件。']
+    });
   } else {
-    msg += '未检测到怪物或刷怪配置引用。\n';
+    sections.push({ title: '引用检查', lines: ['未检测到怪物或刷怪配置引用。'] });
   }
-  msg += '\n删除前会自动备份到 MonItems\\备份，此操作不可撤销。';
-  if (!confirm(msg)) return;
+  const ok = await uiConfirm({
+    title: '删除爆率文件',
+    message: `确定删除爆率文件「${name}」？`,
+    sections,
+    note: '删除前会自动备份到 MonItems\\备份，此操作不可撤销。',
+    okText: '确认删除',
+    danger: true
+  });
+  if (!ok) return;
 
   $('#btnDropDelete').disabled = true;
   try {
@@ -1188,7 +1542,7 @@ function hideAllViews() {
   if (detail) detail.classList.add('hidden');
 }
 
-function openBasicTab(target) {
+async function openBasicTab(target) {
   if (target === 'db') {
     if (S.mode === 'db' && S.dbFile) {
       hideAllViews();
@@ -1231,7 +1585,7 @@ function openBasicTab(target) {
       showSideTab('cfg');
       return;
     }
-    if (!confirmDiscard()) return;
+    if (!(await confirmDiscard())) return;
     hideAllViews();
     const item = document.querySelector('#cfgList .file-item.active') ||
       document.querySelector('#cfgList .file-item');
@@ -1343,11 +1697,14 @@ $('#btnDup').addEventListener('click', () => {
 $('#btnReload').addEventListener('click', () => {
   if (S.dbFile) openDb(S.dbFile);
 });
+$('#btnDeleteRow').addEventListener('click', () => {
+  if (S.selected >= 0) deleteRow(S.selected);
+});
 $('#btnSave').addEventListener('click', saveDb);
 $('#btnCloseDetail').addEventListener('click', closeDetail);
 
-$('#btnDropReload').addEventListener('click', () => {
-  if (S.dropFile && confirmDiscard()) openDrop(S.dropFile, true);
+$('#btnDropReload').addEventListener('click', async () => {
+  if (S.dropFile && (await confirmDiscard())) openDrop(S.dropFile, true);
 });
 $('#btnDropSave').addEventListener('click', saveDrop);
 $('#btnDropDelete').addEventListener('click', deleteDrop);
@@ -1359,6 +1716,7 @@ $('#dropText').addEventListener('input', () => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (window.uiDialogOpen && window.uiDialogOpen()) return;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault();
     if (S.mode === 'db') saveDb();

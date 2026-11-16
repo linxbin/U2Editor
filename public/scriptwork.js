@@ -383,8 +383,13 @@ function scwStartEdit() {
   scwRenderDetail();
 }
 
-function scwCancelEdit() {
-  if (scwEditDirty() && !confirm('放弃当前脚本的未保存修改？')) return;
+async function scwCancelEdit() {
+  if (scwEditDirty() && !(await uiConfirm({
+    title: '放弃未保存的修改',
+    message: '放弃当前脚本的未保存修改？',
+    danger: true,
+    okText: '放弃修改'
+  }))) return;
   SCW.editing = false;
   SCW.editSyntax = null;
   scwRenderDetail();
@@ -574,11 +579,19 @@ async function scwSaveEdit() {
   if (ta) SCW.editText = ta.value;
   const checked = await scwCheckEdit();
   if (!checked) {
-    if (!confirm('语法检测不可用，仍要保存吗？')) return;
+    if (!(await uiConfirm({
+      title: '继续保存',
+      message: '语法检测不可用，仍要保存吗？',
+      okText: '仍要保存'
+    }))) return;
   } else if (checked.errors && checked.errors.length) {
     const first = checked.errors[0];
     const hint = first.line ? '（第 ' + first.line + ' 行：' + first.message + '）' : '';
-    if (!confirm('语法检测发现 ' + checked.errors.length + ' 个问题' + hint + '，仍要保存吗？')) return;
+    if (!(await uiConfirm({
+      title: '语法检测发现问题',
+      message: '语法检测发现 ' + checked.errors.length + ' 个问题' + hint + '，仍要保存吗？',
+      okText: '仍要保存'
+    }))) return;
   }
   const btn = document.querySelector('[data-scw-act="save"]');
   if (btn) btn.disabled = true;
@@ -868,7 +881,12 @@ function scwRenderAll() {
 }
 
 async function scwOpen(name, line) {
-  if (scwEditDirty() && !confirm('当前脚本有未保存的修改，确定放弃并继续？')) return;
+  if (scwEditDirty() && !(await uiConfirm({
+    title: '放弃未保存的修改',
+    message: '当前脚本有未保存的修改，确定放弃并继续？',
+    danger: true,
+    okText: '放弃修改'
+  }))) return;
   if (SCW.editing) {
     SCW.editing = false;
     SCW.editSyntax = null;
@@ -967,7 +985,7 @@ async function scwGotoTask(id) {
 }
 
 async function openScriptView(sel) {
-  if (S.mode !== 'scriptwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'scriptwork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'scriptwork';
   if (!scwEditDirty()) {
     SCW.editing = false;
@@ -1029,8 +1047,15 @@ async function openScriptView(sel) {
 }
 
 window.openScriptView = openScriptView;
-window.scriptConfirmDiscard = () => !scwEditDirty() ||
-  confirm('当前脚本有未保存的修改，确定放弃并继续？');
+window.scriptConfirmDiscard = async () => {
+  if (!scwEditDirty()) return true;
+  return uiConfirm({
+    title: '放弃未保存的修改',
+    message: '当前脚本有未保存的修改，确定放弃并继续？',
+    danger: true,
+    okText: '放弃修改'
+  });
+};
 window.hideScriptWorkView = () => {
   const view = scwEl('scriptWorkView');
   if (!view) return;

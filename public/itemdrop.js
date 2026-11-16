@@ -963,7 +963,7 @@ async function idwApplyTarget(target) {
 }
 
 async function openItemDropView(sel) {
-  if (S.mode !== 'itemdrop' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'itemdrop' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'itemdrop';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

@@ -678,7 +678,7 @@ function extraResetState(data) {
 }
 
 async function loadExtraFile(key, force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   const data = await api('/api/config/extra/data?key=' + encodeURIComponent(key));
   extraResetState(data);
   cfgEl('extraSearch').value = '';
@@ -688,7 +688,7 @@ async function loadExtraFile(key, force) {
 }
 
 async function openExtraConfig(force) {
-  if (!force && !confirmDiscard()) return false;
+  if (!force && !(await confirmDiscard())) return false;
   try {
     await ensureExtraRegistry();
     if (!CFG.extra.key) CFG.extra.key = 'server';
@@ -776,7 +776,7 @@ window.openExtraKeyAt = async (key, target) => {
 };
 
 async function openServerConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     await ensureExtraRegistry();
     CFG.extra.key = 'gameserver';

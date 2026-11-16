@@ -260,14 +260,19 @@ function mapinfoAdd(source) {
   updateMeta();
 }
 
-function mapinfoDelete() {
+async function mapinfoDelete() {
   const m = CFG.mapinfo;
   const sec = mapinfoSection();
   if (!sec || m.selected < 0) return toast('请先选择一条规则', 'err');
   const index = m.selected;
   const row = getMapinfoRow(index);
   if (!row) return;
-  if (!confirm(`删除 ${sec.label}：${row.map}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除' + sec.label,
+    message: `删除 ${sec.label}：${row.map}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= sec.rows.length) {
     mapinfoAdded(m.section).splice(index - sec.rows.length, 1);
   } else {
@@ -280,7 +285,7 @@ function mapinfoDelete() {
 }
 
 async function openMapinfoConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/mapinfo');
     const m = CFG.mapinfo;
@@ -384,7 +389,7 @@ window.openMapinfoConfig = openMapinfoConfig;
 
 async function openMapinfoAt(map, section) {
   const code = String(map == null ? '' : map);
-  if (S.mode !== 'cfgMapinfo' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'cfgMapinfo' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   await openMapinfoConfig(true);
   const m = CFG.mapinfo;
   if (!m.data) return;

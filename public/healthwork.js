@@ -397,7 +397,7 @@ async function hwJump(issue) {
 }
 
 async function openHealthWorkView(sel) {
-  if (S.mode !== 'healthwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'healthwork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'healthwork';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

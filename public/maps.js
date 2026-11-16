@@ -390,8 +390,12 @@ async function mpwRegisterMap(btn) {
   }
   const missing = map.file ? '' :
     '\n该地图仍缺少 map/' + map.map + '.map 文件，登记后告警会变为「地图文件缺失」。';
-  if (!confirm('将把「' + map.map + ' · ' + name +
-    '」写入 MapInfo 的 [MAPLOAD] 段，写入前会自动备份。' + missing + '\n继续？')) return;
+  if (!(await uiConfirm({
+    title: '登记地图',
+    message: '将把「' + map.map + ' · ' + name + '」写入 MapInfo 的 [MAPLOAD] 段。' + missing,
+    note: '写入前会自动备份。',
+    okText: '继续'
+  }))) return;
 
   MPW.regSaving = true;
   if (btn) btn.disabled = true;
@@ -731,7 +735,7 @@ async function mpwJumpAction(action) {
 }
 
 async function openMapView(sel) {
-  if (S.mode !== 'maps' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'maps' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'maps';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

@@ -227,9 +227,16 @@ window.configAnyDirty = () => {
   return false;
 };
 
-window.configConfirmDiscard = () => {
+window.configConfirmDiscard = async () => {
   const n = cfgDirty(S.mode);
-  if (n > 0) return confirm(`当前玩法配置有 ${n} 处未保存修改，确定放弃并继续？`);
+  if (n > 0) {
+    return uiConfirm({
+      title: '放弃未保存的修改',
+      message: `当前玩法配置有 ${n} 处未保存修改，确定放弃并继续？`,
+      danger: true,
+      okText: '放弃修改'
+    });
+  }
   return true;
 };
 
@@ -596,13 +603,18 @@ function mongenAdd(source) {
   updateMeta();
 }
 
-function mongenDelete() {
+async function mongenDelete() {
   const m = CFG.mongen;
   if (m.selected < 0) return toast('请先选择一条刷怪记录', 'err');
   const index = m.selected;
   const row = getMongenRow(index);
   if (!row) return;
-  if (!confirm(`删除刷怪：${row.map} · ${row.monster}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除刷怪',
+    message: `删除刷怪：${row.map} · ${row.monster}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= m.data.entries.length) {
     m.added.splice(index - m.data.entries.length, 1);
   } else {
@@ -614,7 +626,7 @@ function mongenDelete() {
   updateMeta();
 }
 
-function mongenBatch() {
+async function mongenBatch() {
   const m = CFG.mongen;
   if (!m.data) return;
   if (!m.mapFilter) return toast('请先在上方选择一张地图，再批量调整', 'err');
@@ -628,7 +640,11 @@ function mongenBatch() {
     if (m.added[k].map === m.mapFilter) targets.push(m.data.entries.length + k);
   }
   if (!targets.length) return toast('这张地图没有可调整的刷怪记录', 'err');
-  if (!confirm(`将地图 ${m.mapFilter} 的 ${targets.length} 条刷怪数量乘以 ${factor}（最小为 1）？`)) return;
+  if (!(await uiConfirm({
+    title: '批量调整刷怪数量',
+    message: `将地图 ${m.mapFilter} 的 ${targets.length} 条刷怪数量乘以 ${factor}（最小为 1）？`,
+    okText: '调整'
+  }))) return;
   for (const index of targets) {
     const row = { ...getMongenRow(index) };
     row.count = Math.max(1, Math.round(row.count * factor));
@@ -640,7 +656,7 @@ function mongenBatch() {
 }
 
 async function openMongen(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/mongen');
     const m = CFG.mongen;
@@ -664,7 +680,7 @@ async function openMongen(force) {
 }
 
 async function openMongenAt(index, map) {
-  if (typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   await openMongen(true);
   const m = CFG.mongen;
   if (!m.data) return;
@@ -931,13 +947,18 @@ function makeitemAdd(source) {
   updateMeta();
 }
 
-function makeitemDelete() {
+async function makeitemDelete() {
   const m = CFG.makeitem;
   if (m.selected < 0) return toast('请先选择一个配方', 'err');
   const index = m.selected;
   const row = getMakeRow(index);
   if (!row) return;
-  if (!confirm(`删除配方：${row.name}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除配方',
+    message: `删除配方：${row.name}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= m.data.recipes.length) {
     m.added.splice(index - m.data.recipes.length, 1);
   } else {
@@ -950,7 +971,7 @@ function makeitemDelete() {
 }
 
 async function openMakeitem(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/makeitem');
     const m = CFG.makeitem;
@@ -975,7 +996,7 @@ window.openMakeitem = openMakeitem;
 async function openMakeitemAt(index) {
   const i = Number(index);
   if (!Number.isInteger(i) || i < 0) return;
-  if (S.mode !== 'cfgMakeItem' && !confirmDiscard()) return;
+  if (S.mode !== 'cfgMakeItem' && !(await confirmDiscard())) return;
   await openMakeitem(true);
   const m = CFG.makeitem;
   if (!m.data || !m.data.recipes || i >= m.data.recipes.length) return;
@@ -1217,13 +1238,18 @@ function appellationAdd(source) {
   updateMeta();
 }
 
-function appellationDelete() {
+async function appellationDelete() {
   const m = CFG.appellation;
   if (m.selected < 0) return toast('请先选择一条称号记录', 'err');
   const index = m.selected;
   const row = getAppRow(index);
   if (!row) return;
-  if (!confirm(`删除称号：${row.cls} · ${row.title || row.stage}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除称号',
+    message: `删除称号：${row.cls} · ${row.title || row.stage}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= m.data.rows.length) {
     m.added.splice(index - m.data.rows.length, 1);
   } else {
@@ -1236,7 +1262,7 @@ function appellationDelete() {
 }
 
 async function openAppellation(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/appellation');
     const m = CFG.appellation;

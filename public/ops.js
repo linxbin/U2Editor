@@ -386,7 +386,7 @@ function opsAdd() {
   updateMeta();
 }
 
-function opsDelete() {
+async function opsDelete() {
   const m = CFG.ops;
   if (!m.data) return;
   if (m.tab === 'quiz') {
@@ -394,7 +394,12 @@ function opsDelete() {
     const index = m.quizSelected;
     const row = getOpsQuizRow(index);
     if (!row) return;
-    if (!confirm(`删除题目：${row.question}？`)) return;
+    if (!(await uiConfirm({
+      title: '删除题目',
+      message: `删除题目：${row.question}？`,
+      okText: '删除',
+      danger: true
+    }))) return;
     if (index >= m.data.quiz.rows.length) m.quizAdded.splice(index - m.data.quiz.rows.length, 1);
     else {
       m.quizDeleted.add(index);
@@ -412,7 +417,12 @@ function opsDelete() {
   if (selected < 0) return toast('请先选择一条物品', 'err');
   const row = getOpsSectionRow(kind, selected);
   if (!row) return;
-  if (!confirm(`删除物品：${row.item}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除物品',
+    message: `删除物品：${row.item}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (selected >= ds.rows.length) maps.added.splice(selected - ds.rows.length, 1);
   else {
     maps.deleted.add(selected);
@@ -444,7 +454,7 @@ function opsSectionPayload(kind) {
 }
 
 async function openOpsConfig(force, keepTab) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/ops');
     const m = CFG.ops;

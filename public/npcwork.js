@@ -650,7 +650,7 @@ async function npwGotoTasks(search) {
 }
 
 async function openNpcWorkView(index) {
-  if (S.mode !== 'npcwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'npcwork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'npcwork';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

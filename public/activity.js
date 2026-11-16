@@ -715,7 +715,7 @@ function actFocusHealth(id) {
 }
 
 async function openActivityView(tab, id) {
-  if (S.mode !== 'activity' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'activity' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   if (tab) ACT.tab = tab;
   if (id) ACT.selected = id;
   S.mode = 'activity';

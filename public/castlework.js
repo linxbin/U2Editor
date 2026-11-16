@@ -458,7 +458,7 @@ function cbwRenderAll() {
   cbwRenderHealth();
 }
 
-function cbwSelect(section, opts) {
+async function cbwSelect(section, opts) {
   const target = cbwSection(section);
   if (!target) {
     CBW.selected = null;
@@ -469,7 +469,12 @@ function cbwSelect(section, opts) {
     return;
   }
   if (CBW.dirty && CBW.selected === 'overview' && target.key !== 'overview') {
-    if (!confirm('沙城基础字段有未保存的修改，确定放弃并切换？')) return;
+    if (!(await uiConfirm({
+      title: '放弃未保存的修改',
+      message: '沙城基础字段有未保存的修改，确定放弃并切换？',
+      danger: true,
+      okText: '放弃修改'
+    }))) return;
     CBW.dirty = false;
   }
   CBW.selected = target.key;
@@ -555,7 +560,7 @@ async function cbwReload() {
 }
 
 async function openCastleView(sel) {
-  if (S.mode !== 'castlework' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'castlework' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'castlework';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();
@@ -627,7 +632,15 @@ window.hideCastleWorkView = () => {
     }
   }
 };
-window.castleConfirmDiscard = () => !CBW.dirty || confirm('沙城基础字段有未保存的修改，确定放弃？');
+window.castleConfirmDiscard = async () => {
+  if (!CBW.dirty) return true;
+  return uiConfirm({
+    title: '放弃未保存的修改',
+    message: '沙城基础字段有未保存的修改，确定放弃？',
+    danger: true,
+    okText: '放弃修改'
+  });
+};
 window.refreshCastleWorkState = (st) => {
   const info = st && st.configs ? st.configs.castlework : null;
   if (!info || info.error) return;

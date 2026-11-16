@@ -313,7 +313,7 @@ function yswBind() {
 }
 
 async function openYswView() {
-  if (S.mode !== 'yswork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'yswork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'yswork';
   if (typeof hideAllViews === 'function') hideAllViews();
   const view = yswEl('ysworkView');

@@ -479,7 +479,7 @@ function mallAdd(source) {
   updateMeta();
 }
 
-function mallDelete() {
+async function mallDelete() {
   const m = CFG.mall;
   if (!m.data) return;
   if (m.tab === 'hot') {
@@ -487,7 +487,12 @@ function mallDelete() {
     const index = m.hotSelected;
     const row = getMallHot(index);
     if (!row) return;
-    if (!confirm(`删除热卖商品：${row.dispname}？`)) return;
+    if (!(await uiConfirm({
+      title: '删除热卖商品',
+      message: `删除热卖商品：${row.dispname}？`,
+      okText: '删除',
+      danger: true
+    }))) return;
     if (index >= m.data.hotItems.length) m.hotAdded.splice(index - m.data.hotItems.length, 1);
     else {
       m.hotDeleted.add(index);
@@ -502,7 +507,12 @@ function mallDelete() {
   const index = m.selected;
   const row = getMallItem(index);
   if (!row) return;
-  if (!confirm(`删除商品：${row.dispname}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除商品',
+    message: `删除商品：${row.dispname}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= m.data.items.length) m.added.splice(index - m.data.items.length, 1);
   else {
     m.deleted.add(index);
@@ -521,7 +531,7 @@ function setMallTab(tab) {
 }
 
 async function openMallConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/mall');
     const m = CFG.mall;
@@ -653,7 +663,7 @@ window.openMallConfig = openMallConfig;
 async function openMallAt(index) {
   const i = Number(index);
   if (!Number.isInteger(i) || i < 0) return;
-  if (S.mode !== 'cfgMall' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'cfgMall' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   await openMallConfig(true);
   const m = CFG.mall;
   if (!m.data || i >= m.data.items.length) return;

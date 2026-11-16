@@ -181,13 +181,18 @@ function goodsCfgAdd(source) {
   updateMeta();
 }
 
-function goodsCfgDelete() {
+async function goodsCfgDelete() {
   const m = CFG.goods;
   if (m.selected < 0) return toast('请先选择一条商城商品', 'err');
   const index = m.selected;
   const row = getGoodsCfgRow(index);
   if (!row) return;
-  if (!confirm(`删除商城商品：${goodsKeyOf(row)}？`)) return;
+  if (!(await uiConfirm({
+    title: '删除商城商品',
+    message: `删除商城商品：${goodsKeyOf(row)}？`,
+    okText: '删除',
+    danger: true
+  }))) return;
   if (index >= m.data.entries.length) {
     m.added.splice(index - m.data.entries.length, 1);
   } else {
@@ -200,7 +205,7 @@ function goodsCfgDelete() {
 }
 
 async function openGoodsConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/goods');
     const m = CFG.goods;
@@ -544,7 +549,7 @@ function summonAdd() {
   updateMeta();
 }
 
-function summonDelete() {
+async function summonDelete() {
   const m = CFG.summons;
   if (!m.data) return;
   if (m.tab === 'chain') {
@@ -552,7 +557,12 @@ function summonDelete() {
     const index = m.chainSelected;
     const row = getSummonChainRow(index);
     if (!row) return;
-    if (!confirm(`删除召唤：${row.group} · ${row.monster}？`)) return;
+    if (!(await uiConfirm({
+      title: '删除召唤',
+      message: `删除召唤：${row.group} · ${row.monster}？`,
+      okText: '删除',
+      danger: true
+    }))) return;
     if (index >= m.data.chain.entries.length) {
       m.chainAdded.splice(index - m.data.chain.entries.length, 1);
     } else {
@@ -564,7 +574,12 @@ function summonDelete() {
     const index = m.childSelected;
     const row = getSummonChildRow(index);
     if (!row) return;
-    if (!confirm(`删除子怪：${row.parent} · ${row.child}？`)) return;
+    if (!(await uiConfirm({
+      title: '删除子怪',
+      message: `删除子怪：${row.parent} · ${row.child}？`,
+      okText: '删除',
+      danger: true
+    }))) return;
     if (index >= m.data.child.rows.length) {
       m.childAdded.splice(index - m.data.child.rows.length, 1);
     } else {
@@ -578,7 +593,7 @@ function summonDelete() {
 }
 
 async function openSummonsConfig(force) {
-  if (!force && !confirmDiscard()) return;
+  if (!force && !(await confirmDiscard())) return;
   try {
     const data = await api('/api/config/summons');
     const m = CFG.summons;
@@ -712,7 +727,7 @@ window.openGoodsConfig = openGoodsConfig;
 async function openGoodsAt(index) {
   const i = Number(index);
   if (!Number.isInteger(i) || i < 0) return;
-  if (S.mode !== 'cfgGoods' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'cfgGoods' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   await openGoodsConfig(true);
   const m = CFG.goods;
   if (!m.data || i >= m.data.entries.length) return;

@@ -645,7 +645,7 @@ async function stwReload() {
 }
 
 async function openStarterWorkView(sel) {
-  if (S.mode !== 'starterwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'starterwork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'starterwork';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

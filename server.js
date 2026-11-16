@@ -29,6 +29,7 @@ const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
 const ysWorkData = require('./lib/yswork');
+const dbRefs = require('./lib/dbrefs');
 
 const APP_DIR = __dirname;
 const ROOT = process.env.DBEDITOR_ROOT
@@ -217,6 +218,18 @@ const healthWorkbench = healthWorkData.create({
   ]
 });
 
+const dbRefCheck = dbRefs.create({
+  itemWorkbench,
+  taskWorkbench,
+  starterWorkbench,
+  castleWorkbench,
+  scriptWorkbench,
+  extraData,
+  opsData,
+  envirDir: ENVIR_DIR,
+  itemFile: path.join(DB_DIR, 'stditems.db')
+});
+
 const DB_NAME_RE = /^[^\\/:*?"<>|]+\.db$/i;
 const DROP_NAME_RE = /^[^\\/:*?"<>|]+\.txt$/i;
 
@@ -318,6 +331,7 @@ const STATIC = {
   '/configs.js': { file: 'configs.js', type: 'application/javascript; charset=utf-8' },
   '/npc.js': { file: 'npc.js', type: 'application/javascript; charset=utf-8' },
   '/labels.js': { file: 'labels.js', type: 'application/javascript; charset=utf-8' },
+  '/dialog.js': { file: 'dialog.js', type: 'application/javascript; charset=utf-8' },
   '/extras.js': { file: 'extras.js', type: 'application/javascript; charset=utf-8' },
   '/mall.js': { file: 'mall.js', type: 'application/javascript; charset=utf-8' },
   '/mapinfo.js': { file: 'mapinfo.js', type: 'application/javascript; charset=utf-8' },
@@ -683,6 +697,18 @@ function invalidateState() {
   statePromise = null;
 }
 
+function invalidateItemConsumers() {
+  cachedItemNames = null;
+  cachedItemIndex = null;
+  const list = [
+    itemWorkbench, dropWorkbench, shopWorkbench, npcWorkbench, taskWorkbench,
+    starterWorkbench, castleWorkbench, textWorkbench, activityWorkbench,
+    ysWorkbench, monsterWorkbench, healthWorkbench
+  ];
+  for (const wb of list) wb.invalidate();
+  invalidateState();
+}
+
 async function handle(req, res) {
   const url = new URL(req.url, 'http://127.0.0.1');
   const pathname = url.pathname;
@@ -749,6 +775,63 @@ async function handle(req, res) {
       cachedItemIndex = null;
     }
     json(res, 200, result);
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/db/references') {
+    const body = await readBody(req);
+    let file;
+    try {
+      file = safePath(DB_DIR, body.file, DB_NAME_RE);
+    } catch (e) {
+      json(res, 400, { error: e.message });
+      return;
+    }
+    if (!fs.existsSync(file)) {
+      json(res, 404, { error: '数据库不存在：' + path.basename(file) });
+      return;
+    }
+    try {
+      json(res, 200, dbRefCheck.check(file, body.indices, body.targets));
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/db/delete') {
+    const body = await readBody(req);
+    let file;
+    try {
+      file = safePath(DB_DIR, body.file, DB_NAME_RE);
+    } catch (e) {
+      json(res, 400, { error: e.message });
+      return;
+    }
+    if (!fs.existsSync(file)) {
+      json(res, 404, { error: '数据库不存在：' + path.basename(file) });
+      return;
+    }
+    let check;
+    try {
+      check = dbRefCheck.check(file, body.indices, body.targets);
+    } catch (e) {
+      json(res, e.status || 500, { error: e.message });
+      return;
+    }
+    if (check.blocked && body.force !== true) {
+      json(res, 409, { error: '该物品仍被配置引用，请确认后再删除', check });
+      return;
+    }
+    try {
+      const result = dbe.deleteRows(file, body.indices, body.targets);
+      invalidateItemConsumers();
+      json(res, 200, { ...result, check });
+    } catch (e) {
+      const payload = { error: e.message };
+      if (e.backup) payload.backup = e.backup;
+      json(res, e.status || 500, payload);
+    }
     return;
   }
 

@@ -487,7 +487,7 @@ async function spwJumpIssue(issue) {
 }
 
 async function openSpawnView(sel) {
-  if (S.mode !== 'spawns' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'spawns' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'spawns';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

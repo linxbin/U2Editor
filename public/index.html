@@ -306,6 +306,7 @@
           <input id="rowSearch" class="filter search" placeholder="搜索名称..." autocomplete="off">
           <button id="btnAdd" class="btn">新增记录</button>
           <button id="btnDup" class="btn">复制选中</button>
+          <button id="btnDeleteRow" class="btn danger" disabled>删除记录</button>
           <button id="btnReload" class="btn">重新加载</button>
           <button id="btnSave" class="btn primary">保存</button>
         </div>
@@ -1208,6 +1209,7 @@
           <button id="btnCloseDetail" class="btn ghost small">关闭</button>
         </div>
         <div id="detailForm" class="form"></div>
+        <div id="detailExtra" class="detail-extra"></div>
         <div class="detail-note">
           修改会先保存在浏览器内存中，点击“保存”后才写入文件；写入前会自动生成备份。
         </div>
@@ -1215,6 +1217,17 @@
     </main>
   </div>
 
+  <dialog id="uiDialog" class="ui-dialog" aria-labelledby="uiDialogTitle">
+    <div class="ui-dialog-head">
+      <strong id="uiDialogTitle"></strong>
+      <button type="button" class="btn ghost small" data-dialog-cancel>关闭</button>
+    </div>
+    <div id="uiDialogBody" class="ui-dialog-body"></div>
+    <div class="ui-dialog-foot">
+      <button type="button" class="btn" id="uiDialogCancel" data-dialog-cancel>取消</button>
+      <button type="button" class="btn primary" id="uiDialogOk">确定</button>
+    </div>
+  </dialog>
   <div id="toast" class="toast"></div>
   <datalist id="monsterList"></datalist>
   <datalist id="itemList"></datalist>
@@ -1223,6 +1236,7 @@
   <datalist id="summonGroupList"></datalist>
   <datalist id="iuwMapCodeList"></datalist>
   <script src="labels.js"></script>
+  <script src="dialog.js"></script>
   <script src="app.js"></script>
   <script src="configs.js"></script>
   <script src="npc.js"></script>

@@ -613,7 +613,7 @@ async function swEditMall(index) {
 }
 
 async function openShopView(sel) {
-  if (S.mode !== 'shopwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'shopwork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'shopwork';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

@@ -321,11 +321,15 @@ async function tskCleanupOrphans(switches) {
   if (!list.length) return;
   const sample = list.slice(0, 20).join(', ') + (list.length > 20 ? ' …' : '');
   if (
-    !confirm(
-      '将从所有模块的 TaskSwitchOnList 中移除 ' + list.length + ' 个没有对应任务定义的开关：\n' +
-        sample +
-        '\n\n写入前会自动备份，重启或重载服务端后生效。继续？'
-    )
+    !(await uiConfirm({
+      title: '清理孤儿任务开关',
+      message:
+        '将从所有模块的 TaskSwitchOnList 中移除 ' + list.length + ' 个没有对应任务定义的开关：\n' +
+        sample,
+      note: '写入前会自动备份，重启或重载服务端后生效。',
+      okText: '继续',
+      danger: true
+    }))
   )
     return;
   try {
@@ -353,11 +357,13 @@ async function tskBatchModule(m, enabled) {
     ? '会在 ' + m.file + ' 的 TaskSwitchOnList 中追加 ' + count + ' 个任务 ID。'
     : '会从所有模块的 TaskSwitchOnList 中移除 ' + count + ' 个任务 ID；若仍被其它任务或 NPC 引用，相关任务链可能中断。';
   if (
-    !confirm(
-      '将' + (enabled ? '启用' : '停用') + '模块 ' + m.id + ' 的 ' + count + ' 个任务。\n' +
-        detail +
-        '\n\n写入前自动备份，重启或重载服务端后生效。继续？'
-    )
+    !(await uiConfirm({
+      title: (enabled ? '启用' : '停用') + '模块 ' + m.id + ' 的任务',
+      message: '将' + (enabled ? '启用' : '停用') + '模块 ' + m.id + ' 的 ' + count + ' 个任务。\n' + detail,
+      note: '写入前自动备份，重启或重载服务端后生效。',
+      okText: enabled ? '启用' : '停用',
+      danger: !enabled
+    }))
   )
     return;
   try {
@@ -375,7 +381,12 @@ async function tskBatchModule(m, enabled) {
       if (deps.preTaskOf.length) parts.push(deps.preTaskOf.length + ' 个任务的前置条件');
       if (deps.prizeOf.length) parts.push(deps.prizeOf.length + ' 个任务的奖励跳转');
       if (deps.npcTasks.length) parts.push(deps.npcTasks.length + ' 个 NPC 任务列表');
-      if (!confirm('部分任务仍被 ' + parts.join('、') + '引用。\n停用后相关任务链可能中断。仍要停用？')) return;
+      if (!(await uiConfirm({
+        title: '任务仍被引用',
+        message: '部分任务仍被 ' + parts.join('、') + '引用。\n停用后相关任务链可能中断。仍要停用？',
+        okText: '仍要停用',
+        danger: true
+      }))) return;
       res = await api('/api/config/task/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -415,7 +426,12 @@ async function tskToggle(enabled) {
       if (deps.preTaskOf.length) parts.push(deps.preTaskOf.length + ' 个任务的前置条件');
       if (deps.prizeOf.length) parts.push(deps.prizeOf.length + ' 个任务的奖励跳转');
       if (deps.npcTasks.length) parts.push(deps.npcTasks.length + ' 个 NPC 任务列表');
-      if (!confirm('#' + id + ' 仍被 ' + parts.join('、') + '引用。\n停用后服务端重载时任务会被删除，相关任务链可能中断。仍要停用？')) return;
+      if (!(await uiConfirm({
+        title: '任务仍被引用',
+        message: '#' + id + ' 仍被 ' + parts.join('、') + '引用。\n停用后服务端重载时任务会被删除，相关任务链可能中断。仍要停用？',
+        okText: '仍要停用',
+        danger: true
+      }))) return;
       res = await api('/api/config/task/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1110,7 +1126,7 @@ async function tskSelect(id) {
 }
 
 async function openTaskView(tab, id) {
-  if (S.mode !== 'task' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'task' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   if (tab) TSK.tab = tab;
   S.mode = 'task';
   if (window.hideConfigViews) window.hideConfigViews();

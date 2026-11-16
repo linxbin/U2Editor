@@ -590,7 +590,7 @@ async function txwReload() {
 }
 
 async function openTextWorkView(sel) {
-  if (S.mode !== 'textwork' && typeof confirmDiscard === 'function' && !confirmDiscard()) return;
+  if (S.mode !== 'textwork' && typeof confirmDiscard === 'function' && !(await confirmDiscard())) return;
   S.mode = 'textwork';
   if (window.hideConfigViews) window.hideConfigViews();
   if (window.hideMonsterView) window.hideMonsterView();

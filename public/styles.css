@@ -2382,6 +2382,23 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .npwz-recycle-good { grid-template-columns: minmax(150px, 1fr) 170px auto; }
 .npwz-daily-reward { grid-template-columns: minmax(150px, 1fr) 110px auto; }
 .npwz-dest { grid-template-columns: minmax(110px, 1fr) minmax(90px, .9fr) 76px 76px 96px 76px auto; }
+.npwz-recipes { display: flex; flex-direction: column; gap: 10px; }
+.npwz-recipe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #2b3648;
+  border-radius: 8px;
+  background: #0f151e;
+}
+.npwz-recipe-head,
+.npwz-craft-mats-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #c9d6ea; font-size: 12px; }
+.npwz-recipe-head strong { color: #c9d6ea; font-size: 12px; }
+.npwz-recipe-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.npwz-check-field { display: flex; align-items: center; gap: 6px; align-self: end; padding: 7px 0; color: #c9d6ea; font-size: 12px; }
+.npwz-craft-mats { display: flex; flex-direction: column; gap: 8px; }
+.npwz-craft-mat { grid-template-columns: minmax(150px, 1fr) 110px auto; }
 .npwz-checks-inline {
   display: flex;
   flex-wrap: wrap;
@@ -2473,6 +2490,7 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 @media (max-width: 680px) {
   .npwz-mask { padding: 10px; }
   .npwz-grid-2 { grid-template-columns: 1fr; }
+  .npwz-recipe-grid { grid-template-columns: 1fr; }
   .npwz-good { grid-template-columns: 1fr; }
   .npwz-steps { flex-wrap: wrap; }
   .npwz-steps li { flex: 1 1 30%; }

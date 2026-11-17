@@ -137,6 +137,7 @@ function npwzBuild() {
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="recycle"><span class="npwz-card-body"><strong>物品回收</strong><em>按固定金币价格回收指定物品，每次回收 1 个。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="skill"><span class="npwz-card-body"><strong>技能学习</strong><em>教授 magic.db 中的技能，可按职业、等级与金币费用限制。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="daily"><span class="npwz-card-body"><strong>每日/限时福利</strong><em>每位玩家每天领取一次奖励，可设置开放小时段与等级门槛。</em></span></label>',
+    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="craft"><span class="npwz-card-body"><strong>物品合成</strong><em>按自定义配方消耗材料与金币合成新物品，支持成功率与失败返还。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="teleport"><span class="npwz-card-body"><strong>收费传送</strong><em>收取金币后把玩家移动到指定地图坐标。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="teleportlist"><span class="npwz-card-body"><strong>多目标传送</strong><em>一次配置多个目的地，每个目的地可单独设置等级与费用。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="copy"><span class="npwz-card-body"><strong>复制现有脚本</strong><em>以现有 NPC 脚本为起点创建独立副本，原样保留内容。</em></span></label>',
@@ -191,6 +192,11 @@ function npwzBuild() {
     '        <div class="npwz-good-head"><strong>奖励物品</strong><span class="muted">开始与结束小时都填 0 表示全天开放；支持跨午夜，如 22 点到 2 点</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-daily>添加奖励</button></div>',
     '        <div id="npwzDailyRewards" class="npwz-goods"></div>',
     '        <div class="npwz-note">金币、经验与物品至少设置一种；领取状态由引擎按玩家记录，每天一次。</div>',
+    '      </div>',
+    '      <div class="npwz-sub hidden" data-npwz-panel="craft">',
+    '        <div class="npwz-good-head"><strong>合成配方</strong><span class="muted">每个配方可单独设置材料、金币、成功率与失败返还</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-recipe>添加配方</button></div>',
+    '        <div id="npwzRecipes" class="npwz-recipes"></div>',
+    '        <div class="npwz-note">合成前会先校验全部材料、金币与背包空位；失败返还只返还材料，金币不返还。</div>',
     '      </div>',
     '      <div class="npwz-sub hidden" data-npwz-panel="teleportlist">',
     '        <div class="npwz-good-head"><strong>目的地</strong><span class="muted">字段依次为 名称（可留空）/ 地图 / X / Y / 金币 / 最低等级</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-dest>添加目的地</button></div>',
@@ -247,6 +253,7 @@ function npwzBuild() {
     shopGoods: npwzEl('npwzShopGoods'),
     recycleGoods: npwzEl('npwzRecycleGoods'),
     dailyRewards: npwzEl('npwzDailyRewards'),
+    recipes: npwzEl('npwzRecipes'),
     dests: npwzEl('npwzDests'),
     result: npwzEl('npwzResult'),
     previewWrap: npwzEl('npwzPreviewWrap')
@@ -313,6 +320,29 @@ function npwzBuild() {
     }
     if (e.target.closest('[data-npwz-remove-daily]')) {
       const row = e.target.closest('.npwz-daily-reward');
+      if (row) row.remove();
+      NPWZ.dirty = true;
+      return;
+    }
+    if (e.target.closest('[data-npwz-add-recipe]')) {
+      addRecipeRow({});
+      NPWZ.dirty = true;
+      return;
+    }
+    if (e.target.closest('[data-npwz-remove-recipe]')) {
+      const block = e.target.closest('.npwz-recipe');
+      if (block) block.remove();
+      NPWZ.dirty = true;
+      return;
+    }
+    if (e.target.closest('[data-npwz-add-material]')) {
+      const block = e.target.closest('.npwz-recipe');
+      if (block) addCraftMaterialRow(block.querySelector('.npwz-craft-mats'), '', '');
+      NPWZ.dirty = true;
+      return;
+    }
+    if (e.target.closest('[data-npwz-remove-material]')) {
+      const row = e.target.closest('.npwz-craft-mat');
       if (row) row.remove();
       NPWZ.dirty = true;
       return;
@@ -461,6 +491,8 @@ function npwzResetForm() {
   addRecycleRow('', '');
   if (NPWZ.els.dailyRewards) NPWZ.els.dailyRewards.innerHTML = '';
   addDailyRewardRow('', '');
+  if (NPWZ.els.recipes) NPWZ.els.recipes.innerHTML = '';
+  addRecipeRow({});
   if (NPWZ.els.dests) NPWZ.els.dests.innerHTML = '';
   addDestRow({ map: prefill.map || '' });
   npwzUpdateMapHint();
@@ -525,6 +557,51 @@ function addDailyRewardRow(item, count) {
   if (itemInput) itemInput.value = item || '';
   if (countInput) countInput.value = count === '' || count == null ? '1' : String(count);
   NPWZ.els.dailyRewards.appendChild(row);
+  if (itemInput && !item) itemInput.focus();
+}
+
+function addRecipeRow(recipe) {
+  if (!NPWZ.els.recipes) return;
+  const r = recipe || {};
+  const block = document.createElement('div');
+  block.className = 'npwz-recipe';
+  block.innerHTML = '<div class="npwz-recipe-head"><strong>配方</strong><span class="spacer"></span>' +
+    '<button type="button" class="btn ghost small" data-npwz-remove-recipe>删除配方</button></div>' +
+    '<div class="npwz-recipe-grid">' +
+    '<label class="npwz-field"><span>菜单名称（可选）</span><input class="npwz-recipe-name" maxlength="64" autocomplete="off" placeholder="留空则用产物名称"></label>' +
+    '<label class="npwz-field"><span>产物 <em>*</em></span><input class="npwz-recipe-output" list="npwzItemList" maxlength="64" autocomplete="off" placeholder="物品名称"></label>' +
+    '<label class="npwz-field"><span>产物数量</span><input class="npwz-recipe-count" type="number" min="1" max="9999" step="1" value="1"></label>' +
+    '<label class="npwz-field"><span>合成费用（金币）</span><input class="npwz-recipe-gold" type="number" min="0" max="1000000000" step="1" value="0"></label>' +
+    '<label class="npwz-field"><span>成功率（%）</span><input class="npwz-recipe-rate" type="number" min="1" max="100" step="1" value="100"></label>' +
+    '<label class="npwz-check-field"><input class="npwz-recipe-refund" type="checkbox" checked> 失败返还材料</label>' +
+    '</div>' +
+    '<div class="npwz-craft-mats-head"><span>材料</span><span class="muted">每种材料一行，单个配方最多 6 种</span>' +
+    '<span class="spacer"></span><button type="button" class="btn ghost small" data-npwz-add-material>添加材料</button></div>' +
+    '<div class="npwz-craft-mats"></div>';
+  block.querySelector('.npwz-recipe-name').value = r.name || '';
+  block.querySelector('.npwz-recipe-output').value = r.output || '';
+  block.querySelector('.npwz-recipe-count').value = r.count == null ? '1' : String(r.count);
+  block.querySelector('.npwz-recipe-gold').value = r.gold == null ? '0' : String(r.gold);
+  block.querySelector('.npwz-recipe-rate').value = r.rate == null ? '100' : String(r.rate);
+  block.querySelector('.npwz-recipe-refund').checked = r.refund !== false;
+  NPWZ.els.recipes.appendChild(block);
+  addCraftMaterialRow(block.querySelector('.npwz-craft-mats'), '', '');
+  const output = block.querySelector('.npwz-recipe-output');
+  if (output && !r.output) output.focus();
+}
+
+function addCraftMaterialRow(container, item, count) {
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'npwz-good npwz-craft-mat';
+  row.innerHTML = '<input class="npwz-craft-item" list="npwzItemList" maxlength="64" autocomplete="off" placeholder="材料名称">' +
+    '<input class="npwz-craft-count" type="number" min="1" max="9999" step="1" placeholder="数量">' +
+    '<button type="button" class="btn ghost small" data-npwz-remove-material>删除</button>';
+  const itemInput = row.querySelector('.npwz-craft-item');
+  const countInput = row.querySelector('.npwz-craft-count');
+  if (itemInput) itemInput.value = item || '';
+  if (countInput) countInput.value = count === '' || count == null ? '1' : String(count);
+  container.appendChild(row);
   if (itemInput && !item) itemInput.focus();
 }
 
@@ -774,6 +851,51 @@ function validateTemplate() {
     }
     return true;
   }
+  if (key === 'craft') {
+    const blocks = Array.from(document.querySelectorAll('#npwzRecipes .npwz-recipe'));
+    if (!blocks.length) {
+      toast('请至少添加一个合成配方', 'err');
+      return false;
+    }
+    for (const block of blocks) {
+      const output = block.querySelector('.npwz-recipe-output');
+      const count = Number(block.querySelector('.npwz-recipe-count').value);
+      const gold = Number(block.querySelector('.npwz-recipe-gold').value);
+      const rate = Number(block.querySelector('.npwz-recipe-rate').value);
+      if (!output || !output.value.trim()) {
+        toast('请填写合成产物名称', 'err');
+        if (output) output.focus();
+        return false;
+      }
+      const label = '产物「' + output.value.trim() + '」';
+      if (!npwzIsInt(count, 1, 9999) || !npwzIsInt(gold, 0, 1000000000) || !npwzIsInt(rate, 1, 100)) {
+        toast(label + '的数量、费用或成功率不合法', 'err');
+        return false;
+      }
+      const mats = Array.from(block.querySelectorAll('.npwz-craft-mat'))
+        .map((row) => ({
+          itemEl: row.querySelector('.npwz-craft-item'),
+          countEl: row.querySelector('.npwz-craft-count')
+        }))
+        .filter((mat) => mat.itemEl && mat.itemEl.value.trim());
+      if (!mats.length) {
+        toast(label + '至少需要一种材料', 'err');
+        return false;
+      }
+      if (mats.length > 6) {
+        toast(label + '的材料最多 6 种', 'err');
+        return false;
+      }
+      for (const mat of mats) {
+        const amount = Number(mat.countEl ? mat.countEl.value : '');
+        if (!npwzIsInt(amount, 1, 9999)) {
+          toast('材料「' + mat.itemEl.value.trim() + '」的数量需要 1-9999 的整数', 'err');
+          return false;
+        }
+      }
+    }
+    return true;
+  }
   if (key === 'teleportlist') {
     const rows = Array.from(document.querySelectorAll('#npwzDests .npwz-dest'));
     if (!rows.length) {
@@ -885,6 +1007,22 @@ function collectPayload() {
           count: row.querySelector('.npwz-daily-count').value.trim()
         }))
         .filter((reward) => reward.item)
+    },
+    craft: {
+      recipes: Array.from(document.querySelectorAll('#npwzRecipes .npwz-recipe')).map((block) => ({
+        name: block.querySelector('.npwz-recipe-name').value.trim(),
+        output: block.querySelector('.npwz-recipe-output').value.trim(),
+        count: block.querySelector('.npwz-recipe-count').value.trim(),
+        gold: block.querySelector('.npwz-recipe-gold').value.trim(),
+        rate: block.querySelector('.npwz-recipe-rate').value.trim(),
+        refund: !!block.querySelector('.npwz-recipe-refund').checked,
+        materials: Array.from(block.querySelectorAll('.npwz-craft-mat'))
+          .map((mat) => ({
+            item: mat.querySelector('.npwz-craft-item').value.trim(),
+            count: mat.querySelector('.npwz-craft-count').value.trim()
+          }))
+          .filter((material) => material.item)
+      }))
     },
     teleports: {
       destinations: Array.from(document.querySelectorAll('#npwzDests .npwz-dest')).map((row) => ({

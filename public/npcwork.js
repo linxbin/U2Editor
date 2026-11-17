@@ -239,6 +239,11 @@ function npwRenderList() {
   }
 }
 
+function npcLookText(row) {
+  const raw = row && row.extra ? row.extra[1] : '';
+  return raw == null ? '' : String(raw).trim();
+}
+
 function npwKv(label, value) {
   return '<div class="tsk-kv"><div class="tsk-kv-label">' + npwEsc(label) +
     '</div><div class="tsk-kv-value">' + npwEsc(value == null || value === '' ? '—' : value) + '</div></div>';
@@ -282,6 +287,7 @@ function npwRenderDetail() {
     npwKv('脚本文件', n.scriptFile) +
     npwKv('地图', (n.mapName || '') + (n.map ? ' · ' + n.map : '')) +
     npwKv('坐标', '(' + n.x + ', ' + n.y + ')') +
+    npwKv('NPC 形象', npcLookText(d.row)) +
     npwKv('商店货品', n.shopGoods ? n.shopGoods + ' 条' : '无') +
     npwKv('关联任务', n.taskCount ? n.taskCount + ' 个' : '无') +
     npwKv('配置问题', issues.length ? issues.length + ' 条' : '无') +

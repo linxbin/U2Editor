@@ -66,6 +66,11 @@ function buildNpcMapSelect() {
   sel.value = s.mapFilter;
 }
 
+function npcLookText(row) {
+  const raw = row && row.extra ? row.extra[1] : '';
+  return raw == null ? '' : String(raw).trim();
+}
+
 function renderNpc() {
   const s = CFG.npc;
   if (!s.data) return;
@@ -74,7 +79,7 @@ function renderNpc() {
   cfgClear(thead);
   cfgClear(tbody);
   const htr = document.createElement('tr');
-  for (const label of ['#', 'NPC 名称', '地图', '地名', 'X', 'Y', 'NPC 编号', '脚本']) {
+  for (const label of ['#', 'NPC 名称', '形象', '地图', '地名', 'X', 'Y', 'NPC 编号', '脚本']) {
     const th = document.createElement('th');
     th.textContent = label;
     if (label === '#') th.className = 'col-idx';
@@ -95,6 +100,7 @@ function renderNpc() {
     const values = [
       item.index + 1,
       item.row.name,
+      npcLookText(item.row),
       item.row.map,
       s.data.mapNames[item.row.map] || '',
       item.row.x,
@@ -106,9 +112,9 @@ function renderNpc() {
       const td = document.createElement('td');
       td.textContent = v == null ? '' : v;
       if (i === 0) td.className = 'col-idx';
-      else if (i === 4 || i === 5) td.className = 'num';
+      else if (i === 2 || i === 5 || i === 6) td.className = 'num';
       else if (i === 1) td.className = 'str namecell';
-      else if (i === 6 || i === 7) td.className = 'str';
+      else if (i === 7 || i === 8) td.className = 'str';
       if (i === 0 && item.added) {
         const tag = document.createElement('span');
         tag.className = 'new-tag';
@@ -151,6 +157,7 @@ function buildNpcForm(index) {
   const map = cfgText(row.map, 'mapList', 64);
   const x = cfgNumber(row.x, 0, 100000);
   const y = cfgNumber(row.y, 0, 100000);
+  const looks = cfgNumber(npcLookText(row) || 165, 0, 100000);
 
   const apply = (key, value) => {
     const cur = { ...getNpcRow(index) };
@@ -167,11 +174,23 @@ function buildNpcForm(index) {
   map.addEventListener('input', () => apply('map', map.value));
   x.addEventListener('input', () => apply('x', x.value));
   y.addEventListener('input', () => apply('y', y.value));
+  looks.addEventListener('input', () => {
+    if (looks.value === '') return;
+    const cur = { ...getNpcRow(index) };
+    const extra = [...(cur.extra || [])];
+    while (extra.length < 4) extra.push('0');
+    extra[1] = String(cfgNum(looks.value));
+    cur.extra = extra;
+    setNpcRow(index, cur);
+    renderNpc();
+    updateMeta();
+  });
 
   const grid = document.createElement('div');
   grid.className = 'form-grid';
   grid.appendChild(cfgField('X 坐标', x));
   grid.appendChild(cfgField('Y 坐标', y));
+  grid.appendChild(cfgField('NPC 形象', looks, 'NPCList 第 8 列'));
   form.appendChild(cfgField('NPC 名称', name, '显示名称'));
   form.appendChild(cfgField('NPC 编号', id, '唯一标示'));
   form.appendChild(cfgField('脚本名称', script, 'NPCScript 下的 .py'));
@@ -180,7 +199,7 @@ function buildNpcForm(index) {
 
   const extra = document.createElement('pre');
   extra.className = 'hint-pre';
-  extra.textContent = `附加字段：${(row.extra || []).join(' ') || '（无）'}\n这些字段保留原值，本页不修改。`;
+  extra.textContent = `附加字段：${(row.extra || []).join(' ') || '（无）'}\n第 2 个字段是 NPC 形象编号，可在上方「NPC 形象」修改；其余字段保留原值。`;
   form.appendChild(extra);
 
   const info = s.data.scripts.find((it) => it.name === row.script);
@@ -285,7 +304,7 @@ async function saveNpcConfig() {
       index,
       values: {
         id: values.id, script: values.script, map: values.map,
-        x: values.x, y: values.y, name: values.name
+        x: values.x, y: values.y, name: values.name, extra: values.extra
       }
     })),
     added: s.added.map((r) => ({

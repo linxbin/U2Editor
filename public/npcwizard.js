@@ -120,13 +120,14 @@ function npwzBuild() {
     '    <section class="npwz-pane" data-npwz-pane="1">',
     '      <div class="npwz-grid">',
     '        <label class="npwz-field"><span>NPC 名称 <em>*</em></span><input id="npwzName" maxlength="64" autocomplete="off" placeholder="例如：祝福使者"></label>',
+    '        <label class="npwz-field"><span>NPC 形象</span><input id="npwzLooks" type="number" min="0" max="100000" step="1" value="165" list="npwzLooksList" autocomplete="off"><small class="npwz-hint">NPCList 第 8 列；165 为本服默认形象</small></label>',
     '        <label class="npwz-field"><span>唯一编号 <em>*</em></span><input id="npwzId" maxlength="64" autocomplete="off" placeholder="例如：NpcNew001"></label>',
     '        <label class="npwz-field"><span>脚本文件名 <em>*</em></span><span class="npwz-input-wrap"><input id="npwzScript" maxlength="60" autocomplete="off" placeholder="英文字母、数字、下划线"><small class="npwz-suffix">.py</small></span></label>',
     '        <label class="npwz-field"><span>地图编号 <em>*</em></span><input id="npwzMap" list="npwzMapList" maxlength="64" autocomplete="off" placeholder="例如：MH008"><small id="npwzMapName" class="npwz-hint"></small></label>',
     '        <label class="npwz-field"><span>X 坐标 <em>*</em></span><input id="npwzX" type="number" min="0" max="100000" step="1" value="0"></label>',
     '        <label class="npwz-field"><span>Y 坐标 <em>*</em></span><input id="npwzY" type="number" min="0" max="100000" step="1" value="0"></label>',
     '      </div>',
-    '      <div class="npwz-note">新 NPC 以附加字段 0 / 165 / 0 / 0 写入 NPCList.txt。创建后仍可在「NPC 分布」中调整坐标与脚本。</div>',
+    '      <div class="npwz-note">形象编号写入 NPCList 附加字段第 2 位，其余附加字段为 0。创建后仍可在「NPC 分布」中调整坐标、脚本与形象。</div>',
     '    </section>',
     '    <section class="npwz-pane hidden" data-npwz-pane="2">',
     '      <div class="npwz-note">可同时勾选多个功能，生成一个综合 NPC，各功能会在主菜单中按勾选顺序列出；「复制现有脚本」只能单独使用。</div>',
@@ -243,6 +244,7 @@ function npwzBuild() {
     '    <button type="button" class="btn primary hidden" data-npwz-create>创建 NPC</button>',
     '  </div>',
     '  <datalist id="npwzMapList"></datalist>',
+    '  <datalist id="npwzLooksList"></datalist>',
     '  <datalist id="npwzItemList"></datalist>',
     '  <datalist id="npwzSkillList"></datalist>',
     '</div>'
@@ -473,6 +475,16 @@ function npwzFillOptions() {
       npwzEsc(m.code + (m.name ? ' · ' + m.name : '') + (m.registered ? '' : ' · 未登记')) +
       '</option>').join('');
   }
+  const looksList = npwzEl('npwzLooksList');
+  if (looksList) {
+    const looks = opts.looks || [];
+    looksList.innerHTML = looks.length
+      ? looks.map((l) =>
+        '<option value="' + l.value + '">' +
+        npwzEsc(l.value + ' · ' + (l.names || []).join('/') + (l.count ? '（' + l.count + '）' : '')) +
+        '</option>').join('')
+      : '<option value="165">165 · 本服默认形象</option>';
+  }
   const itemList = npwzEl('npwzItemList');
   if (itemList) {
     itemList.innerHTML = opts.items.map((name) =>
@@ -512,6 +524,7 @@ function npwzResetForm() {
     if (el) el.value = value == null ? '' : String(value);
   };
   set('npwzName', prefill.name || '');
+  set('npwzLooks', 165);
   set('npwzId', prefill.id || suggested.id);
   set('npwzScript', prefill.script || suggested.script);
   set('npwzMap', prefill.map || '');
@@ -746,6 +759,10 @@ function validateBase() {
   const map = npwzVal('npwzMap');
   if (!name) {
     toast('请填写 NPC 名称', 'err');
+    return false;
+  }
+  if (!npwzIsInt(npwzInt('npwzLooks'), 0, 100000)) {
+    toast('NPC 形象编号需要 0-100000 的整数', 'err');
     return false;
   }
   if (!id) {
@@ -1074,6 +1091,7 @@ function collectPayload() {
   }));
   const payload = {
     name: npwzVal('npwzName'),
+    looks: npwzVal('npwzLooks'),
     id: npwzVal('npwzId'),
     script: npwzVal('npwzScript').replace(/\.py$/i, ''),
     map: npwzVal('npwzMap'),

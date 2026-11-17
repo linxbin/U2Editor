@@ -629,6 +629,7 @@ function mpwRenderDetail() {
     '<button class="btn btn-sm" data-mpw-act="rule" data-key="' + mpwEsc(map.key) +
     '" data-section="' + mpwEsc(firstRule || 'property') + '">编辑地图规则</button>' +
     (map.spawns ? '<button class="btn btn-sm" data-mpw-act="spawn-map" data-key="' + mpwEsc(map.key) + '">在刷怪工作台查看</button>' : '') +
+    '<button class="btn btn-sm" data-mpw-act="npc-create" data-key="' + mpwEsc(map.key) + '">在此地图新建 NPC</button>' +
     (d.npcs.length ? '<button class="btn btn-sm" data-mpw-act="npc-map" data-key="' + mpwEsc(map.key) + '">在 NPC 工作台筛选本图</button>' : '') +
     '</div>';
   box.innerHTML = head + actions + (map.known ? '' : mpwRenderRegister(map)) +
@@ -915,6 +916,14 @@ function mpwBindEvents() {
       else if (act === 'spawn-map') mpwGotoSpawnMap(btn.dataset.key);
       else if (act === 'npc') mpwGotoNpc(Number(btn.dataset.index));
       else if (act === 'npc-map') mpwGotoNpcMap(btn.dataset.key);
+      else if (act === 'npc-create') {
+        const map = MPW.detail && MPW.detail.map ? MPW.detail.map : null;
+        if (window.openNpcWizard) {
+          window.openNpcWizard({ map: btn.dataset.key, mapName: map ? map.name : '' });
+        } else {
+          toast('新建 NPC 向导不可用', 'err');
+        }
+      }
       else if (act === 'map') mpwGotoMap(btn.dataset.key);
       else if (act === 'script') mpwGotoScript(btn.dataset.name, btn.dataset.line);
       else if (act === 'register') mpwRegisterMap(btn);

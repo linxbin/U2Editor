@@ -8,6 +8,7 @@ const dbe = require('./lib/dbe');
 const gbk = require('./lib/gbk');
 const configs = require('./lib/configs');
 const npcData = require('./lib/npc');
+const npcCreatorData = require('./lib/npccreator');
 const extras = require('./lib/extras');
 const mallData = require('./lib/mall');
 const mapData = require('./lib/mapinfo');
@@ -50,6 +51,7 @@ const APPELLATION_FILE = path.join(ENVIR_DIR, 'appellation.txt');
 const NPC_FILE = path.join(ENVIR_DIR, 'NPCList.txt');
 const NPC_SCRIPT_DIR = path.join(ENVIR_DIR, 'NPCScript');
 const MAPINFO_FILE = path.join(ENVIR_DIR, 'MapInfo');
+const MAGIC_FILE = path.join(DB_DIR, 'magic.db');
 const GOODS_FILE = path.join(ENVIR_DIR, 'goodsconfig');
 const MONSTER_CHAIN_FILE = path.join(ENVIR_DIR, 'MonsterChain.ini');
 const MONSTER_CHILD_FILE = path.join(ENVIR_DIR, 'MonsterChild.ini');
@@ -219,6 +221,25 @@ const healthWorkbench = healthWorkData.create({
   ]
 });
 
+const npcCreator = npcCreatorData.create({
+  npcFile: NPC_FILE,
+  scriptDir: NPC_SCRIPT_DIR,
+  mapInfoFile: MAPINFO_FILE,
+  itemNames,
+  itemModes,
+  magicNames,
+  mapCodes,
+  mapNames,
+  invalidate: () => {
+    npcWorkbench.invalidate();
+    scriptWorkbench.invalidate();
+    shopWorkbench.invalidate();
+    mapWorkbench.invalidate();
+    healthWorkbench.invalidate();
+    invalidateState();
+  }
+});
+
 const dbRefCheck = dbRefs.create({
   itemWorkbench,
   taskWorkbench,
@@ -342,6 +363,7 @@ const STATIC = {
   '/activity.js': { file: 'activity.js', type: 'application/javascript; charset=utf-8' },
   '/tasks.js': { file: 'tasks.js', type: 'application/javascript; charset=utf-8' },
   '/npcwork.js': { file: 'npcwork.js', type: 'application/javascript; charset=utf-8' },
+  '/npcwizard.js': { file: 'npcwizard.js', type: 'application/javascript; charset=utf-8' },
   '/itemdrop.js': { file: 'itemdrop.js', type: 'application/javascript; charset=utf-8' },
   '/growth.js': { file: 'growth.js', type: 'application/javascript; charset=utf-8' },
   '/spawns.js': { file: 'spawns.js', type: 'application/javascript; charset=utf-8' },
@@ -359,6 +381,8 @@ const STATIC = {
 let cachedMonsterNames = null;
 let cachedItemNames = null;
 let cachedItemIndex = null;
+let cachedItemModes = null;
+let cachedMagicNames = null;
 let cachedMapCodes = null;
 
 function readNames(file) {
@@ -391,6 +415,38 @@ function itemIndex() {
     }
   }
   return cachedItemIndex;
+}
+
+function itemModes() {
+  if (!cachedItemModes) {
+    const { rows } = dbe.loadDb(path.join(DB_DIR, 'stditems.db'));
+    cachedItemModes = new Map();
+    for (const row of rows) {
+      const name = row.Name == null ? '' : String(row.Name).trim();
+      if (name && !cachedItemModes.has(name)) cachedItemModes.set(name, Number(row.Stdmode));
+    }
+  }
+  return cachedItemModes;
+}
+
+function magicNames() {
+  if (!cachedMagicNames) {
+    cachedMagicNames = new Map();
+    try {
+      const { rows } = dbe.loadDb(MAGIC_FILE);
+      for (const row of rows) {
+        const name = row.MagName == null ? '' : String(row.MagName).trim();
+        if (!name || cachedMagicNames.has(name)) continue;
+        cachedMagicNames.set(name, {
+          job: Number(row.Job),
+          need: [Number(row.NeedL1) || 0, Number(row.NeedL2) || 0, Number(row.NeedL3) || 0]
+        });
+      }
+    } catch (e) {
+      /* magic.db 缺失时技能模板只能做基础校验 */
+    }
+  }
+  return cachedMagicNames;
 }
 
 function mapCodes() {
@@ -1055,6 +1111,35 @@ async function handle(req, res) {
     } catch (e) {
       const status = e && e.code === 'ENOENT' ? 404 : 400;
       json(res, status, { error: status === 404 ? `脚本不存在：${name}` : e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/npcwork/create/options') {
+    try {
+      json(res, 200, npcCreator.options());
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/npcwork/create/preview') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, npcCreator.preview(body));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/npcwork/create') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, npcCreator.create(body));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
     }
     return;
   }

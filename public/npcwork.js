@@ -816,6 +816,13 @@ function npwBindEvents() {
       if (NPW.script) npwGotoScriptWork(NPW.script.name);
     });
   }
+  const createBtn = npwEl('btnNpwCreate');
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      if (window.openNpcWizard) window.openNpcWizard();
+      else toast('新建 NPC 向导不可用', 'err');
+    });
+  }
   const reload = npwEl('btnNpwReload');
   if (reload) {
     reload.addEventListener('click', async () => {

@@ -2380,6 +2380,7 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .npwz-good input:focus { border-color: #3f7df0; }
 .npwz-shop-good { grid-template-columns: minmax(150px, 1fr) 100px 110px auto; }
 .npwz-recycle-good { grid-template-columns: minmax(150px, 1fr) 170px auto; }
+.npwz-daily-reward { grid-template-columns: minmax(150px, 1fr) 110px auto; }
 .npwz-dest { grid-template-columns: minmax(110px, 1fr) minmax(90px, .9fr) 76px 76px 96px 76px auto; }
 .npwz-checks-inline {
   display: flex;

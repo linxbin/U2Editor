@@ -136,6 +136,7 @@ function npwzBuild() {
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="repair"><span class="npwz-card-body"><strong>装备修理</strong><em>普通修理与特修菜单，费用由引擎按装备耐久计算。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="recycle"><span class="npwz-card-body"><strong>物品回收</strong><em>按固定金币价格回收指定物品，每次回收 1 个。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="skill"><span class="npwz-card-body"><strong>技能学习</strong><em>教授 magic.db 中的技能，可按职业、等级与金币费用限制。</em></span></label>',
+    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="daily"><span class="npwz-card-body"><strong>每日/限时福利</strong><em>每位玩家每天领取一次奖励，可设置开放小时段与等级门槛。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="teleport"><span class="npwz-card-body"><strong>收费传送</strong><em>收取金币后把玩家移动到指定地图坐标。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="teleportlist"><span class="npwz-card-body"><strong>多目标传送</strong><em>一次配置多个目的地，每个目的地可单独设置等级与费用。</em></span></label>',
     '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="copy"><span class="npwz-card-body"><strong>复制现有脚本</strong><em>以现有 NPC 脚本为起点创建独立副本，原样保留内容。</em></span></label>',
@@ -178,6 +179,18 @@ function npwzBuild() {
     '          <label class="npwz-field"><span>学习费用（金币）</span><input id="npwzSkillPrice" type="number" min="0" max="1000000000" step="1" value="1000"></label>',
     '        </div>',
     '        <div class="npwz-note">职业限制会自动读取 magic.db 中该技能的 Job。</div>',
+    '      </div>',
+    '      <div class="npwz-sub hidden" data-npwz-panel="daily">',
+    '        <div class="npwz-grid npwz-grid-2">',
+    '          <label class="npwz-field"><span>最低等级</span><input id="npwzDailyMinLevel" type="number" min="0" max="65535" step="1" value="0"></label>',
+    '          <label class="npwz-field"><span>开放开始小时</span><input id="npwzDailyStart" type="number" min="0" max="23" step="1" value="0"></label>',
+    '          <label class="npwz-field"><span>开放结束小时</span><input id="npwzDailyEnd" type="number" min="0" max="23" step="1" value="0"></label>',
+    '          <label class="npwz-field"><span>金币奖励</span><input id="npwzDailyGold" type="number" min="0" max="1000000000" step="1" value="0"></label>',
+    '          <label class="npwz-field"><span>经验奖励</span><input id="npwzDailyExp" type="number" min="0" max="1000000000" step="1" value="0"></label>',
+    '        </div>',
+    '        <div class="npwz-good-head"><strong>奖励物品</strong><span class="muted">开始与结束小时都填 0 表示全天开放；支持跨午夜，如 22 点到 2 点</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-daily>添加奖励</button></div>',
+    '        <div id="npwzDailyRewards" class="npwz-goods"></div>',
+    '        <div class="npwz-note">金币、经验与物品至少设置一种；领取状态由引擎按玩家记录，每天一次。</div>',
     '      </div>',
     '      <div class="npwz-sub hidden" data-npwz-panel="teleportlist">',
     '        <div class="npwz-good-head"><strong>目的地</strong><span class="muted">字段依次为 名称（可留空）/ 地图 / X / Y / 金币 / 最低等级</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-dest>添加目的地</button></div>',
@@ -233,6 +246,7 @@ function npwzBuild() {
     goods: npwzEl('npwzGoods'),
     shopGoods: npwzEl('npwzShopGoods'),
     recycleGoods: npwzEl('npwzRecycleGoods'),
+    dailyRewards: npwzEl('npwzDailyRewards'),
     dests: npwzEl('npwzDests'),
     result: npwzEl('npwzResult'),
     previewWrap: npwzEl('npwzPreviewWrap')
@@ -288,6 +302,17 @@ function npwzBuild() {
     }
     if (e.target.closest('[data-npwz-remove-recycle]')) {
       const row = e.target.closest('.npwz-recycle-good');
+      if (row) row.remove();
+      NPWZ.dirty = true;
+      return;
+    }
+    if (e.target.closest('[data-npwz-add-daily]')) {
+      addDailyRewardRow('', '');
+      NPWZ.dirty = true;
+      return;
+    }
+    if (e.target.closest('[data-npwz-remove-daily]')) {
+      const row = e.target.closest('.npwz-daily-reward');
       if (row) row.remove();
       NPWZ.dirty = true;
       return;
@@ -415,6 +440,11 @@ function npwzResetForm() {
   set('npwzSkillName', '');
   set('npwzSkillNeed', 0);
   set('npwzSkillPrice', 1000);
+  set('npwzDailyMinLevel', 0);
+  set('npwzDailyStart', 0);
+  set('npwzDailyEnd', 0);
+  set('npwzDailyGold', 0);
+  set('npwzDailyExp', 0);
   const skillInfo = npwzEl('npwzSkillInfo');
   if (skillInfo) {
     skillInfo.textContent = '技能名称来自 magic.db';
@@ -429,6 +459,8 @@ function npwzResetForm() {
   addShopGoodRow('', '', '');
   if (NPWZ.els.recycleGoods) NPWZ.els.recycleGoods.innerHTML = '';
   addRecycleRow('', '');
+  if (NPWZ.els.dailyRewards) NPWZ.els.dailyRewards.innerHTML = '';
+  addDailyRewardRow('', '');
   if (NPWZ.els.dests) NPWZ.els.dests.innerHTML = '';
   addDestRow({ map: prefill.map || '' });
   npwzUpdateMapHint();
@@ -478,6 +510,21 @@ function addRecycleRow(item, price) {
   if (itemInput) itemInput.value = item || '';
   if (priceInput) priceInput.value = price == null ? '' : String(price);
   NPWZ.els.recycleGoods.appendChild(row);
+  if (itemInput && !item) itemInput.focus();
+}
+
+function addDailyRewardRow(item, count) {
+  if (!NPWZ.els.dailyRewards) return;
+  const row = document.createElement('div');
+  row.className = 'npwz-good npwz-daily-reward';
+  row.innerHTML = '<input class="npwz-daily-item" list="npwzItemList" maxlength="64" autocomplete="off" placeholder="物品名称">' +
+    '<input class="npwz-daily-count" type="number" min="1" max="9999" step="1" placeholder="数量">' +
+    '<button type="button" class="btn ghost small" data-npwz-remove-daily>删除</button>';
+  const itemInput = row.querySelector('.npwz-daily-item');
+  const countInput = row.querySelector('.npwz-daily-count');
+  if (itemInput) itemInput.value = item || '';
+  if (countInput) countInput.value = count === '' || count == null ? '1' : String(count);
+  NPWZ.els.dailyRewards.appendChild(row);
   if (itemInput && !item) itemInput.focus();
 }
 
@@ -688,6 +735,45 @@ function validateTemplate() {
     }
     return true;
   }
+  if (key === 'daily') {
+    const minLevel = npwzInt('npwzDailyMinLevel');
+    const start = npwzInt('npwzDailyStart');
+    const end = npwzInt('npwzDailyEnd');
+    const gold = npwzInt('npwzDailyGold');
+    const exp = npwzInt('npwzDailyExp');
+    if (!npwzIsInt(minLevel, 0, 65535)) {
+      toast('最低等级需要 0-65535 的整数', 'err');
+      return false;
+    }
+    if (!npwzIsInt(start, 0, 23) || !npwzIsInt(end, 0, 23)) {
+      toast('开放开始/结束小时需要 0-23 的整数', 'err');
+      return false;
+    }
+    if (start === end && start !== 0) {
+      toast('开始与结束小时不能相同；全天开放请都填 0', 'err');
+      return false;
+    }
+    if (!npwzIsInt(gold, 0, 1000000000) || !npwzIsInt(exp, 0, 1000000000)) {
+      toast('金币与经验奖励需要非负整数', 'err');
+      return false;
+    }
+    let itemCount = 0;
+    for (const row of Array.from(document.querySelectorAll('#npwzDailyRewards .npwz-daily-reward'))) {
+      const item = row.querySelector('.npwz-daily-item');
+      const count = Number(row.querySelector('.npwz-daily-count').value);
+      if (!item || !item.value.trim()) continue;
+      itemCount++;
+      if (!npwzIsInt(count, 1, 9999)) {
+        toast('奖励物品「' + item.value.trim() + '」的数量需要 1-9999 的整数', 'err');
+        return false;
+      }
+    }
+    if (!itemCount && gold <= 0 && exp <= 0) {
+      toast('请至少设置一种奖励（金币、经验或物品）', 'err');
+      return false;
+    }
+    return true;
+  }
   if (key === 'teleportlist') {
     const rows = Array.from(document.querySelectorAll('#npwzDests .npwz-dest'));
     if (!rows.length) {
@@ -786,6 +872,19 @@ function collectPayload() {
       name: npwzVal('npwzSkillName'),
       needLevel: npwzVal('npwzSkillNeed'),
       price: npwzVal('npwzSkillPrice')
+    },
+    daily: {
+      minLevel: npwzVal('npwzDailyMinLevel'),
+      startHour: npwzVal('npwzDailyStart'),
+      endHour: npwzVal('npwzDailyEnd'),
+      gold: npwzVal('npwzDailyGold'),
+      exp: npwzVal('npwzDailyExp'),
+      rewards: Array.from(document.querySelectorAll('#npwzDailyRewards .npwz-daily-reward'))
+        .map((row) => ({
+          item: row.querySelector('.npwz-daily-item').value.trim(),
+          count: row.querySelector('.npwz-daily-count').value.trim()
+        }))
+        .filter((reward) => reward.item)
     },
     teleports: {
       destinations: Array.from(document.querySelectorAll('#npwzDests .npwz-dest')).map((row) => ({

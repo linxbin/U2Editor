@@ -43,9 +43,9 @@ function npwzIsInt(n, min, max) {
   return Number.isInteger(n) && n >= min && n <= max;
 }
 
-function npwzTemplate() {
-  const input = document.querySelector('input[name="npwzTemplate"]:checked');
-  return input ? input.value : 'purchase';
+function npwzTemplateKeys() {
+  return Array.from(document.querySelectorAll('input[name="npwzTemplate"]:checked'))
+    .map((input) => input.value);
 }
 
 function npwzSetStatus(text) {
@@ -129,18 +129,27 @@ function npwzBuild() {
     '      <div class="npwz-note">新 NPC 以附加字段 0 / 165 / 0 / 0 写入 NPCList.txt。创建后仍可在「NPC 分布」中调整坐标与脚本。</div>',
     '    </section>',
     '    <section class="npwz-pane hidden" data-npwz-pane="2">',
+    '      <div class="npwz-note">可同时勾选多个功能，生成一个综合 NPC，各功能会在主菜单中按勾选顺序列出；「复制现有脚本」只能单独使用。</div>',
     '      <div class="npwz-templates">',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="purchase" checked><span class="npwz-card-body"><strong>金币购买</strong><em>按脚本内自定义的金币价格出售物品，支持多种货品与单次数量。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="shop"><span class="npwz-card-body"><strong>标准商店</strong><em>引擎标准买卖菜单，价格取自 stditems.db，交易类型按物品 Stdmode 自动写入。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="warehouse"><span class="npwz-card-body"><strong>仓库保管</strong><em>提供存取物品与取回物品菜单，沿用引擎的仓库安全验证。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="repair"><span class="npwz-card-body"><strong>装备修理</strong><em>普通修理与特修菜单，费用由引擎按装备耐久计算。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="recycle"><span class="npwz-card-body"><strong>物品回收</strong><em>按固定金币价格回收指定物品，每次回收 1 个。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="skill"><span class="npwz-card-body"><strong>技能学习</strong><em>教授 magic.db 中的技能，可按职业、等级与金币费用限制。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="daily"><span class="npwz-card-body"><strong>每日/限时福利</strong><em>每位玩家每天领取一次奖励，可设置开放小时段与等级门槛。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="craft"><span class="npwz-card-body"><strong>物品合成</strong><em>按自定义配方消耗材料与金币合成新物品，支持成功率与失败返还。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="teleport"><span class="npwz-card-body"><strong>收费传送</strong><em>收取金币后把玩家移动到指定地图坐标。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="teleportlist"><span class="npwz-card-body"><strong>多目标传送</strong><em>一次配置多个目的地，每个目的地可单独设置等级与费用。</em></span></label>',
-    '        <label class="npwz-card"><input type="radio" name="npwzTemplate" value="copy"><span class="npwz-card-body"><strong>复制现有脚本</strong><em>以现有 NPC 脚本为起点创建独立副本，原样保留内容。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="purchase" checked><span class="npwz-card-body"><strong>金币购买</strong><em>按脚本内自定义的金币价格出售物品，支持多种货品与单次数量。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="shop"><span class="npwz-card-body"><strong>标准商店</strong><em>引擎标准买卖菜单，价格取自 stditems.db，交易类型按物品 Stdmode 自动写入。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="warehouse"><span class="npwz-card-body"><strong>仓库保管</strong><em>提供存取物品与取回物品菜单，沿用引擎的仓库安全验证。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="repair"><span class="npwz-card-body"><strong>装备修理</strong><em>普通修理与特修菜单，费用由引擎按装备耐久计算。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="recycle"><span class="npwz-card-body"><strong>物品回收</strong><em>按固定金币价格回收指定物品，每次回收 1 个。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="skill"><span class="npwz-card-body"><strong>技能学习</strong><em>教授 magic.db 中的技能，可按职业、等级与金币费用限制。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="daily"><span class="npwz-card-body"><strong>每日/限时福利</strong><em>每位玩家每天领取一次奖励，可设置开放小时段与等级门槛。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="craft"><span class="npwz-card-body"><strong>物品合成</strong><em>按自定义配方消耗材料与金币合成新物品，支持成功率与失败返还。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="teleport"><span class="npwz-card-body"><strong>收费传送</strong><em>收取金币后把玩家移动到指定地图坐标。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="teleportlist"><span class="npwz-card-body"><strong>多目标传送</strong><em>一次配置多个目的地，每个目的地可单独设置等级与费用。</em></span></label>',
+    '        <label class="npwz-card"><input type="checkbox" name="npwzTemplate" value="copy"><span class="npwz-card-body"><strong>复制现有脚本</strong><em>以现有 NPC 脚本为起点创建独立副本，原样保留内容。</em></span></label>',
+    '      </div>',
+    '      <div id="npwzMenuBox" class="npwz-sub hidden">',
+    '        <div class="npwz-good-head"><strong>综合菜单设置</strong><span class="muted">勾选两项及以上功能时生效；留空则使用默认内容</span></div>',
+    '        <div class="npwz-grid npwz-grid-2">',
+    '          <label class="npwz-field"><span>欢迎标语</span><input id="npwzMenuGreeting" maxlength="80" autocomplete="off" placeholder="留空则使用：欢迎光临，NPC 名称。"></label>',
+    '        </div>',
+    '        <div id="npwzMenuLabels" class="npwz-grid npwz-grid-2"></div>',
+    '        <div class="npwz-note">入口名称会按勾选顺序显示在主菜单；不能包含 &lt; &gt; @ 或换行。</div>',
     '      </div>',
     '      <div class="npwz-sub" data-npwz-panel="purchase">',
     '        <div class="npwz-grid npwz-grid-2">',
@@ -379,7 +388,10 @@ function npwzBuild() {
   });
   mask.addEventListener('change', (e) => {
     NPWZ.dirty = true;
-    if (e.target && e.target.name === 'npwzTemplate') npwzRenderTemplate();
+    if (e.target && e.target.name === 'npwzTemplate') {
+      npwzSyncCopy(e.target);
+      npwzRenderTemplate();
+    }
     if (e.target && e.target.id === 'npwzMap') npwzUpdateMapHint();
     if (e.target && e.target.id === 'npwzSkillName') npwzUpdateSkillInfo();
   });
@@ -392,10 +404,62 @@ function npwzBuild() {
   });
 }
 
+function npwzSyncCopy(changed) {
+  const copy = document.querySelector('input[name="npwzTemplate"][value="copy"]');
+  if (!copy || !copy.checked) return;
+  if (changed === copy) {
+    document.querySelectorAll('input[name="npwzTemplate"]:checked').forEach((input) => {
+      if (input !== copy) input.checked = false;
+    });
+  } else {
+    copy.checked = false;
+  }
+}
+
 function npwzRenderTemplate() {
-  const key = npwzTemplate();
+  const keys = npwzTemplateKeys();
   document.querySelectorAll('[data-npwz-panel]').forEach((panel) => {
-    panel.classList.toggle('hidden', panel.dataset.npwzPanel !== key);
+    panel.classList.toggle('hidden', keys.indexOf(panel.dataset.npwzPanel) < 0);
+  });
+  npwzRenderMenuSettings();
+}
+
+function npwzMenuDefaults() {
+  const defaults = {};
+  document.querySelectorAll('input[name="npwzTemplate"]').forEach((input) => {
+    const card = input.closest('.npwz-card');
+    const strong = card && card.querySelector('strong');
+    defaults[input.value] = strong ? strong.textContent.trim() : input.value;
+  });
+  return defaults;
+}
+
+function npwzRenderMenuSettings() {
+  const box = npwzEl('npwzMenuBox');
+  const list = npwzEl('npwzMenuLabels');
+  if (!box || !list) return;
+  const keys = npwzTemplateKeys().filter((key) => key !== 'copy');
+  box.classList.toggle('hidden', keys.length < 2);
+  const defaults = npwzMenuDefaults();
+  const current = {};
+  list.querySelectorAll('input[data-npwz-menu-label]').forEach((input) => {
+    current[input.getAttribute('data-npwz-menu-label')] = input.value;
+  });
+  list.innerHTML = '';
+  keys.forEach((key) => {
+    const field = document.createElement('label');
+    field.className = 'npwz-field';
+    const span = document.createElement('span');
+    span.textContent = '「' + defaults[key] + '」入口名称';
+    const input = document.createElement('input');
+    input.maxLength = 20;
+    input.autocomplete = 'off';
+    input.placeholder = defaults[key];
+    input.setAttribute('data-npwz-menu-label', key);
+    input.value = current[key] != null ? current[key] : defaults[key];
+    field.appendChild(span);
+    field.appendChild(input);
+    list.appendChild(field);
   });
 }
 
@@ -480,8 +544,10 @@ function npwzResetForm() {
     skillInfo.textContent = '技能名称来自 magic.db';
     skillInfo.className = 'npwz-hint';
   }
-  const purchase = document.querySelector('input[name="npwzTemplate"][value="purchase"]');
-  if (purchase) purchase.checked = true;
+  set('npwzMenuGreeting', '');
+  document.querySelectorAll('input[name="npwzTemplate"]').forEach((input) => {
+    input.checked = input.value === 'purchase';
+  });
   npwzRenderTemplate();
   if (NPWZ.els.goods) NPWZ.els.goods.innerHTML = '';
   addGoodRow(prefill.item || '', '');
@@ -704,7 +770,55 @@ function validateBase() {
 }
 
 function validateTemplate() {
-  const key = npwzTemplate();
+  const keys = npwzTemplateKeys();
+  if (!keys.length) {
+    toast('请至少勾选一种功能模板', 'err');
+    return false;
+  }
+  if (keys.indexOf('copy') >= 0 && keys.length > 1) {
+    toast('「复制现有脚本」不能与其他功能组合', 'err');
+    return false;
+  }
+  if (keys.length > 1 && !validateMenu()) return false;
+  for (const key of keys) {
+    if (!validateTemplateKey(key)) return false;
+  }
+  return true;
+}
+
+function validateMenu() {
+  const greetingEl = npwzEl('npwzMenuGreeting');
+  const greeting = greetingEl ? greetingEl.value.trim() : '';
+  if (greeting.length > 80) {
+    toast('欢迎标语不能超过 80 个字符', 'err');
+    return false;
+  }
+  if (/[<>@\r\n]/.test(greeting)) {
+    toast('欢迎标语不能包含 < > @ 或换行', 'err');
+    return false;
+  }
+  const seen = new Set();
+  const inputs = document.querySelectorAll('#npwzMenuLabels input[data-npwz-menu-label]');
+  for (const input of inputs) {
+    const label = input.value.trim();
+    if (label.length > 20) {
+      toast('入口名称不能超过 20 个字符', 'err');
+      return false;
+    }
+    if (/[<>@\r\n]/.test(label)) {
+      toast('入口名称不能包含 < > @ 或换行', 'err');
+      return false;
+    }
+    if (label && seen.has(label)) {
+      toast('入口名称重复：' + label, 'err');
+      return false;
+    }
+    if (label) seen.add(label);
+  }
+  return true;
+}
+
+function validateTemplateKey(key) {
   if (key === 'purchase') {
     const minLevel = npwzInt('npwzMinLevel');
     const maxQty = npwzInt('npwzMaxQty');
@@ -952,12 +1066,13 @@ function validateTemplate() {
 }
 
 function collectPayload() {
-  const template = npwzTemplate();
+  const keys = npwzTemplateKeys();
+  const template = keys.length === 1 ? keys[0] : 'combined';
   const goods = Array.from(document.querySelectorAll('#npwzGoods .npwz-good')).map((row) => ({
     item: row.querySelector('.npwz-good-item').value.trim(),
     price: row.querySelector('.npwz-good-price').value.trim()
   }));
-  return {
+  const payload = {
     name: npwzVal('npwzName'),
     id: npwzVal('npwzId'),
     script: npwzVal('npwzScript').replace(/\.py$/i, ''),
@@ -1046,6 +1161,31 @@ function collectPayload() {
       source: npwzVal('npwzCopySource')
     }
   };
+  if (keys.length > 1) {
+    const configs = {
+      purchase: payload.purchase,
+      shop: payload.shop,
+      warehouse: payload.warehouse,
+      repair: payload.repair,
+      recycle: payload.recycle,
+      skill: payload.skill,
+      daily: payload.daily,
+      craft: payload.craft,
+      teleportlist: payload.teleports,
+      teleport: payload.teleport
+    };
+    payload.modules = keys.map((key) => ({ key, config: configs[key] }));
+    const greetingEl = npwzEl('npwzMenuGreeting');
+    const labels = {};
+    document.querySelectorAll('#npwzMenuLabels input[data-npwz-menu-label]').forEach((input) => {
+      labels[input.getAttribute('data-npwz-menu-label')] = input.value.trim();
+    });
+    payload.menu = {
+      greeting: greetingEl ? greetingEl.value.trim() : '',
+      labels
+    };
+  }
+  return payload;
 }
 
 function renderPreview(data) {

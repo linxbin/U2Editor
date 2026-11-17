@@ -36,8 +36,12 @@ const HW_ISSUE_LABEL = {
   spawn_monster_no_drop: '怪物无爆率',
   map_rule_coord_over: 'MapInfo 坐标越界',
   map_spawn_coord_over: '刷怪坐标越界',
+  map_register_needed: '建议补登记',
+  map_ref_invalid: '引用无地图',
+  map_scripts_unreadable: '脚本引用扫描失败',
   map_unknown: '地图未登记',
   map_file_orphan: '地图文件孤立',
+  map_file_missing: '地图文件缺失',
   map_rule_unparsed: 'MapInfo 行无法解析',
   shop_mall_id_duplicate: '商城 ID 重复',
   shop_mall_empty_sub: '商城空子类',
@@ -349,6 +353,10 @@ async function hwJump(issue) {
   }
   if (source === 'mapwork') {
     if (a.view === 'map' && a.key && window.openMapView) return window.openMapView({ tab: 'detail', key: a.key });
+    if (a.view === 'script' && a.name && window.openScriptView) {
+      const line = a.line != null ? a.line : issue.line;
+      return window.openScriptView({ tab: 'detail', name: a.name, line });
+    }
     if (a.view === 'npc' && window.openNpcWorkView) return window.openNpcWorkView(Number(a.index));
     if (a.view === 'spawn' && typeof window.openMongenAt === 'function') {
       return window.openMongenAt(Number(a.index), a.map || a.key);

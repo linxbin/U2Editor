@@ -36,8 +36,18 @@ const MPW_SOURCE_LABEL = {
   minimap: '小地图编号',
   npc: 'NPC',
   spawn: '刷怪',
+  script: '脚本',
   rule: 'MapInfo 规则',
   reference: '跳转目标'
+};
+
+const MPW_STATUS_LABEL = {
+  registered: '已登记',
+  missing_file: '已登记但缺地图文件',
+  register_needed: '建议补登记',
+  invalid_ref: '引用无地图',
+  orphan_file: '地图文件未登记',
+  unknown: '未登记（无玩法引用）'
 };
 
 const MPW_RULE_ORDER = ['jump', 'nofight', 'sabukarea', 'sabukjump', 'redvillage', 'property', 'plantrange'];
@@ -59,12 +69,15 @@ const MPW_ISSUE_LABEL = {
   map_mongen_unreadable: 'Mongen 读取失败',
   map_minimap_unreadable: 'MiniMap 读取失败',
   map_minilist_unreadable: 'minmaplist 读取失败',
+  map_scripts_unreadable: '脚本地图引用扫描失败',
   map_npc_coord_over: 'NPC 坐标越界',
   map_spawn_coord_over: '刷怪坐标越界',
   map_rule_coord_over: '规则坐标越界',
   map_jump_target_missing: '跳转目标未登记',
   map_jump_target_over: '跳转目标坐标越界',
   map_rule_unparsed: 'MapInfo 行无法解析',
+  map_register_needed: '建议补登记',
+  map_ref_invalid: '引用无地图',
   map_unknown: '地图未登记',
   map_file_orphan: '地图文件未登记',
   map_file_missing: '地图文件缺失'
@@ -176,6 +189,7 @@ function mpwRenderMeta() {
     s.registered + ' 已登记',
     s.npcs + ' 个 NPC',
     s.spawns + ' 条刷怪',
+    '脚本引用 ' + s.scriptRefs + ' 处',
     '问题 ' + s.issues.error + ' 错误 / ' + s.issues.warn + ' 警告 / ' + s.issues.info + ' 提示'
   ].join(' · ');
   mpwText('mapWorkCount', String(s.maps));
@@ -207,15 +221,20 @@ function mpwSelectTab(tab) {
 
 function mpwMapFlagMatch(map) {
   if (MPW.flag === 'attention') return map.attention;
-  if (MPW.flag === 'unknown') return !map.known;
-  if (MPW.flag === 'orphan') return map.file && !map.known;
+  if (MPW.flag === 'unknown') return !map.known && map.refs > 0;
+  if (MPW.flag === 'register') return map.status === 'register_needed';
+  if (MPW.flag === 'restore') return map.status === 'invalid_ref';
+  if (MPW.flag === 'orphan') return map.status === 'orphan_file';
   return true;
 }
 
 function mpwMapBadges(map) {
   const out = [];
-  if (!map.known) out.push(mpwBadge('未登记', 'bad'));
-  if (map.known && !map.file) out.push(mpwBadge('缺文件', 'warn'));
+  if (map.status === 'register_needed') out.push(mpwBadge('建议补登记', 'warn'));
+  else if (map.status === 'invalid_ref') out.push(mpwBadge('引用无地图', 'bad'));
+  else if (map.status === 'orphan_file') out.push(mpwBadge('文件未登记', 'warn'));
+  else if (map.status === 'missing_file') out.push(mpwBadge('缺文件', 'warn'));
+  else if (!map.known) out.push(mpwBadge('未登记'));
   if (map.attention) out.push(mpwBadge('有异常', 'warn'));
   return out.join('');
 }
@@ -253,6 +272,7 @@ function mpwRenderList() {
       dims,
       'NPC ' + map.npcs,
       '刷怪 ' + map.spawns + ' 条',
+      '脚本 ' + map.scripts + ' 处',
       '规则 ' + map.rules
     ].join(' · ');
     li.appendChild(meta);
@@ -308,12 +328,14 @@ function mpwDetailIntro() {
   const s = MPW.data.stats;
   return '<div class="mpw-intro">' +
     '<div class="mpw-intro-title">地图工作台</div>' +
-    '<p>左侧选择地图，查看地图文件、尺寸、小地图编号、MapInfo 规则、NPC 与刷怪分布，并可跳转到现有编辑器修改。</p>' +
+    '<p>左侧选择地图，查看地图文件、尺寸、小地图编号、MapInfo 规则、NPC、刷怪与脚本引用，并可跳转到现有编辑器修改。</p>' +
     '<p>当前共 ' + s.maps + ' 张地图（MapInfo 登记 ' + s.registered + ' 张），地图文件 ' + s.mapFiles +
-    ' 个；未登记但被 NPC/刷怪使用 ' + s.usageUnknown + ' 张，未登记地图文件 ' + s.filesOrphan +
+    ' 个；未登记但被引用 ' + s.usageUnknown + ' 张（建议补登记 ' + s.registerSuggested +
+    '，引用无地图 ' + s.restoreSuggested + '），未登记地图文件 ' + s.filesOrphan +
     ' 个，坐标越界 ' + s.oob + ' 处。</p>' +
     '<p>NPC ' + s.npcs + ' 个，刷怪 ' + s.spawns + ' 条，MapInfo 规则 ' + s.rules +
-    ' 条；点击「配置体检」可集中查看未登记、缺文件、跳转目标异常和坐标越界。</p>' +
+    ' 条，脚本静态引用 ' + s.scriptRefs + ' 处（涉及未登记地图 ' + s.scriptUnknown +
+    ' 张）；点击「配置体检」可集中查看建议补登记、引用无地图、缺文件和坐标越界。</p>' +
     '</div>';
 }
 
@@ -327,8 +349,10 @@ function mpwRenderOverview(map, d) {
     ['地图尺寸', map.width && map.height ? map.width + 'x' + map.height : '未知'],
     ['小地图', mini],
     ['区域', MPW_WORLD_LABEL[map.world] || map.world || '—'],
+    ['处理状态', MPW_STATUS_LABEL[map.status] || map.status || '—'],
     ['NPC', map.npcs + ' 个'],
     ['刷怪', map.spawns + ' 条 · ' + map.spawnTotal + ' 只 · ' + map.spawnMonsters + ' 种怪物'],
+    ['脚本引用', map.scripts + ' 处 · ' + map.scriptFiles + ' 个文件'],
     ['跳转', '出 ' + map.jumpOut + ' · 入 ' + map.jumpIn],
     ['安全区', map.safeAreas + ' 个 · 其他区域 ' + map.areas + ' 个'],
     ['使用来源', (map.used || []).map((s) => MPW_SOURCE_LABEL[s] || s).join('、') || '—']
@@ -338,14 +362,39 @@ function mpwRenderOverview(map, d) {
   ).join('') + '</div>';
 }
 
+function mpwRenderScripts(map, d) {
+  if (!d.scripts || !d.scripts.length) return '';
+  const rows = d.scripts.map((item) =>
+    '<div class="mpw-row">' +
+    '<span class="mpw-row-main"><code>' + mpwEsc(item.file + ':' + item.line) + '</code></span>' +
+    '<span class="mpw-row-meta mpw-script-snippet">' + mpwEsc(item.text) + '</span>' +
+    '<span class="mpw-tags">' + mpwBadge(item.kind || '脚本引用') + '</span>' +
+    '<button class="btn btn-sm ghost mpw-row-btn" data-mpw-act="script" data-name="' + mpwEsc(item.file) +
+    '" data-line="' + item.line + '">定位脚本</button>' +
+    '</div>'
+  );
+  const more = d.scriptTotal > d.scripts.length
+    ? '<div class="mpw-groups-hint">共 ' + d.scriptTotal + ' 处引用，仅显示前 ' + d.scripts.length + ' 处。</div>'
+    : '';
+  return '<div class="mpw-section"><div class="mpw-section-head"><strong>脚本引用</strong>' +
+    '<span class="muted">' + d.scriptTotal + ' 处 · ' + d.scriptFileCount + ' 个文件 · 静态字面量</span></div>' +
+    '<div class="mpw-rows">' + rows.join('') + '</div>' + more + '</div>';
+}
+
 function mpwRenderRegister(map) {
   if (map.known) return '';
+  if (!map.file) {
+    return '<div class="mpw-section mpw-register">' +
+      '<div class="mpw-section-head"><strong>引用无地图</strong>' +
+      '<span class="muted">不能登记到 MapInfo</span></div>' +
+      '<div class="mpw-register-body"><div class="mpw-register-warn">' +
+      '该地图没有 map/' + mpwEsc(map.map) + '.map 文件，登记后 GS 仍无法加载。' +
+      '当前引用：NPC ' + map.npcs + ' 个、刷怪 ' + map.spawns + ' 条、脚本 ' + map.scripts + ' 处。' +
+      '请先核对清理引用或补充地图文件，再回到这里登记。</div></div></div>';
+  }
   const value = MPW.regDraft && MPW.regDraft.key === map.key
     ? MPW.regDraft.name
     : (map.name || map.miniName || '');
-  const warning = map.file ? '' :
-    '<div class="mpw-register-warn">该地图缺少 map/' + mpwEsc(map.map) +
-    '.map 文件。登记后告警会从「未登记」变为「地图文件缺失」，地图文件仍需另行补充。</div>';
   return '<div class="mpw-section mpw-register">' +
     '<div class="mpw-section-head"><strong>登记到 MapInfo</strong>' +
     '<span class="muted">写入 [MAPLOAD]，自动备份</span></div>' +
@@ -359,7 +408,6 @@ function mpwRenderRegister(map) {
     '<div class="mpw-register-actions">' +
     '<button class="btn btn-sm" data-mpw-act="register">登记到 MapInfo</button>' +
     '<span class="muted">将新增一行“编号 , 名称 , 0”；写入前自动备份 MapInfo。</span></div>' +
-    warning +
     '</div></div>';
 }
 
@@ -519,6 +567,7 @@ function mpwActionAttrs(action) {
   if (a.index != null) parts.push('data-index="' + mpwEsc(a.index) + '"');
   if (a.map) parts.push('data-map="' + mpwEsc(a.map) + '"');
   if (a.name) parts.push('data-name="' + mpwEsc(a.name) + '"');
+  if (a.line != null) parts.push('data-line="' + mpwEsc(a.line) + '"');
   return parts.join(' ');
 }
 
@@ -571,7 +620,8 @@ function mpwRenderDetail() {
   const head = '<div class="mpw-map-head">' +
     '<div><strong>' + mpwEsc(map.map) + (map.name ? ' · ' + mpwEsc(map.name) : '') + '</strong>' +
     '<div class="muted">' + (map.width && map.height ? map.width + 'x' + map.height : '尺寸未知') +
-    ' · NPC ' + map.npcs + ' · 刷怪 ' + map.spawns + ' 条 · 规则 ' + map.rules + ' 条</div></div>' +
+    ' · NPC ' + map.npcs + ' · 刷怪 ' + map.spawns + ' 条 · 脚本 ' + map.scripts +
+    ' 处 · 规则 ' + map.rules + ' 条</div></div>' +
     '<div class="mpw-head-tags">' + tags + '</div></div>';
   const rules = d.rules;
   const firstRule = MPW_RULE_ORDER.find((key) => rules[key] && rules[key].length);
@@ -582,13 +632,15 @@ function mpwRenderDetail() {
     (d.npcs.length ? '<button class="btn btn-sm" data-mpw-act="npc-map" data-key="' + mpwEsc(map.key) + '">在 NPC 工作台筛选本图</button>' : '') +
     '</div>';
   box.innerHTML = head + actions + (map.known ? '' : mpwRenderRegister(map)) +
-    mpwRenderOverview(map, d) +
+    mpwRenderOverview(map, d) + mpwRenderScripts(map, d) +
     mpwRenderRules(map, d) + mpwRenderIncoming(map, d) +
     mpwRenderNpcs(map, d) + mpwRenderSpawns(map, d) + mpwRenderMapIssues(d);
 }
 
 function mpwIssueGroup(issue) {
   if (String(issue.code || '').indexOf('unreadable') >= 0) return '读取失败';
+  if (issue.code === 'map_register_needed') return '建议补登记';
+  if (issue.code === 'map_ref_invalid') return '引用无地图';
   if (issue.code === 'map_unknown') return '未登记地图';
   if (issue.code === 'map_file_orphan' || issue.code === 'map_file_missing') return '地图文件';
   if (String(issue.code || '').indexOf('coord_over') >= 0) return '坐标越界';
@@ -613,7 +665,7 @@ function mpwRenderHealth() {
     if (!groups[g]) groups[g] = [];
     groups[g].push(issue);
   }
-  const order = ['读取失败', '未登记地图', '地图文件', '坐标越界', 'MapInfo 规则'];
+  const order = ['读取失败', '建议补登记', '引用无地图', '未登记地图', '地图文件', '坐标越界', 'MapInfo 规则'];
   let html = '';
   for (const g of order) {
     const list = groups[g];
@@ -726,12 +778,23 @@ async function mpwGotoRule(key, section) {
   toast('MapInfo 编辑器不可用', 'err');
 }
 
+async function mpwGotoScript(name, line) {
+  if (!name) return;
+  if (typeof window.openScriptView !== 'function') {
+    toast('脚本工作台不可用', 'err');
+    return;
+  }
+  const targetLine = line != null && Number(line) > 0 ? Number(line) : null;
+  await window.openScriptView({ tab: 'detail', name, line: targetLine });
+}
+
 async function mpwJumpAction(action) {
   const a = action || {};
   if (a.view === 'map') await mpwGotoMap(a.key);
   else if (a.view === 'npc') await mpwGotoNpc(a.index);
   else if (a.view === 'spawn') await mpwGotoSpawn(a.index, a.map || a.key);
   else if (a.view === 'rule') await mpwGotoRule(a.key, a.section);
+  else if (a.view === 'script') await mpwGotoScript(a.name, a.line);
 }
 
 async function openMapView(sel) {
@@ -853,6 +916,7 @@ function mpwBindEvents() {
       else if (act === 'npc') mpwGotoNpc(Number(btn.dataset.index));
       else if (act === 'npc-map') mpwGotoNpcMap(btn.dataset.key);
       else if (act === 'map') mpwGotoMap(btn.dataset.key);
+      else if (act === 'script') mpwGotoScript(btn.dataset.name, btn.dataset.line);
       else if (act === 'register') mpwRegisterMap(btn);
       else if (act === 'issue') {
         mpwJumpAction({
@@ -861,7 +925,8 @@ function mpwBindEvents() {
           section: btn.dataset.section,
           index: btn.dataset.index == null ? null : Number(btn.dataset.index),
           map: btn.dataset.map,
-          name: btn.dataset.name
+          name: btn.dataset.name,
+          line: btn.dataset.line
         });
       }
     });

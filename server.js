@@ -120,7 +120,8 @@ const mapWorkbench = mapWorkData.create({
   npcFile: NPC_FILE,
   mongenFile: MONGEN_FILE,
   miniMapFile: path.join(ENVIR_DIR, 'MiniMap.txt'),
-  miniListFile: path.join(ENVIR_DIR, 'minmaplist.txt')
+  miniListFile: path.join(ENVIR_DIR, 'minmaplist.txt'),
+  scriptDir: NPC_SCRIPT_DIR
 });
 
 const shopWorkbench = shopWorkData.create({

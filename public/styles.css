@@ -1744,6 +1744,14 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .mpw-row-main { color: #cfd9e8; min-width: 0; }
 .mpw-row-main code { color: #9fc2e8; font-size: 11px; }
 .mpw-row-meta { color: #9fb0c8; font-size: 10.5px; }
+.mpw-script-snippet {
+  flex: 1;
+  min-width: 180px;
+  font-family: ui-monospace, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .mpw-line-no { color: #78889e; font-size: 10.5px; margin-left: auto; }
 .mpw-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .mpw-row-btn { font-size: 10.5px; }

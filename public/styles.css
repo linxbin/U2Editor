@@ -2682,3 +2682,12 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   font-size: 10.5px;
   line-height: 1.6;
 }
+.pw-value {
+  font-family: ui-monospace, Consolas, monospace;
+  color: #e6eefc;
+  background: #10151d;
+  border: 1px solid #242e3d;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.pw-param-note { margin-top: 8px; padding: 0 2px; }

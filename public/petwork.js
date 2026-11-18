@@ -15,6 +15,7 @@ const PW_SECTIONS = [
   { key: 'all', label: '总览与体检' },
   { key: 'growth', label: '灵兽图鉴与成长' },
   { key: 'rebirth', label: '转生与材料' },
+  { key: 'params', label: '运行参数' },
   { key: 'ride', label: '骑乘与马牌' }
 ];
 
@@ -315,15 +316,21 @@ function pwRenderRebirth(d) {
     pwSection('转生入口 NPC', 'rebirth-npcs', d.npcs.rebirth.length + ' 个', npcBody);
 }
 
-function pwRenderRide(d) {
-  const paramRows = d.params.rows
-    .filter((r) => pwMatches(r.key, r.value))
+function pwRenderParams(d) {
+  const rows = d.params.rows
+    .filter((r) => pwMatches(r.key, r.value, r.label, r.desc))
     .map((r) =>
-      '<tr><td>' + pwEsc(r.key) + '</td><td>' + pwEsc(r.value) + '</td>' +
+      '<tr><td>' + pwEsc(r.label) + ' <span class="fmeta">' + pwEsc(r.key) + '</span></td>' +
+      '<td><code class="pw-value">' + pwEsc(r.value) + '</code></td>' +
+      '<td>' + pwEsc(r.desc) + '</td>' +
       '<td>' + pwEsc(r.file) + ' 第 ' + r.line + ' 行</td>' +
-      '<td>' + pwBtn('定位', 'param', r.line) + '</td></tr>');
-  const paramBody = pwTable(['参数', '当前值', '位置', '操作'], paramRows);
+      '<td>' + pwBtn('编辑', 'param', r.line, r.line) + '</td></tr>');
+  const body = pwTable(['参数', '当前值', '说明', '位置', '操作'], rows);
+  return pwSection('运行参数', 'params', d.params.rows.length + ' 项', body) +
+    '<div class="side-note pw-param-note">修改会跳转到「扩展配置 · 服务器启动配置」，保存沿用现有备份与校验流程，通常重启服务端后生效。</div>';
+}
 
+function pwRenderRide(d) {
   const itemRows = d.mounts.items
     .filter((m) => pwMatches(m.name, m.stdmode, m.idx))
     .map((m) =>
@@ -365,8 +372,7 @@ function pwRenderRide(d) {
     /merstabl|骑乘|骑|马/i.test(String(issue.scope || '') + ' ' + issue.code + ' ' + issue.message));
   const issueBody = pwIssueList(pwFilterIssues(rideIssues), 'ride');
 
-  return pwSection('骑乘参数', 'params', d.params.rows.length + ' 项', paramBody) +
-    pwSection('马牌与骑乘物品', 'mount-items', d.mounts.items.length + ' 项', itemBody) +
+  return pwSection('马牌与骑乘物品', 'mount-items', d.mounts.items.length + ' 项', itemBody) +
     pwSection('坐骑形态', 'races', d.mounts.races.length + ' 个', raceBody) +
     pwSection('骑乘脚本', 'ride-scripts', rideScripts.length + ' 个', scriptBody) +
     pwSection('骑乘相关 NPC', 'ride-npcs', d.npcs.ride.length + ' 个', npcBody) +
@@ -380,6 +386,7 @@ function pwRenderNav(d) {
     all: d.stats.issues,
     growth: d.stats.stages,
     rebirth: d.materials.length,
+    params: d.params.rows.length,
     ride: d.mounts.items.length
   };
   list.innerHTML = PW_SECTIONS.map((s) =>
@@ -400,11 +407,12 @@ function pwRender() {
     all: () => pwRenderOverview(d),
     growth: () => pwRenderGrowth(d),
     rebirth: () => pwRenderRebirth(d),
+    params: () => pwRenderParams(d),
     ride: () => pwRenderRide(d)
   };
   const showAll = !!PW.q.trim() || PW.section === 'all' || !parts[PW.section];
   box.innerHTML = showAll
-    ? ['all', 'growth', 'rebirth', 'ride'].map((k) => parts[k]()).join('')
+    ? ['all', 'growth', 'rebirth', 'params', 'ride'].map((k) => parts[k]()).join('')
     : parts[PW.section]();
   pwRenderNav(d);
   const meta = pwEl('petwMeta');

@@ -103,6 +103,7 @@ const WORK_GROUPS = [
     name: '角色与工具',
     items: [
       { target: 'grw', name: '成长', desc: '技能、职业、升级与宠物成长曲线' },
+      { target: 'petw', name: '灵兽骑乘', desc: '灵兽成长、转生材料与骑乘配置' },
       { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
     ]
   }
@@ -117,7 +118,8 @@ const NAV_HEALTH_SOURCE = {
   scw: 'scriptwork',
   cbw: 'castlework',
   txw: 'textwork',
-  stw: 'starterwork'
+  stw: 'starterwork',
+  petw: 'petwork'
 };
 function navIssueCounts(target) {
   const summary = S.configs && S.configs.healthwork;
@@ -959,6 +961,11 @@ function updateMeta() {
     dot.classList.toggle('on', false);
     return;
   }
+  if (S.mode === 'petwork') {
+    dot.classList.toggle('on', false);
+    $('#statusText').textContent = '灵兽与骑乘 · 只读汇总';
+    return;
+  }
   if (S.mode.startsWith('cfg')) {
     if (window.updateConfigMeta) window.updateConfigMeta();
     return;
@@ -1039,6 +1046,7 @@ const NAV_LABELS = {
   openStarterWorkView: '新手充值',
   openHealthWorkView: '配置体检',
   openYswView: '元神',
+  openPetWorkView: '灵兽骑乘',
   openNpcConfig: 'NPC 分布',
   openShopsConfig: '商店货品',
   openShopsByScript: '商店货品',
@@ -1120,6 +1128,7 @@ const NAV_HASH_RESTORE = {
   openTextWorkView: /^#text=/,
   openStarterWorkView: /^#starter=/,
   openHealthWorkView: /^#healthwork/,
+  openPetWorkView: /^#petwork/,
   openBackupView: /^#backups/,
   openDropsView: /^#drops/,
   openActivityView: /^#activity=/,
@@ -1241,6 +1250,7 @@ async function openDb(name, force) {
     if (window.hideStarterWorkView) window.hideStarterWorkView();
     if (window.hideHealthWorkView) window.hideHealthWorkView();
     if (window.hideYswView) window.hideYswView();
+    if (window.hidePetWorkView) window.hidePetWorkView();
     S.mode = 'db';
     S.dbFile = name;
     S.schema = data.schema;
@@ -1288,6 +1298,7 @@ async function openDrop(name, force) {
     if (window.hideStarterWorkView) window.hideStarterWorkView();
     if (window.hideHealthWorkView) window.hideHealthWorkView();
     if (window.hideYswView) window.hideYswView();
+    if (window.hidePetWorkView) window.hidePetWorkView();
     const normalized = data.text.replace(/\r\n/g, '\n');
     S.mode = 'drop';
     S.dropFile = name;
@@ -1599,6 +1610,7 @@ async function openBasicTab(target) {
 
 function openSideTarget(name) {
   if (window.hideYswView) window.hideYswView();
+  if (window.hidePetWorkView) window.hidePetWorkView();
   if (BASIC_TABS.some((tab) => tab.target === name)) {
     openBasicTab(name);
     return;
@@ -1657,6 +1669,10 @@ function openSideTarget(name) {
   }
   if (name === 'ysw' && window.openYswView) {
     window.openYswView();
+    return;
+  }
+  if (name === 'petw' && window.openPetWorkView) {
+    window.openPetWorkView();
     return;
   }
   if (name === 'bkw' && window.openBackupView) {

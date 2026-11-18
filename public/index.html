@@ -295,6 +295,12 @@
         <div id="yswListHint" class="side-note"></div>
       </div>
 
+      <div class="side-pane" data-side-pane="petw">
+        <input id="petwFilter" class="filter" placeholder="搜索灵兽 / 材料 / 物品 / 脚本..." autocomplete="off">
+        <ul id="petwNavList" class="file-list"></ul>
+        <div id="petwListHint" class="side-note"></div>
+      </div>
+
       <div class="side-pane" data-side-pane="bkw">
         <input id="bkwFilter" class="filter" placeholder="搜索备份文件..." autocomplete="off">
         <div id="bkwFileList" class="file-list"></div>
@@ -1156,6 +1162,23 @@
         </div>
       </section>
 
+      <section id="petworkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>灵兽与骑乘工作台</strong>
+            <span id="petwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnPetwReload" class="btn">重新检查</button>
+        </div>
+        <div class="mpw-body">
+          <div class="mpw-pane">
+            <div id="petwSummary"></div>
+            <div id="petwContent"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="scriptWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1302,5 +1325,6 @@
   <script src="healthwork.js"></script>
   <script src="backups.js"></script>
   <script src="yswork.js"></script>
+  <script src="petwork.js"></script>
 </body>
 </html>

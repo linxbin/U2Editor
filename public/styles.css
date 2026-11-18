@@ -2218,6 +2218,11 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .hw-num { font-size: 26px; font-weight: 600; color: #e6eefc; line-height: 1.15; }
 .hw-cards .act-card { min-height: 74px; justify-content: space-between; }
 
+/* 灵兽与骑乘工作台 */
+#petwContent { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
+.pw-curve { display: flex; flex-direction: column; gap: 6px; }
+.pw-curve + .pw-curve { margin-top: 10px; padding-top: 10px; border-top: 1px solid #242e3d; }
+
 
 /* 新建 NPC 向导 */
 .npwz-mask {
@@ -2661,5 +2666,19 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   margin-top: 10px;
   color: #6f7f95;
   font-size: 11px;
+  line-height: 1.6;
+}
+
+#petworkView .tsk-table tbody td { white-space: normal; word-break: break-word; }
+.pw-items { min-width: 220px; }
+.pw-item {
+  display: inline-block;
+  margin: 0 4px 3px 0;
+  padding: 1px 6px;
+  border: 1px solid #2a3648;
+  border-radius: 4px;
+  background: #1a2331;
+  color: #b8c6da;
+  font-size: 10.5px;
   line-height: 1.6;
 }

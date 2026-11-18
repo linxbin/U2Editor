@@ -58,7 +58,18 @@ const HW_ISSUE_LABEL = {
   growth_class_length: '职业表长度不一致',
   growth_magic_id_gap: '技能 ID 不连续',
   growth_pet_exp_plateau: '宠物经验封顶',
-  growth_upgrade_level_gap: '升级档位缺失'
+  growth_upgrade_level_gap: '升级档位缺失',
+  pet_stage_form_missing: '灵兽形态缺失',
+  pet_material_missing: '材料缺失',
+  pet_material_required_missing: '必需材料缺失',
+  pet_material_no_source: '材料无来源',
+  pet_armor_rule_mismatch: '铠甲要求不一致',
+  pet_water_name_mismatch: '材料名称不一致',
+  pet_rebirth_script_gap: '二转脚本缺口',
+  pet_merstabl_source_missing: '脚本源码缺失',
+  pet_growth_anomalies: '成长异常汇总',
+  pet_supply_no_source: '补给无来源',
+  pet_mount_no_source: '骑乘物品无来源'
 };
 
 function hwEl(id) {
@@ -342,6 +353,16 @@ async function hwJump(issue) {
     if (window.openGrowthView) return window.openGrowthView(sel);
     return;
   }
+  if (source === 'petwork') {
+    if (a.view === 'growth' && window.openGrowthView) {
+      return window.openGrowthView({ tab: 'pets', petKey: a.petKey });
+    }
+    if (a.view === 'item' && window.openItemDropView) {
+      return window.openItemDropView({ tab: 'detail', itemIndex: Number(a.index) });
+    }
+    if (window.openPetWorkView) return window.openPetWorkView(a.section ? { section: a.section } : undefined);
+    return;
+  }
   if (source === 'spawnwork') {
     if (a.view === 'monster' && a.name) return hwOpenMonster(a.name, 'spawn');
     if (a.view === 'map' && a.key && window.openSpawnView) return window.openSpawnView({ tab: 'maps', key: a.key });
@@ -534,5 +555,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state) openHealthWorkView(state);
   });
   const initial = hwHashState();
-  if (initial) openHealthWorkView(initial);
+  if (initial) {
+    if (window.appReady && typeof window.appReady.then === 'function') {
+      window.appReady.then(() => openHealthWorkView(initial));
+    } else {
+      openHealthWorkView(initial);
+    }
+  }
 });

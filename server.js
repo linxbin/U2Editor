@@ -30,6 +30,7 @@ const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
 const ysWorkData = require('./lib/yswork');
+const petWorkData = require('./lib/petwork');
 const backupsData = require('./lib/backups');
 const dbRefs = require('./lib/dbrefs');
 
@@ -185,6 +186,16 @@ const ysWorkbench = ysWorkData.create({
   itemWorkbench
 });
 
+const petWorkbench = petWorkData.create({
+  envirDir: ENVIR_DIR,
+  npcFile: NPC_FILE,
+  scriptDir: NPC_SCRIPT_DIR,
+  gameServerIni: path.join(ENVIR_DIR, '..', 'GameServer.ini'),
+  monsterFile: path.join(DB_DIR, 'Monster.DB'),
+  itemWorkbench,
+  growthWorkbench
+});
+
 const healthWorkbench = healthWorkData.create({
   sources: [
     {
@@ -212,6 +223,7 @@ const healthWorkbench = healthWorkData.create({
       invalidate: () => { itemWorkbench.invalidate(); dropWorkbench.invalidate(); }
     },
     { key: 'growth', label: '数值 / 成长', health: () => growthWorkbench.health(), invalidate: () => growthWorkbench.invalidate() },
+    { key: 'petwork', label: '灵兽 / 骑乘', health: () => petWorkbench.health(), invalidate: () => petWorkbench.invalidate() },
     { key: 'spawnwork', label: '刷怪', health: () => spawnWorkbench.health(), invalidate: () => spawnWorkbench.invalidate() },
     { key: 'mapwork', label: '地图', health: () => mapWorkbench.health(), invalidate: () => mapWorkbench.invalidate() },
     { key: 'shopwork', label: '合成 / 商城', health: () => shopWorkbench.health(), invalidate: () => shopWorkbench.invalidate() },
@@ -379,6 +391,7 @@ const STATIC = {
   '/healthwork.js': { file: 'healthwork.js', type: 'application/javascript; charset=utf-8' },
   '/backups.js': { file: 'backups.js', type: 'application/javascript; charset=utf-8' },
   '/yswork.js': { file: 'yswork.js', type: 'application/javascript; charset=utf-8' },
+  '/petwork.js': { file: 'petwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -764,7 +777,7 @@ function invalidateItemConsumers() {
   const list = [
     itemWorkbench, dropWorkbench, shopWorkbench, npcWorkbench, taskWorkbench,
     starterWorkbench, castleWorkbench, textWorkbench, activityWorkbench,
-    ysWorkbench, monsterWorkbench, healthWorkbench
+    ysWorkbench, petWorkbench, monsterWorkbench, healthWorkbench
   ];
   for (const wb of list) wb.invalidate();
   invalidateState();
@@ -781,7 +794,7 @@ function invalidateAll() {
     monsterWorkbench, activityWorkbench, taskWorkbench, npcWorkbench,
     growthWorkbench, dropWorkbench, spawnWorkbench, mapWorkbench,
     shopWorkbench, scriptWorkbench, castleWorkbench, textWorkbench,
-    starterWorkbench, itemWorkbench, healthWorkbench, ysWorkbench
+    starterWorkbench, itemWorkbench, healthWorkbench, ysWorkbench, petWorkbench
   ];
   for (const wb of list) wb.invalidate();
   invalidateState();
@@ -1480,6 +1493,12 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/yswork') {
     if (url.searchParams.get('refresh') === '1') ysWorkbench.invalidate();
     json(res, 200, ysWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/petwork') {
+    if (url.searchParams.get('refresh') === '1') petWorkbench.invalidate();
+    json(res, 200, petWorkbench.list());
     return;
   }
 

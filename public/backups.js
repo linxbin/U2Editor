@@ -1,16 +1,17 @@
 'use strict';
 
-/* 备份与历史：按文件查看自动备份、对比当前文件并恢复（恢复前自动再备份） */
+/* 备份与历史：按时间线查看自动备份、对比当前文件并恢复（恢复前自动再备份） */
 
 const BKW = {
   data: null,
+  events: [],
   loading: false,
-  group: null,
   version: null,
   diff: null,
   diffError: '',
   diffLoading: false,
-  filter: ''
+  filter: '',
+  fileFilter: null
 };
 
 let bkwSearchTimer = null;
@@ -48,15 +49,85 @@ function bkwBaseName(file) {
   return i >= 0 ? file.slice(i + 1) : file;
 }
 
-function bkwGroup() {
-  if (!BKW.data) return null;
-  return BKW.data.groups.find((g) => g.file === BKW.group) || null;
+function bkwPad2(n) {
+  return String(n).padStart(2, '0');
 }
 
-function bkwVersionInfo() {
-  const group = bkwGroup();
-  if (!group) return null;
-  return group.versions.find((v) => v.id === BKW.version) || null;
+function bkwDayKey(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + bkwPad2(d.getMonth() + 1) + '-' + bkwPad2(d.getDate());
+}
+
+function bkwDayLabel(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const days = Math.round((today - day) / 86400000);
+  if (days === 0) return '今天';
+  if (days === 1) return '昨天';
+  return bkwDayKey(ts);
+}
+
+function bkwClock(ts) {
+  const d = new Date(ts);
+  return bkwPad2(d.getHours()) + ':' + bkwPad2(d.getMinutes()) + ':' + bkwPad2(d.getSeconds());
+}
+
+function bkwShortWhen(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const days = Math.round((today - day) / 86400000);
+  const hm = bkwClock(ts).slice(0, 5);
+  if (days === 0) return '今天 ' + hm;
+  if (days === 1) return '昨天 ' + hm;
+  const md = bkwPad2(d.getMonth() + 1) + '-' + bkwPad2(d.getDate());
+  if (d.getFullYear() === now.getFullYear()) return md + ' ' + hm;
+  return d.getFullYear() + '-' + md + ' ' + hm;
+}
+
+function bkwFlatten(groups) {
+  const out = [];
+  for (const group of groups || []) {
+    for (const version of group.versions || []) out.push({ group, version });
+  }
+  out.sort(
+    (a, b) =>
+      b.version.ts - a.version.ts ||
+      a.group.file.localeCompare(b.group.file, 'zh-CN') ||
+      (a.version.name < b.version.name ? 1 : a.version.name > b.version.name ? -1 : 0)
+  );
+  return out;
+}
+
+function bkwEventById(id) {
+  if (!id) return null;
+  return BKW.events.find((ev) => ev.version.id === id) || null;
+}
+
+function bkwSelectedEvent() {
+  return bkwEventById(BKW.version);
+}
+
+function bkwMatches(ev) {
+  if (BKW.fileFilter && ev.group.file !== BKW.fileFilter) return false;
+  const q = BKW.filter.trim().toLowerCase();
+  return !q || ev.group.file.toLowerCase().includes(q);
+}
+
+function bkwVisibleEvents() {
+  return BKW.events.filter(bkwMatches);
+}
+
+function bkwSortedGroups() {
+  if (!BKW.data) return [];
+  return BKW.data.groups.slice().sort((a, b) => {
+    const at = a.versions.length ? a.versions[0].ts : 0;
+    const bt = b.versions.length ? b.versions[0].ts : 0;
+    return bt - at || a.file.localeCompare(b.file, 'zh-CN');
+  });
 }
 
 function bkwHashWanted() {
@@ -97,12 +168,8 @@ function bkwRenderMeta() {
   const hint = bkwEl('bkwListHint');
   if (hint) {
     if (!BKW.data) hint.textContent = BKW.loading ? '正在扫描备份目录…' : '';
-    else {
-      const group = bkwGroup();
-      hint.textContent = group
-        ? group.file + ' · ' + group.count + ' 个版本'
-        : '选择一个文件查看备份版本';
-    }
+    else if (BKW.fileFilter) hint.textContent = '仅显示 ' + bkwBaseName(BKW.fileFilter) + '；再次点击该文件可取消';
+    else hint.textContent = '按备份时间从新到旧排列；点击文件可只看该文件';
   }
 }
 
@@ -114,54 +181,88 @@ function bkwRenderFiles() {
     bkwAdd(list, 'div', 'mpw-empty', BKW.loading ? '正在扫描备份…' : '暂无备份数据');
     return;
   }
-  const q = BKW.filter.trim().toLowerCase();
-  const groups = BKW.data.groups.filter((g) => !q || g.file.toLowerCase().includes(q));
-  if (!groups.length) {
-    bkwAdd(list, 'div', 'mpw-empty', q ? '没有匹配的备份文件。' : '还没有任何备份。编辑并保存配置后会自动生成。');
+  if (!BKW.data.groups.length) {
+    bkwAdd(list, 'div', 'mpw-empty', '还没有任何备份。编辑并保存配置后会自动生成。');
     return;
   }
-  let lastDir = null;
+  const q = BKW.filter.trim().toLowerCase();
+  const groups = bkwSortedGroups().filter((g) => !q || g.file.toLowerCase().includes(q));
+
+  const all = bkwAdd(list, 'div', 'file-item' + (BKW.fileFilter ? '' : ' active'));
+  all.dataset.bkwAll = '1';
+  bkwAdd(all, 'div', 'fname', '全部文件');
+  bkwAdd(all, 'div', 'fmeta', BKW.events.length + ' 个备份版本');
+
+  if (!groups.length) {
+    bkwAdd(list, 'div', 'mpw-empty', '没有匹配的备份文件。');
+    return;
+  }
   for (const group of groups) {
-    if (group.dir !== lastDir) {
-      bkwAdd(list, 'div', 'bkw-group-head', group.dir || '根目录');
-      lastDir = group.dir;
-    }
-    const item = bkwAdd(list, 'div', 'file-item' + (group.file === BKW.group ? ' active' : ''));
+    const item = bkwAdd(list, 'div', 'file-item' + (group.file === BKW.fileFilter ? ' active' : ''));
     item.dataset.bkwFile = group.file;
     const name = bkwAdd(item, 'div', 'fname');
     name.textContent = bkwBaseName(group.file);
     name.title = group.file;
     const meta = bkwAdd(item, 'div', 'fmeta' + (group.exists ? '' : ' err'));
-    meta.textContent = group.count + ' 个版本' + (group.exists ? '' : ' · 当前文件已删除');
+    const bits = [];
+    if (group.dir && group.dir !== '根目录') bits.push(group.dir);
+    const latest = group.versions[0];
+    if (latest) bits.push(bkwShortWhen(latest.ts));
+    bits.push(group.count + ' 个版本');
+    if (!group.exists) bits.push('当前文件已删除');
+    meta.textContent = bits.join(' · ');
   }
 }
 
-function bkwRenderVersions() {
+function bkwRenderTimeline() {
   const list = bkwEl('bkwVersionList');
   if (!list) return;
   bkwClear(list);
-  const group = bkwGroup();
-  bkwText('bkwVersionHint', group ? group.count + ' 个' : '');
-  if (!group) {
-    bkwAdd(list, 'div', 'bkw-empty', '请选择左侧的备份文件。');
+  const visible = bkwVisibleEvents();
+  const filtered = Boolean(BKW.filter.trim() || BKW.fileFilter);
+  bkwText('bkwVersionHint', BKW.data ? (filtered ? visible.length + ' / ' + BKW.events.length : visible.length) + ' 条' : '');
+
+  if (!BKW.data) {
+    bkwAdd(list, 'div', 'bkw-empty', BKW.loading ? '正在扫描备份…' : '暂无备份数据');
     return;
   }
-  if (!group.versions.length) {
-    bkwAdd(list, 'div', 'bkw-empty', '该文件暂无备份版本。');
+  if (!visible.length) {
+    bkwAdd(
+      list,
+      'div',
+      'bkw-empty',
+      filtered ? '没有匹配的备份记录。' : '还没有任何备份。编辑并保存配置后会自动生成。'
+    );
     return;
   }
-  for (const version of group.versions) {
-    const item = bkwAdd(list, 'div', 'file-item' + (version.id === BKW.version ? ' active' : ''));
-    item.dataset.bkwVersion = version.id;
-    bkwAdd(item, 'div', 'fname', version.time);
-    bkwAdd(item, 'div', 'fmeta', bkwSize(version.size) + ' · ' + version.name);
+
+  let lastDay = null;
+  for (const ev of visible) {
+    const day = bkwDayKey(ev.version.ts);
+    if (day !== lastDay) {
+      bkwAdd(list, 'div', 'bkw-day', bkwDayLabel(ev.version.ts));
+      lastDay = day;
+    }
+    const item = bkwAdd(list, 'div', 'file-item bkw-event' + (ev.version.id === BKW.version ? ' active' : ''));
+    item.dataset.bkwVersion = ev.version.id;
+    item.title = ev.group.file + '\n备份于 ' + ev.version.time + ' · ' + bkwSize(ev.version.size);
+    const name = bkwAdd(item, 'div', 'fname');
+    bkwAdd(name, 'span', 'bkw-event-time', bkwClock(ev.version.ts));
+    bkwAdd(name, 'span', 'bkw-event-file', bkwBaseName(ev.group.file));
+    const meta = bkwAdd(item, 'div', 'fmeta' + (ev.group.exists ? '' : ' err'));
+    const bits = [];
+    if (ev.group.dir && ev.group.dir !== '根目录') bits.push(ev.group.dir);
+    bits.push(bkwSize(ev.version.size));
+    if (ev.group.count > 1) bits.push('该文件共 ' + ev.group.count + ' 个版本');
+    if (!ev.group.exists) bits.push('当前文件已删除');
+    meta.textContent = bits.join(' · ');
   }
 }
 
 function bkwDiffMetaText(diff) {
   const parts = [];
-  const v = bkwVersionInfo();
-  if (v) parts.push(v.time);
+  const ev = bkwSelectedEvent();
+  if (ev) parts.push(ev.version.time);
   if (!diff.targetExists) parts.push('当前文件不存在');
   if (diff.mode === 'text') {
     const s = diff.stats || {};
@@ -185,7 +286,7 @@ function bkwRenderDiff() {
   bkwClear(box);
   const restoreBtn = bkwEl('bkwRestore');
   const diff = BKW.diff;
-  bkwText('bkwDiffTitle', diff ? diff.file : '选择左侧版本查看差异');
+  bkwText('bkwDiffTitle', diff ? diff.file : '选择左侧的备份记录查看差异');
   bkwText('bkwDiffMeta', diff ? bkwDiffMetaText(diff) : '');
 
   if (BKW.diffLoading && !diff) {
@@ -199,11 +300,11 @@ function bkwRenderDiff() {
     return;
   }
   if (!diff) {
-    bkwAdd(box, 'div', 'bkw-empty', '选择左侧的备份版本，右侧会显示它和当前文件的差异。');
+    bkwAdd(box, 'div', 'bkw-empty', '选择左侧的备份记录，右侧会显示它和当前文件的差异。');
     if (restoreBtn) restoreBtn.disabled = true;
     return;
   }
-  if (restoreBtn) restoreBtn.disabled = !bkwVersionInfo();
+  if (restoreBtn) restoreBtn.disabled = !bkwSelectedEvent();
 
   if (diff.mode === 'text') {
     if (!diff.stats.added && !diff.stats.removed) {
@@ -268,7 +369,7 @@ async function bkwSelectVersion(id) {
   BKW.diff = null;
   BKW.diffError = '';
   BKW.diffLoading = true;
-  bkwRenderVersions();
+  bkwRenderTimeline();
   bkwRenderDiff();
   bkwRenderMeta();
   try {
@@ -286,18 +387,32 @@ async function bkwSelectVersion(id) {
   }
 }
 
-function bkwSelectGroup(file) {
-  if (!file) return;
-  BKW.group = file;
-  BKW.version = null;
-  BKW.diff = null;
-  BKW.diffError = '';
-  bkwRenderFiles();
-  bkwRenderVersions();
-  bkwRenderDiff();
+function bkwEnsureSelection() {
+  const visible = bkwVisibleEvents();
+  const current = bkwSelectedEvent();
+  bkwRenderTimeline();
   bkwRenderMeta();
-  const group = bkwGroup();
-  if (group && group.versions.length) bkwSelectVersion(group.versions[0].id);
+  if (current && visible.some((ev) => ev.version.id === current.version.id)) {
+    bkwRenderDiff();
+    return;
+  }
+  if (!visible.length) {
+    BKW.version = null;
+    BKW.diff = null;
+    BKW.diffError = '';
+    BKW.diffLoading = false;
+    bkwRenderTimeline();
+    bkwRenderDiff();
+    bkwRenderMeta();
+    return;
+  }
+  bkwSelectVersion(visible[0].version.id);
+}
+
+function bkwSelectFile(file) {
+  BKW.fileFilter = BKW.fileFilter === file ? null : file;
+  bkwRenderFiles();
+  bkwEnsureSelection();
 }
 
 async function bkwLoad(keepVersion) {
@@ -307,30 +422,25 @@ async function bkwLoad(keepVersion) {
   try {
     const data = await api('/api/backups');
     BKW.data = data;
-    const groups = data.groups;
-    const current = BKW.group && groups.find((g) => g.file === BKW.group);
-    if (!current) BKW.group = groups.length ? groups[0].file : null;
+    BKW.events = bkwFlatten(data.groups);
+    if (BKW.fileFilter && !data.groups.some((g) => g.file === BKW.fileFilter)) BKW.fileFilter = null;
     bkwRenderFiles();
-    const group = bkwGroup();
-    if (!group) {
-      BKW.version = null;
-      BKW.diff = null;
-      BKW.diffError = '';
-      bkwRenderVersions();
-      bkwRenderDiff();
+    const keep = keepVersion && bkwEventById(keepVersion);
+    const current = keep || bkwEventById(BKW.version);
+    if (current) {
+      await bkwSelectVersion(current.version.id);
       return;
     }
-    const wanted =
-      (keepVersion && group.versions.find((v) => v.id === keepVersion)) ||
-      (BKW.version && group.versions.find((v) => v.id === BKW.version)) ||
-      group.versions[0];
-    if (wanted) await bkwSelectVersion(wanted.id);
-    else {
-      BKW.version = null;
-      BKW.diff = null;
-      bkwRenderVersions();
-      bkwRenderDiff();
+    const visible = bkwVisibleEvents();
+    if (visible.length) {
+      await bkwSelectVersion(visible[0].version.id);
+      return;
     }
+    BKW.version = null;
+    BKW.diff = null;
+    BKW.diffError = '';
+    bkwRenderTimeline();
+    bkwRenderDiff();
   } catch (e) {
     const box = bkwEl('bkwDiff');
     if (box) {
@@ -346,9 +456,10 @@ async function bkwLoad(keepVersion) {
 
 async function bkwRestoreSelected() {
   const diff = BKW.diff;
-  const version = bkwVersionInfo();
-  const group = bkwGroup();
-  if (!diff || !version || !group) return;
+  const ev = bkwSelectedEvent();
+  if (!diff || !ev) return;
+  const version = ev.version;
+  const group = ev.group;
   const allowMissing = !diff.targetExists;
   const btn = bkwEl('bkwRestore');
   if (btn) btn.disabled = true;
@@ -371,7 +482,7 @@ async function bkwRestoreSelected() {
     okText: '确认恢复'
   });
   if (!confirmed) {
-    if (btn) btn.disabled = !BKW.diff || !bkwVersionInfo();
+    if (btn) btn.disabled = !BKW.diff || !bkwSelectedEvent();
     return;
   }
   try {
@@ -409,14 +520,21 @@ document.addEventListener('DOMContentLoaded', () => {
       bkwSearchTimer = setTimeout(() => {
         BKW.filter = filter.value;
         bkwRenderFiles();
+        bkwEnsureSelection();
       }, 150);
     });
   }
   const files = bkwEl('bkwFileList');
   if (files) {
     files.addEventListener('click', (e) => {
+      if (e.target.closest('[data-bkw-all]')) {
+        BKW.fileFilter = null;
+        bkwRenderFiles();
+        bkwEnsureSelection();
+        return;
+      }
       const item = e.target.closest('[data-bkw-file]');
-      if (item) bkwSelectGroup(item.dataset.bkwFile);
+      if (item) bkwSelectFile(item.dataset.bkwFile);
     });
   }
   const versions = bkwEl('bkwVersionList');

@@ -2565,10 +2565,31 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   font-size: 12px;
   line-height: 1.55;
 }
-.bkw-group-head {
-  padding: 7px 8px 3px;
+.bkw-day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 8px 4px;
+  border-bottom: 1px solid #202a39;
+  background: #151b25;
   color: #5f6f86;
   font-size: 10.5px;
+  letter-spacing: 0.4px;
+}
+.bkw-event .fname { display: flex; align-items: baseline; gap: 7px; }
+.bkw-event-time {
+  flex: 0 0 auto;
+  color: #7f8da3;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.bkw-event-file {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bkw-event .fmeta {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

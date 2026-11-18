@@ -202,7 +202,7 @@ public/              前端：index.html + 每类配置一个视图脚本 + app.
 - NPC 工作台：`/api/config/npcwork`、`/detail`、`/script`、`/create/options|preview|create`、`/edit|edit/preview`
 - 任务：`/api/config/tasks`、`task`、`task/options`、`task/toggle`、`task/batch`、`task/cleanup-orphans`、`task/patch`
 - 各工作台：`/api/config/itemdrop|spawns|maps|growth|shopwork|scriptwork|castlework|textwork|starterwork|healthwork|yswork|activity`
-- 备份与历史：`/api/backups`、`/api/backups/diff?id=`、`/api/backups/restore`（恢复前自动备份当前文件；成功后 `invalidateAll()`）
+- 备份与历史：`/api/backups`（分组按最新备份时间倒序）、`/api/backups/diff?id=`、`/api/backups/restore`（恢复前自动备份当前文件；成功后 `invalidateAll()`）
 - 怪物：`/api/monster/list|detail|drop|drop/save`
 
 新增接口时：在 `server.js` 加分发分支 → 有新前端文件就补 `STATIC` 和 `index.html` → 前端用 `api()` 调用 → 写操作前备份、写后失效缓存。

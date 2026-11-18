@@ -69,7 +69,7 @@ const WORK_GROUPS = [
     name: '总览与检查',
     items: [
       { target: 'hw', name: '配置体检', desc: '汇总所有工作台的错误、警告和提示' },
-      { target: 'ysw', name: '元神', desc: '查看元神参数、创建入口、物品与引用' }
+      { target: 'bkw', name: '备份与历史', desc: '查看、对比并恢复自动备份' }
     ]
   },
   {
@@ -79,7 +79,8 @@ const WORK_GROUPS = [
       { target: 'mpw', name: '地图', desc: '查看地图、NPC、刷怪与跳转规则' },
       { target: 'spw', name: '刷怪', desc: '按地图检查刷怪范围、数量与间隔' },
       { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
-      { target: 'cbw', name: '沙城攻城', desc: '沙城归属、攻城奖励与守卫' }
+      { target: 'cbw', name: '沙城攻城', desc: '沙城归属、攻城奖励与守卫' },
+      { target: 'ysw', name: '元神', desc: '查看元神参数、创建入口、物品与引用' }
     ]
   },
   {
@@ -185,6 +186,7 @@ function setNavActive(name) {
 }
 
 function showSideTab(name) {
+  if (name !== 'bkw' && window.hideBackupView) window.hideBackupView();
   document.querySelectorAll('.side-pane').forEach((pane) => {
     pane.classList.toggle('active', pane.dataset.sidePane === name);
   });
@@ -1118,6 +1120,7 @@ const NAV_HASH_RESTORE = {
   openTextWorkView: /^#text=/,
   openStarterWorkView: /^#starter=/,
   openHealthWorkView: /^#healthwork/,
+  openBackupView: /^#backups/,
   openDropsView: /^#drops/,
   openActivityView: /^#activity=/,
   openTaskView: /^#task=/
@@ -1654,6 +1657,10 @@ function openSideTarget(name) {
   }
   if (name === 'ysw' && window.openYswView) {
     window.openYswView();
+    return;
+  }
+  if (name === 'bkw' && window.openBackupView) {
+    window.openBackupView();
     return;
   }
   showSideTab(name);

@@ -294,6 +294,12 @@
         <ul id="yswNavList" class="file-list"></ul>
         <div id="yswListHint" class="side-note"></div>
       </div>
+
+      <div class="side-pane" data-side-pane="bkw">
+        <input id="bkwFilter" class="filter" placeholder="搜索备份文件..." autocomplete="off">
+        <div id="bkwFileList" class="file-list"></div>
+        <div id="bkwListHint" class="side-note"></div>
+      </div>
       </div>
     </aside>
 
@@ -1079,6 +1085,37 @@
         </div>
       </section>
 
+      <section id="backupView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>备份与历史</strong>
+            <span id="bkwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="bkwRefresh" class="btn">刷新</button>
+        </div>
+        <div class="bkw-body">
+          <div class="bkw-versions">
+            <div class="bkw-section-head">
+              <h4>备份版本</h4>
+              <span id="bkwVersionHint" class="muted"></span>
+            </div>
+            <div id="bkwVersionList" class="bkw-version-list"></div>
+          </div>
+          <div class="bkw-diff-pane">
+            <div class="bkw-diff-head">
+              <div class="title-block">
+                <strong id="bkwDiffTitle">选择左侧版本查看差异</strong>
+                <span id="bkwDiffMeta" class="muted"></span>
+              </div>
+              <div class="spacer"></div>
+              <button id="bkwRestore" class="btn danger" disabled>恢复此版本</button>
+            </div>
+            <div id="bkwDiff" class="bkw-diff"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="shopWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1263,6 +1300,7 @@
   <script src="textwork.js"></script>
   <script src="starterwork.js"></script>
   <script src="healthwork.js"></script>
+  <script src="backups.js"></script>
   <script src="yswork.js"></script>
 </body>
 </html>

@@ -30,6 +30,7 @@ const textWorkData = require('./lib/textwork');
 const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
 const ysWorkData = require('./lib/yswork');
+const backupsData = require('./lib/backups');
 const dbRefs = require('./lib/dbrefs');
 
 const APP_DIR = __dirname;
@@ -221,6 +222,8 @@ const healthWorkbench = healthWorkData.create({
   ]
 });
 
+const backupsWorkbench = backupsData.create({ envirDir: ENVIR_DIR });
+
 const npcCreator = npcCreatorData.create({
   npcFile: NPC_FILE,
   scriptDir: NPC_SCRIPT_DIR,
@@ -374,6 +377,7 @@ const STATIC = {
   '/textwork.js': { file: 'textwork.js', type: 'application/javascript; charset=utf-8' },
   '/starterwork.js': { file: 'starterwork.js', type: 'application/javascript; charset=utf-8' },
   '/healthwork.js': { file: 'healthwork.js', type: 'application/javascript; charset=utf-8' },
+  '/backups.js': { file: 'backups.js', type: 'application/javascript; charset=utf-8' },
   '/yswork.js': { file: 'yswork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
@@ -766,6 +770,23 @@ function invalidateItemConsumers() {
   invalidateState();
 }
 
+function invalidateAll() {
+  cachedMonsterNames = null;
+  cachedItemNames = null;
+  cachedItemIndex = null;
+  cachedItemModes = null;
+  cachedMagicNames = null;
+  cachedMapCodes = null;
+  const list = [
+    monsterWorkbench, activityWorkbench, taskWorkbench, npcWorkbench,
+    growthWorkbench, dropWorkbench, spawnWorkbench, mapWorkbench,
+    shopWorkbench, scriptWorkbench, castleWorkbench, textWorkbench,
+    starterWorkbench, itemWorkbench, healthWorkbench, ysWorkbench
+  ];
+  for (const wb of list) wb.invalidate();
+  invalidateState();
+}
+
 async function handle(req, res) {
   const url = new URL(req.url, 'http://127.0.0.1');
   const pathname = url.pathname;
@@ -799,6 +820,47 @@ async function handle(req, res) {
       json(res, 200, await getState());
     } catch (e) {
       json(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/backups') {
+    try {
+      json(res, 200, backupsWorkbench.scan());
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/backups/diff') {
+    try {
+      json(res, 200, backupsWorkbench.diff(url.searchParams.get('id')));
+    } catch (e) {
+      const payload = { error: e.message };
+      if (e.code) payload.code = e.code;
+      json(res, e.status || 500, payload);
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/backups/restore') {
+    let body;
+    try {
+      body = await readBody(req);
+    } catch (e) {
+      json(res, 400, { error: e.message });
+      return;
+    }
+    try {
+      const result = backupsWorkbench.restore(body.id, body);
+      invalidateAll();
+      json(res, 200, result);
+    } catch (e) {
+      const payload = { error: e.message };
+      if (e.code) payload.code = e.code;
+      if (e.currentToken !== undefined) payload.currentToken = e.currentToken;
+      json(res, e.status || 500, payload);
     }
     return;
   }

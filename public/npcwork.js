@@ -303,6 +303,7 @@ function npwRenderDetail() {
       '<span class="spacer"></span>' +
       '<button class="btn btn-sm" data-npw-act="script">打开脚本标签</button>' +
       '<button class="btn btn-sm" data-npw-act="scriptwork" data-name="' + npwEsc(n.scriptFile) + '">在脚本工作台定位</button>' +
+      '<button class="btn btn-sm" data-npw-act="editcfg" data-index="' + npwEsc(n.index) + '">编辑配置</button>' +
       '</div>';
     if (info) {
       const preview = info.lines.slice(0, 14).join('\n');
@@ -645,6 +646,29 @@ async function npwGotoScriptWork(name) {
   await window.openScriptView({ tab: 'detail', name });
 }
 
+async function npwEditConfig(btn) {
+  if (NPW.selected == null || NPW.selected < 0) return;
+  if (btn && btn.disabled) return;
+  if (btn) btn.disabled = true;
+  try {
+    const data = await api('/api/config/npcwork/edit?index=' + NPW.selected);
+    if (data && data.editable && window.openNpcWizard) {
+      window.openNpcWizard({ edit: data });
+      return;
+    }
+    const name = (data && data.row && data.row.scriptFile) ||
+      (NPW.detail && NPW.detail.npc && NPW.detail.npc.scriptFile) ||
+      (btn && btn.dataset.name);
+    if (data && data.reason) toast(data.reason);
+    if (data && !window.openNpcWizard) toast('新建 NPC 向导不可用，已打开脚本工作台。', 'err');
+    if (name) await npwGotoScriptWork(name);
+  } catch (e) {
+    toast('读取 NPC 配置失败：' + e.message, 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function npwGotoTasks(search) {
   if (!window.openTaskView) return;
   await window.openTaskView();
@@ -804,6 +828,8 @@ function npwBindEvents() {
         })();
       } else if (act === 'scriptwork') {
         npwGotoScriptWork(btn.dataset.name);
+      } else if (act === 'editcfg') {
+        npwEditConfig(btn);
       } else if (act === 'ranking') {
         if (window.openActivityView) window.openActivityView('rankings');
       }

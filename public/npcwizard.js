@@ -11,6 +11,8 @@ const NPWZ = {
   dirty: false,
   visible: false,
   prefill: null,
+  edit: null,
+  handEdited: false,
   els: null
 };
 
@@ -44,8 +46,20 @@ function npwzIsInt(n, min, max) {
 }
 
 function npwzTemplateKeys() {
-  return Array.from(document.querySelectorAll('input[name="npwzTemplate"]:checked'))
+  const checked = Array.from(document.querySelectorAll('input[name="npwzTemplate"]:checked'))
     .map((input) => input.value);
+  const order = NPWZ.edit && NPWZ.edit.meta && Array.isArray(NPWZ.edit.meta.modules)
+    ? NPWZ.edit.meta.modules.map((mod) => mod.key)
+    : null;
+  if (!order) return checked;
+  const rank = (key) => {
+    const i = order.indexOf(key);
+    return i < 0 ? order.length : i;
+  };
+  return checked
+    .map((key, i) => ({ key, i }))
+    .sort((a, b) => rank(a.key) - rank(b.key) || a.i - b.i)
+    .map((x) => x.key);
 }
 
 function npwzSetStatus(text) {
@@ -158,7 +172,7 @@ function npwzBuild() {
     '          <label class="npwz-field"><span>最低等级</span><input id="npwzMinLevel" type="number" min="0" max="65535" step="1" value="0"></label>',
     '          <label class="npwz-field"><span>单次最大数量</span><input id="npwzMaxQty" type="number" min="1" max="99" step="1" value="1"></label>',
     '        </div>',
-    '        <div class="npwz-good-head"><strong>货品与金币单价</strong><span class="muted">价格由生成的脚本控制，与 stditems.db 售价无关</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-good>添加货品</button></div>',
+    '        <div class="npwz-good-head"><strong>货品、别名与金币单价</strong><span class="muted">别名可选，配置后购买菜单显示别名；价格由生成的脚本控制，与 stditems.db 售价无关</span><span class="spacer"></span><button type="button" class="btn small" data-npwz-add-good>添加货品</button></div>',
     '        <div id="npwzGoods" class="npwz-goods"></div>',
     '      </div>',
     '      <div class="npwz-sub hidden" data-npwz-panel="shop">',
@@ -303,7 +317,7 @@ function npwzBuild() {
       return;
     }
     if (e.target.closest('[data-npwz-add-good]')) {
-      addGoodRow('', '');
+      addGoodRow('', '', '');
       NPWZ.dirty = true;
       return;
     }
@@ -435,6 +449,135 @@ function npwzRenderTemplate() {
     panel.classList.toggle('hidden', keys.indexOf(panel.dataset.npwzPanel) < 0);
   });
   npwzRenderMenuSettings();
+}
+
+function npwzSetEditChrome() {
+  const editing = !!NPWZ.edit;
+  const title = npwzEl('npwzTitle');
+  if (title) title.textContent = editing ? '编辑 NPC 配置' : '新建 NPC';
+  if (NPWZ.els && NPWZ.els.create) {
+    NPWZ.els.create.textContent = editing ? '保存修改' : '创建 NPC';
+  }
+  const step3 = document.querySelector('[data-npwz-step="3"]');
+  if (step3) step3.textContent = editing ? '预览与保存' : '预览与创建';
+  const idEl = npwzEl('npwzId');
+  if (idEl) idEl.disabled = editing;
+  const scriptEl = npwzEl('npwzScript');
+  if (scriptEl) scriptEl.disabled = editing;
+}
+
+function npwzApplyEditMeta() {
+  const edit = NPWZ.edit;
+  if (!edit) return;
+  const meta = edit.meta || {};
+  const row = edit.row || {};
+  const set = (id, value) => {
+    const el = npwzEl(id);
+    if (el) el.value = value == null ? '' : String(value);
+  };
+  set('npwzId', edit.expectedId || row.id || '');
+  set('npwzScript', edit.expectedScript || row.script || '');
+  set('npwzName', row.name || '');
+  set('npwzMap', row.map == null ? '' : row.map);
+  set('npwzX', row.x == null ? 0 : row.x);
+  set('npwzY', row.y == null ? 0 : row.y);
+  set('npwzLooks', row.looks == null ? 165 : row.looks);
+
+  const modules = Array.isArray(meta.modules) ? meta.modules : [];
+  const keys = modules.map((mod) => mod.key);
+  document.querySelectorAll('input[name="npwzTemplate"]').forEach((input) => {
+    input.checked = keys.indexOf(input.value) >= 0;
+  });
+  npwzRenderTemplate();
+
+  const configOf = (key) => {
+    const hit = modules.find((mod) => mod.key === key);
+    return hit && hit.config && typeof hit.config === 'object' ? hit.config : {};
+  };
+  const has = (key) => keys.indexOf(key) >= 0;
+  let cfg = configOf('purchase');
+  set('npwzMinLevel', cfg.minLevel == null ? 0 : cfg.minLevel);
+  set('npwzMaxQty', cfg.maxQty == null ? 1 : cfg.maxQty);
+  if (has('purchase')) {
+    if (NPWZ.els.goods) NPWZ.els.goods.innerHTML = '';
+    (cfg.goods || []).forEach((good) => addGoodRow(good.item || '', good.price, good.alias || ''));
+  }
+
+  cfg = configOf('shop');
+  set('npwzShopSell', cfg.sellPercent == null ? 100 : cfg.sellPercent);
+  set('npwzShopBuy', cfg.buyPercent == null ? 100 : cfg.buyPercent);
+  if (has('shop')) {
+    if (NPWZ.els.shopGoods) NPWZ.els.shopGoods.innerHTML = '';
+    (cfg.goods || []).forEach((good) => addShopGoodRow(good.item || '', good.count, good.time));
+  }
+
+  cfg = configOf('repair');
+  const repairNormal = npwzEl('npwzRepairNormal');
+  if (repairNormal) repairNormal.checked = cfg.normal !== false;
+  const repairSpecial = npwzEl('npwzRepairSpecial');
+  if (repairSpecial) repairSpecial.checked = cfg.special !== false;
+
+  cfg = configOf('recycle');
+  if (has('recycle')) {
+    if (NPWZ.els.recycleGoods) NPWZ.els.recycleGoods.innerHTML = '';
+    (cfg.goods || []).forEach((good) => addRecycleRow(good.item || '', good.price));
+  }
+
+  cfg = configOf('skill');
+  set('npwzSkillName', cfg.name || '');
+  set('npwzSkillNeed', cfg.needLevel == null ? 0 : cfg.needLevel);
+  set('npwzSkillPrice', cfg.price == null ? 1000 : cfg.price);
+
+  cfg = configOf('daily');
+  set('npwzDailyMinLevel', cfg.minLevel == null ? 0 : cfg.minLevel);
+  set('npwzDailyStart', cfg.startHour == null ? 0 : cfg.startHour);
+  set('npwzDailyEnd', cfg.endHour == null ? 0 : cfg.endHour);
+  set('npwzDailyGold', cfg.gold == null ? 0 : cfg.gold);
+  set('npwzDailyExp', cfg.exp == null ? 0 : cfg.exp);
+  if (has('daily')) {
+    if (NPWZ.els.dailyRewards) NPWZ.els.dailyRewards.innerHTML = '';
+    (cfg.rewards || []).forEach((reward) => addDailyRewardRow(reward.item || '', reward.count));
+  }
+
+  cfg = configOf('craft');
+  if (has('craft')) {
+    if (NPWZ.els.recipes) NPWZ.els.recipes.innerHTML = '';
+    (cfg.recipes || []).forEach((recipe) => {
+      addRecipeRow(recipe);
+      const block = NPWZ.els.recipes && NPWZ.els.recipes.lastElementChild;
+      if (!block) return;
+      const mats = block.querySelector('.npwz-craft-mats');
+      if (mats) mats.innerHTML = '';
+      (recipe.materials || []).forEach((material) =>
+        addCraftMaterialRow(mats, material.item || '', material.count));
+    });
+  }
+
+  cfg = configOf('teleportlist');
+  if (has('teleportlist')) {
+    if (NPWZ.els.dests) NPWZ.els.dests.innerHTML = '';
+    (cfg.destinations || []).forEach((dest) => addDestRow(dest));
+  }
+
+  cfg = configOf('teleport');
+  set('npwzTeleMap', cfg.map || '');
+  set('npwzTeleX', cfg.x == null ? 0 : cfg.x);
+  set('npwzTeleY', cfg.y == null ? 0 : cfg.y);
+  set('npwzTelePrice', cfg.price == null ? 1000 : cfg.price);
+  set('npwzTeleLevel', cfg.minLevel == null ? 0 : cfg.minLevel);
+  set('npwzTeleName', cfg.name || '');
+
+  set('npwzMenuGreeting', (meta.menu && meta.menu.greeting) || '');
+  npwzRenderMenuSettings();
+  const labels = (meta.menu && meta.menu.labels) || {};
+  document.querySelectorAll('#npwzMenuLabels input[data-npwz-menu-label]').forEach((input) => {
+    const key = input.getAttribute('data-npwz-menu-label');
+    if (labels[key] != null) input.value = labels[key];
+  });
+
+  NPWZ.handEdited = !!edit.handEdited;
+  npwzUpdateMapHint();
+  NPWZ.dirty = false;
 }
 
 function npwzMenuDefaults() {
@@ -589,17 +732,20 @@ function npwzResetForm() {
   NPWZ.dirty = false;
 }
 
-function addGoodRow(item, price) {
+function addGoodRow(item, price, alias) {
   if (!NPWZ.els.goods) return;
   const row = document.createElement('div');
-  row.className = 'npwz-good';
+  row.className = 'npwz-good npwz-purchase-good';
   row.innerHTML = '<input class="npwz-good-item" list="npwzItemList" maxlength="64" autocomplete="off" placeholder="物品名称">' +
+    '<input class="npwz-good-alias" maxlength="20" autocomplete="off" placeholder="商品别名（可选）">' +
     '<input class="npwz-good-price" type="number" min="0" max="1000000000" step="1" placeholder="金币单价">' +
     '<button type="button" class="btn ghost small" data-npwz-remove-good>删除</button>';
   const itemInput = row.querySelector('.npwz-good-item');
   const priceInput = row.querySelector('.npwz-good-price');
+  const aliasInput = row.querySelector('.npwz-good-alias');
   if (itemInput) itemInput.value = item || '';
   if (priceInput) priceInput.value = price == null ? '' : String(price);
+  if (aliasInput) aliasInput.value = alias || '';
   NPWZ.els.goods.appendChild(row);
   if (itemInput && !item) itemInput.focus();
 }
@@ -871,6 +1017,18 @@ function validateTemplateKey(key) {
         if (item) item.focus();
         return false;
       }
+      const alias = row.querySelector('.npwz-good-alias');
+      const aliasText = alias ? alias.value.trim() : '';
+      if (aliasText.length > 20) {
+        toast('货品「' + item.value.trim() + '」的别名不能超过 20 个字符', 'err');
+        if (alias) alias.focus();
+        return false;
+      }
+      if (/[\x00-\x1f<>/@]/.test(aliasText)) {
+        toast('货品「' + item.value.trim() + '」的别名不能包含 < > / @ 或换行', 'err');
+        if (alias) alias.focus();
+        return false;
+      }
       const n = Number(price ? price.value : '');
       if (!npwzIsInt(n, 0, 1000000000)) {
         toast('货品「' + item.value.trim() + '」的金币单价需要非负整数', 'err');
@@ -1098,6 +1256,7 @@ function collectPayload() {
   const template = keys.length === 1 ? keys[0] : 'combined';
   const goods = Array.from(document.querySelectorAll('#npwzGoods .npwz-good')).map((row) => ({
     item: row.querySelector('.npwz-good-item').value.trim(),
+    alias: row.querySelector('.npwz-good-alias').value.trim(),
     price: row.querySelector('.npwz-good-price').value.trim()
   }));
   const payload = {
@@ -1247,16 +1406,26 @@ async function previewStep() {
     buttons.create.disabled = true;
   }
   try {
-    const data = await api('/api/config/npcwork/create/preview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(collectPayload())
-    });
+    const payload = collectPayload();
+    const data = NPWZ.edit
+      ? await api('/api/config/npcwork/edit/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index: NPWZ.edit.index, payload })
+      })
+      : await api('/api/config/npcwork/create/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    if (NPWZ.edit && data.handEdited) NPWZ.handEdited = true;
     NPWZ.preview = data;
     NPWZ.result = null;
     renderPreview(data);
     npwzGoalStep(3);
-    npwzSetStatus(data.ok ? '检查通过，可以创建。' : '存在错误，请返回修改。');
+    npwzSetStatus(data.ok
+      ? (NPWZ.edit ? '检查通过，可以保存。' : '检查通过，可以创建。')
+      : '存在错误，请返回修改。');
   } catch (e) {
     NPWZ.preview = null;
     npwzSetStatus('');
@@ -1273,25 +1442,58 @@ async function previewStep() {
 function renderResult(res) {
   const box = NPWZ.els.result;
   if (!box) return;
+  const editing = !!NPWZ.edit;
   const warnings = (res.warnings || []).map((w) =>
     '<div class="npwz-check warn"><span class="npwz-sev">注意</span><span>' + npwzEsc(w) + '</span></div>').join('');
-  box.innerHTML = '<div class="npwz-success-head"><strong>NPC 创建成功</strong>' +
+  const backups = res.backups || {};
+  const backupHtml = editing
+    ? '<div class="npwz-kv"><span>脚本备份</span><strong>' + npwzEsc(backups.script || '—') + '</strong></div>' +
+      '<div class="npwz-kv"><span>NPCList 备份</span><strong>' + npwzEsc(backups.npcList || '—') + '</strong></div>'
+    : '<div class="npwz-kv"><span>NPCList 备份</span><strong>' + npwzEsc(res.backup || '—') + '</strong></div>';
+  const note = editing
+    ? '脚本已按向导配置重新生成（GBK / CRLF）。如游戏内未生效，请重启或重新加载 GameServer。'
+    : '新脚本没有 .pyc，请重启或重新加载 GameServer 后再进游戏验证；如需编辑脚本，可在脚本工作台打开。';
+  box.innerHTML = '<div class="npwz-success-head"><strong>' +
+    (editing ? 'NPC 配置已保存' : 'NPC 创建成功') + '</strong>' +
     '<span class="npwz-chip">' + npwzEsc(res.name || res.id) + '</span>' +
     '<span class="npwz-chip">' + npwzEsc(res.scriptFile || '') + '</span></div>' +
     '<div class="npwz-grid">' +
     '<div class="npwz-kv"><span>唯一编号</span><strong>' + npwzEsc(res.id) + '</strong></div>' +
     '<div class="npwz-kv"><span>位置</span><strong>' + npwzEsc(res.map + ' (' + res.x + ', ' + res.y + ')') + '</strong></div>' +
     '<div class="npwz-kv"><span>脚本</span><strong>' + npwzEsc(res.scriptFile) + '</strong></div>' +
-    '<div class="npwz-kv"><span>NPCList 备份</span><strong>' + npwzEsc(res.backup || '—') + '</strong></div>' +
+    backupHtml +
     '</div>' +
     warnings +
-    '<div class="npwz-note">新脚本没有 .pyc，请重启或重新加载 GameServer 后再进游戏验证；如需编辑脚本，可在脚本工作台打开。</div>' +
+    '<div class="npwz-note">' + npwzEsc(note) + '</div>' +
     '<div class="npwz-result-actions">' +
     '<button type="button" class="btn primary" data-npwz-open-npc>在 NPC 工作台查看</button>' +
     '<button type="button" class="btn" data-npwz-open-script>打开脚本</button>' +
-    '<button type="button" class="btn" data-npwz-again>继续新建</button>' +
+    (editing ? '' : '<button type="button" class="btn" data-npwz-again>继续新建</button>') +
     '<button type="button" class="btn ghost" data-npwz-close>关闭</button>' +
     '</div>';
+}
+
+async function npwzConfirmHandEdit() {
+  const options = {
+    title: '脚本已被手动修改',
+    message: '保存会用向导配置覆盖脚本正文，被覆盖的内容可从自动备份恢复。',
+    danger: true,
+    okText: '覆盖保存',
+    cancelText: '取消'
+  };
+  return window.uiConfirm ? await window.uiConfirm(options) : window.confirm(options.message);
+}
+
+async function saveEditRequest(confirmHandEdit) {
+  return api('/api/config/npcwork/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      index: NPWZ.edit.index,
+      confirmHandEdit: !!confirmHandEdit,
+      payload: collectPayload()
+    })
+  });
 }
 
 async function createNpc() {
@@ -1304,21 +1506,45 @@ async function createNpc() {
   }
   npwzSetStatus('正在写入…');
   try {
-    const res = await api('/api/config/npcwork/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(collectPayload())
-    });
+    let res;
+    if (NPWZ.edit) {
+      let confirmed = false;
+      if (NPWZ.handEdited) {
+        if (!(await npwzConfirmHandEdit())) return;
+        confirmed = true;
+      }
+      try {
+        res = await saveEditRequest(confirmed);
+      } catch (e) {
+        if (e && e.data && e.data.code === 'handEdited') {
+          if (!(await npwzConfirmHandEdit())) return;
+          res = await saveEditRequest(true);
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      res = await api('/api/config/npcwork/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectPayload())
+      });
+    }
     NPWZ.result = res;
     NPWZ.dirty = false;
     renderResult(res);
     npwzGoalStep(3);
-    npwzSetStatus('已创建；NPCList 已备份。');
-    toast('NPC 创建成功：' + (res.name || res.id), 'ok');
+    if (NPWZ.edit) {
+      npwzSetStatus('已保存；脚本与 NPCList 已备份。');
+      toast('NPC 配置已保存：' + (res.name || res.id), 'ok');
+    } else {
+      npwzSetStatus('已创建；NPCList 已备份。');
+      toast('NPC 创建成功：' + (res.name || res.id), 'ok');
+    }
     if (typeof refreshState === 'function') refreshState().catch(() => {});
   } catch (e) {
     npwzSetStatus('');
-    toast('创建失败：' + e.message, 'err');
+    toast((NPWZ.edit ? '保存失败：' : '创建失败：') + e.message, 'err');
   } finally {
     NPWZ.busy = false;
     if (buttons) buttons.prev.disabled = false;
@@ -1356,6 +1582,8 @@ function closeNpcWizard() {
   NPWZ.result = null;
   NPWZ.preview = null;
   NPWZ.step = 1;
+  NPWZ.edit = null;
+  NPWZ.handEdited = false;
   npwzSetStatus('');
 }
 
@@ -1366,7 +1594,7 @@ async function requestClose() {
     return;
   }
   const options = {
-    title: '放弃新建 NPC？',
+    title: NPWZ.edit ? '放弃修改 NPC 配置？' : '放弃新建 NPC？',
     message: '已填写的内容不会保存。',
     danger: true,
     okText: '放弃',
@@ -1379,6 +1607,8 @@ async function requestClose() {
 async function openNpcWizard(prefill) {
   npwzBuild();
   NPWZ.prefill = prefill && typeof prefill === 'object' ? prefill : null;
+  NPWZ.edit = NPWZ.prefill && NPWZ.prefill.edit ? NPWZ.prefill.edit : null;
+  NPWZ.handEdited = false;
   NPWZ.result = null;
   NPWZ.preview = null;
   NPWZ.step = 1;
@@ -1386,17 +1616,20 @@ async function openNpcWizard(prefill) {
   NPWZ.els.mask.classList.remove('hidden');
   NPWZ.visible = true;
   NPWZ.dirty = false;
+  const wasEdit = !!NPWZ.edit;
   try {
     NPWZ.options = await api('/api/config/npcwork/create/options');
     npwzFillOptions();
     npwzResetForm();
+    npwzSetEditChrome();
+    if (NPWZ.edit) npwzApplyEditMeta();
     npwzGoalStep(1);
     npwzSetStatus('');
     const name = npwzEl('npwzName');
     if (name) setTimeout(() => name.focus(), 0);
   } catch (e) {
     closeNpcWizard();
-    toast('加载新建 NPC 选项失败：' + e.message, 'err');
+    toast((wasEdit ? '加载 NPC 配置失败：' : '加载新建 NPC 选项失败：') + e.message, 'err');
   }
 }
 

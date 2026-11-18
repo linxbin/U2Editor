@@ -2387,6 +2387,7 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   font-size: 12.5px;
 }
 .npwz-good input:focus { border-color: #3f7df0; }
+.npwz-purchase-good { grid-template-columns: minmax(130px, 1fr) minmax(110px, .85fr) 150px auto; }
 .npwz-shop-good { grid-template-columns: minmax(150px, 1fr) 100px 110px auto; }
 .npwz-recycle-good { grid-template-columns: minmax(150px, 1fr) 170px auto; }
 .npwz-daily-reward { grid-template-columns: minmax(150px, 1fr) 110px auto; }

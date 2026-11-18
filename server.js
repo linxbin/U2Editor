@@ -1144,6 +1144,40 @@ async function handle(req, res) {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/config/npcwork/edit') {
+    const raw = url.searchParams.get('index');
+    if (raw == null || !/^\d+$/.test(raw)) {
+      json(res, 400, { error: 'NPC 序号无效' });
+      return;
+    }
+    try {
+      json(res, 200, npcCreator.editInfo(Number(raw)));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/npcwork/edit/preview') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, npcCreator.previewEdit(Number(body.index), body.payload));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message, code: e.code });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/npcwork/edit') {
+    const body = await readBody(req);
+    try {
+      json(res, 200, npcCreator.update(Number(body.index), body.payload, !!body.confirmHandEdit));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message, code: e.code });
+    }
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/api/config/itemdrop') {
     if (url.searchParams.get('refresh') === '1') {
       itemWorkbench.invalidate();

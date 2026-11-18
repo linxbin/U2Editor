@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
-title DB Editor
+title U2Editor
 cd /d "%~dp0"
 
 set "NODE_EXE="
@@ -34,7 +34,7 @@ if not defined NODE_EXE (
 if not defined NODE_EXE goto :missing_node
 
 echo.
-echo   Legend of Mir World - DB Editor
+echo   U2Editor
 echo   Node.js !NODE_VER! - !NODE_EXE!
 echo   Starting local server - the browser will open automatically.
 echo   Close this window to stop the editor.

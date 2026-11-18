@@ -1749,7 +1749,7 @@ function start() {
   server.listen(port, '127.0.0.1', () => {
     const url = `http://127.0.0.1:${port}/`;
     console.log('');
-    console.log('  传世 DB 编辑器已启动');
+    console.log('  U2Editor 已启动');
     console.log('  数据库目录：' + DB_DIR);
     console.log('  爆率目录：  ' + DROP_DIR);
     console.log('  地址：      ' + url);

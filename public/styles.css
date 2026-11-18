@@ -2358,6 +2358,15 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   border-radius: 8px;
   background: #131923;
 }
+.npwz-sub-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #242e3d;
+}
+.npwz-sub-head strong { color: #e6eefc; font-size: 13px; }
+.npwz-sub-head span { color: #8b9bb4; font-size: 11px; }
 .npwz-good-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .npwz-good-head strong { color: #c9d6ea; font-size: 12px; }
 .npwz-goods { display: flex; flex-direction: column; gap: 8px; }

@@ -12,11 +12,10 @@ const PW = {
 };
 
 const PW_SECTIONS = [
-  { key: 'all', label: '总览与体检' },
-  { key: 'growth', label: '灵兽图鉴与成长' },
+  { key: 'all', label: '总览' },
+  { key: 'growth', label: '灵兽成长' },
   { key: 'rebirth', label: '转生与材料' },
-  { key: 'params', label: '运行参数' },
-  { key: 'ride', label: '骑乘与马牌' }
+  { key: 'ride', label: '骑乘' }
 ];
 
 const PW_ISSUE_LABEL = {
@@ -132,35 +131,75 @@ function pwSampleRows(rows, max) {
   return out.filter((row, i, arr) => i === 0 || row !== arr[i - 1]);
 }
 
+function pwVerdictKind(verdict) {
+  if (verdict === '完整' || verdict === '已配置') return 'ok';
+  if (verdict === '未启用' || verdict === '未配置') return 'miss';
+  return 'part';
+}
+
+function pwCapBadge(verdict) {
+  const cls = { ok: 'info', part: 'warn', miss: 'error' }[pwVerdictKind(verdict)] || 'info';
+  return pwBadge(verdict, cls);
+}
+
+function pwActionBtn(action, text) {
+  if (!action) return '';
+  if (action.view === 'growth') return pwBtn(text, 'growth', action.petKey);
+  if (action.view === 'item') return pwBtn(text, 'item', action.index);
+  if (action.view === 'script') return pwBtn(text, 'script', action.name, action.line);
+  if (action.view === 'npc') return pwBtn(text, 'npc', action.index);
+  if (action.view === 'param') return pwBtn(text, 'param', action.line, action.line);
+  if (action.section) return pwBtn(text, 'section', action.section);
+  return '';
+}
+
+function pwEvidenceList(cap) {
+  return '<div class="pw-evidence">' + cap.evidence.map((e) =>
+    '<div class="pw-ev' + (e.ok ? '' : ' miss') + '">' +
+    '<span class="pw-ev-mark">' + (e.ok ? '✓' : '✗') + '</span>' +
+    '<span class="pw-ev-label">' + pwEsc(e.label) + '</span>' +
+    '<span class="pw-ev-detail">' + pwEsc(e.detail) + '</span>' +
+    pwActionBtn(e.action, '定位') + '</div>').join('') + '</div>';
+}
+
+function pwCapCard(cap) {
+  return '<div class="pw-cap-card ' + pwVerdictKind(cap.verdict) + '">' +
+    '<div class="pw-cap-head"><strong>' + pwEsc(cap.label) + '</strong>' + pwCapBadge(cap.verdict) + '</div>' +
+    '<div class="pw-cap-summary">' + pwEsc(cap.summary) + '</div>' +
+    pwEvidenceList(cap) + '</div>';
+}
+
 function pwRenderSummary(d) {
   const box = pwEl('petwSummary');
   if (!box) return;
   const s = d.stats;
-  const cards = [
-    { label: '灵兽系别', value: s.species + ' 系 / ' + s.stages + ' 阶段' },
-    { label: 'Monster 已登记形态', value: (s.stages - s.missingForms) + ' / ' + s.stages },
-    { label: '转生材料缺失', value: s.missingMaterials + ' / ' + s.materials },
-    { label: '骑乘相关物品', value: s.mounts },
-    { label: '体检问题', value: s.issues }
-  ];
+  const caps = d.capabilities || [];
   let hint = d.server.name ? '当前区：' + d.server.name + (d.server.index !== '' ? '（索引 ' + d.server.index + '）' : '') : '未读取区名';
   hint += ' · ' + s.error + ' 错误 / ' + s.warn + ' 警告 / ' + s.info + ' 提示';
-  box.innerHTML = '<div class="act-cards hw-cards">' + cards.map((c) =>
-    '<div class="act-card"><div class="act-card-head"><strong>' + pwEsc(c.label) + '</strong></div>' +
-    '<div class="hw-num">' + pwEsc(c.value) + '</div></div>').join('') + '</div>' +
+  box.innerHTML = (caps.length && PW.section !== 'all'
+    ? '<div class="pw-caps">' + caps.map((c) =>
+      '<div class="pw-cap ' + pwVerdictKind(c.verdict) + '">' +
+      '<div class="pw-cap-head"><strong>' + pwEsc(c.label) + '</strong>' + pwCapBadge(c.verdict) + '</div>' +
+      '<div class="pw-cap-line">' + pwEsc(c.summary) + '</div></div>').join('') + '</div>'
+    : '') +
     '<div class="side-note" style="margin:8px 2px 0;">' + pwEsc(hint) + '</div>';
 }
 
 function pwRenderOverview(d) {
   const issues = pwFilterIssues(d.issues);
   const notes = d.notes.filter((n) => pwMatches(n.tag, n.text));
+  const caps = d.capabilities || [];
+  const capBody = caps.length
+    ? '<div class="pw-cap-grid">' + caps.map(pwCapCard).join('') + '</div>'
+    : '<div class="mpw-empty">没有能力判定数据。</div>';
   const issueBody = pwIssueList(issues, 'main');
   const noteBody = notes.length
     ? '<div class="mon-issues">' + notes.map((n) =>
       '<div class="mon-issue mpw-issue">' + pwBadge(n.tag || '说明', 'info') +
       '<div class="mon-issue-body"><div class="mon-issue-msg">' + pwEsc(n.text) + '</div></div></div>').join('') + '</div>'
     : '<div class="mpw-empty">没有符合当前筛选条件的说明。</div>';
-  return pwSection('配置体检', 'health', issues.length + ' 条', issueBody) +
+  return pwSection('能力判定', 'caps', caps.length + ' 项', capBody) +
+    pwSection('配置体检', 'health', issues.length + ' 条', issueBody) +
     pwSection('说明', 'notes', notes.length + ' 条', noteBody);
 }
 
@@ -316,8 +355,9 @@ function pwRenderRebirth(d) {
     pwSection('转生入口 NPC', 'rebirth-npcs', d.npcs.rebirth.length + ' 个', npcBody);
 }
 
-function pwRenderParams(d) {
-  const rows = d.params.rows
+function pwRenderRideParams(d) {
+  const all = d.params.rows.filter((r) => r.domain === 'ride');
+  const rows = all
     .filter((r) => pwMatches(r.key, r.value, r.label, r.desc))
     .map((r) =>
       '<tr><td>' + pwEsc(r.label) + ' <span class="fmeta">' + pwEsc(r.key) + '</span></td>' +
@@ -325,9 +365,9 @@ function pwRenderParams(d) {
       '<td>' + pwEsc(r.desc) + '</td>' +
       '<td>' + pwEsc(r.file) + ' 第 ' + r.line + ' 行</td>' +
       '<td>' + pwBtn('编辑', 'param', r.line, r.line) + '</td></tr>');
-  const body = pwTable(['参数', '当前值', '说明', '位置', '操作'], rows);
-  return pwSection('运行参数', 'params', d.params.rows.length + ' 项', body) +
+  const body = pwTable(['参数', '当前值', '说明', '位置', '操作'], rows) +
     '<div class="side-note pw-param-note">修改会跳转到「扩展配置 · 服务器启动配置」，保存沿用现有备份与校验流程，通常重启服务端后生效。</div>';
+  return pwSection('骑乘参数', 'ride-params', all.length + ' 项', body);
 }
 
 function pwRenderRide(d) {
@@ -372,7 +412,8 @@ function pwRenderRide(d) {
     /merstabl|骑乘|骑|马/i.test(String(issue.scope || '') + ' ' + issue.code + ' ' + issue.message));
   const issueBody = pwIssueList(pwFilterIssues(rideIssues), 'ride');
 
-  return pwSection('马牌与骑乘物品', 'mount-items', d.mounts.items.length + ' 项', itemBody) +
+  return pwRenderRideParams(d) +
+    pwSection('马牌与骑乘物品', 'mount-items', d.mounts.items.length + ' 项', itemBody) +
     pwSection('坐骑形态', 'races', d.mounts.races.length + ' 个', raceBody) +
     pwSection('骑乘脚本', 'ride-scripts', rideScripts.length + ' 个', scriptBody) +
     pwSection('骑乘相关 NPC', 'ride-npcs', d.npcs.ride.length + ' 个', npcBody) +
@@ -383,10 +424,9 @@ function pwRenderNav(d) {
   const list = pwEl('petwNavList');
   if (!list) return;
   const counts = {
-    all: d.stats.issues,
+    all: (d.capabilities || []).length,
     growth: d.stats.stages,
     rebirth: d.materials.length,
-    params: d.params.rows.length,
     ride: d.mounts.items.length
   };
   list.innerHTML = PW_SECTIONS.map((s) =>
@@ -394,7 +434,9 @@ function pwRenderNav(d) {
     '<div class="fname">' + pwEsc(s.label) + '</div>' +
     '<div class="fmeta">' + counts[s.key] + ' 项</div></li>').join('');
   const hint = pwEl('petwListHint');
-  if (hint) hint.textContent = d.species.length + ' 系灵兽 · ' + d.stats.materials + ' 项材料 · ' + d.stats.issues + ' 条问题';
+  if (hint) {
+    hint.textContent = (d.capabilities || []).map((c) => c.label + ' ' + c.verdict).join(' · ');
+  }
 }
 
 function pwRender() {
@@ -407,19 +449,17 @@ function pwRender() {
     all: () => pwRenderOverview(d),
     growth: () => pwRenderGrowth(d),
     rebirth: () => pwRenderRebirth(d),
-    params: () => pwRenderParams(d),
     ride: () => pwRenderRide(d)
   };
-  const showAll = !!PW.q.trim() || PW.section === 'all' || !parts[PW.section];
+  const showAll = !!PW.q.trim() || !parts[PW.section];
   box.innerHTML = showAll
-    ? ['all', 'growth', 'rebirth', 'params', 'ride'].map((k) => parts[k]()).join('')
+    ? ['all', 'growth', 'rebirth', 'ride'].map((k) => parts[k]()).join('')
     : parts[PW.section]();
   pwRenderNav(d);
   const meta = pwEl('petwMeta');
   if (meta) {
     meta.textContent = (d.server.name || '未读取区名') + ' · ' +
-      d.stats.species + ' 系 / ' + d.stats.stages + ' 阶段 · ' +
-      d.stats.materials + ' 项材料 · ' + d.stats.mounts + ' 项骑乘物品 · ' +
+      (d.capabilities || []).map((c) => c.label + ' ' + c.verdict).join(' · ') + ' · ' +
       d.stats.error + ' 错误 / ' + d.stats.warn + ' 警告 / ' + d.stats.info + ' 提示';
   }
 }

@@ -1459,7 +1459,7 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .itw-drop-lines { display: flex; flex-direction: column; gap: 1px; padding-left: 10px; }
 .itw-drop-lines .itw-ref-meta { border-left: 1px solid #263142; padding-left: 8px; }
 
-/* 数值 / 成长工作台 */
+/* 职业与技能工作台 */
 .grw-job { margin-top: -4px; }
 .grw-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px 24px; }
 .grw-pane { min-width: 0; }

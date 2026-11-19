@@ -97,7 +97,7 @@ public/              前端：index.html + 每类配置一个视图脚本 + app.
 | 活动 | `activity.js` | `#activityView` |
 | 文案 / 对话 | `textwork.js` | `#textWorkView` |
 | 沙城 / 攻城 | `castlework.js` | `#castleWorkView` |
-| 成长 | `growth.js` | `#growthView` |
+| 职业与技能 | `growth.js` | `#growthView` |
 | 脚本检索 | `scriptwork.js` | `#scriptWorkView` |
 | 元神 | `yswork.js` | `#ysworkView` |
 | 配置体检 | `healthwork.js`（聚合各工作台 health） | `#healthWorkView` |
@@ -113,6 +113,7 @@ public/              前端：index.html + 每类配置一个视图脚本 + app.
 | `DB/stditems.db` | 物品属性（定宽记录） | `dbe.js`、`itemwork.js` |
 | `DB/Monster.DB` | 怪物属性 | `dbe.js`、`monster.js` |
 | `DB/magic.db` | 技能 | `dbe.js`、`growth.js`、`npccreator.js` |
+| `DB/Upgrade.DB` | 召唤兽/灵兽升级经验（怪物等级段或宠物类型 → 升级档位） | `growth.js` |
 | `NPCList.txt` | NPC 分布，Tab 分隔；向导生成 10 列：`编号 脚本名(不含 .py) 地图 X Y 名称 0 形象编号 0 0`，其余内容按原样保留 | `npc.js` |
 | `NPCScript/*.py` | NPC 脚本；`TaskConfig_*.py` 为任务定义 | `npc.js`、`npccreator.js`、`tasks.js` |
 | `Mongen.txt` | 刷怪配置 | `configs.js`、`spawnwork.js` |

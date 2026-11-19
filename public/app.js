@@ -102,7 +102,7 @@ const WORK_GROUPS = [
   {
     name: '角色与工具',
     items: [
-      { target: 'grw', name: '成长', desc: '技能、职业、升级与宠物成长曲线' },
+      { target: 'grw', name: '职业与技能', desc: '技能、三职业成长、道士召唤兽与宠物升级经验' },
       { target: 'petw', name: '灵兽骑乘', desc: '灵兽成长、转生材料与骑乘配置' },
       { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
     ]
@@ -1036,7 +1036,7 @@ const NAV_LABELS = {
   openScriptView: '脚本工作台',
   openActivityView: '活动',
   openTaskView: '任务',
-  openGrowthView: '成长',
+  openGrowthView: '职业与技能',
   openDropsView: '物品与掉落',
   openSpawnView: '刷怪',
   openMapView: '地图',

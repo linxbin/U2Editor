@@ -1,6 +1,6 @@
 'use strict';
 
-/* 数值 / 成长工作台：技能、三职业成长、升级经验、宠物成长与配置体检（只读） */
+/* 职业与技能工作台：技能、三职业成长、道士召唤兽与宠物升级经验（只读） */
 
 const GRW = {
   data: null,
@@ -18,7 +18,7 @@ const GRW = {
   searchTimer: null
 };
 
-const GRW_TAB_KEYS = ['skills', 'classes', 'upgrades', 'pets', 'health'];
+const GRW_TAB_KEYS = ['skills', 'classes', 'pets', 'upgrades'];
 
 const GRW_SEV = { error: '错误', warn: '警告', info: '提示' };
 
@@ -48,15 +48,6 @@ const GRW_ISSUE_LABEL = {
   growth_pet_negative: '宠物数值为负'
 };
 
-const GRW_GROUPS = {
-  magic: '技能',
-  class: '职业成长',
-  upgrade: '升级经验',
-  pet: '宠物成长',
-  tab: '总览',
-  other: '其他'
-};
-
 function grwEl(id) {
   return document.getElementById(id);
 }
@@ -84,6 +75,10 @@ function grwIssueCount(n) {
 
 function grwTotalIssue(n) {
   return (n && (n.error + n.warn + n.info)) || 0;
+}
+
+function grwSummonPets(d) {
+  return ((d && d.pets) || []).filter((p) => p.kind === 'taoist' && p.type !== 8 && p.type !== 9);
 }
 
 function grwFmt(n) {
@@ -119,7 +114,6 @@ function grwHashState() {
   if (!m) return null;
   const raw = m[1] || '';
   if (!raw) return { tab: 'skills' };
-  if (raw === 'health') return { tab: 'health' };
   if (raw === 'classes') return { tab: 'classes' };
   if (raw === 'upgrades') return { tab: 'upgrades' };
   if (raw === 'pets') return { tab: 'pets' };
@@ -141,7 +135,6 @@ function grwSetHash(sel) {
   else if (sel && sel.tab === 'classes' && sel.classKey) raw = 'class-' + sel.classKey;
   else if (sel && sel.tab === 'upgrades' && sel.upgradeLevel != null) raw = 'upgrade-' + sel.upgradeLevel;
   else if (sel && sel.tab === 'pets' && sel.petKey) raw = 'pet-' + sel.petKey;
-  else if (sel && sel.tab === 'health') raw = 'health';
   const next = raw ? '#growth=' + raw : '#growth';
   if (next === (location.hash || '')) return;
   try {
@@ -174,8 +167,8 @@ function grwEnsureSelection() {
   if (!d.upgrades.some((u) => u.level === GRW.upgradeLevel) && d.upgrades.length) {
     GRW.upgradeLevel = d.upgrades[0].level;
   }
-  if (GRW.petKey == null && d.pets.length) GRW.petKey = d.pets[0].key;
-  if (!d.pets.some((p) => p.key === GRW.petKey)) GRW.petKey = d.pets[0] ? d.pets[0].key : null;
+  const summons = grwSummonPets(d);
+  if (!summons.some((p) => p.key === GRW.petKey)) GRW.petKey = summons[0] ? summons[0].key : null;
 }
 
 function grwRenderMeta() {
@@ -186,12 +179,13 @@ function grwRenderMeta() {
     return;
   }
   const s = GRW.data.stats;
+  const summons = grwSummonPets(GRW.data);
   meta.textContent = [
     s.skills + ' 个技能',
     '战士 ' + s.jobs.warrior + ' / 法师 ' + s.jobs.mage + ' / 道士 ' + s.jobs.taoist,
     s.classes + ' 张职业表（' + s.classLevels + ' 级）',
-    s.upgrades + ' 组升级',
-    s.pets + ' 种宠物（' + s.petLevels + ' 级）',
+    summons.length + ' 类召唤兽（' + summons.reduce((n, p) => n + p.rows.length, 0) + ' 级）',
+    s.upgrades + ' 段升级经验',
     '问题 ' + s.issues.error + ' 错误 / ' + s.issues.warn + ' 警告 / ' + s.issues.info + ' 提示'
   ].join(' · ');
   grwText('grwCount', String(s.skills));
@@ -204,9 +198,8 @@ function grwRenderTabs() {
   const map = {
     skills: 'grwSkillPane',
     classes: 'grwClassPane',
-    upgrades: 'grwUpgradePane',
     pets: 'grwPetPane',
-    health: 'grwHealthPane'
+    upgrades: 'grwUpgradePane'
   };
   Object.keys(map).forEach((key) => {
     const el = grwEl(map[key]);
@@ -220,14 +213,12 @@ function grwSelectTab(tab) {
   grwRenderTabs();
   if (tab === 'skills') grwRenderSkill();
   else if (tab === 'classes') grwRenderClass();
-  else if (tab === 'upgrades') grwRenderUpgrade();
   else if (tab === 'pets') grwRenderPet();
-  else grwRenderHealth();
+  else if (tab === 'upgrades') grwRenderUpgrade();
   if (tab === 'skills') grwSetHash({ tab: 'skills', skillId: GRW.skillId });
   else if (tab === 'classes') grwSetHash({ tab: 'classes', classKey: GRW.classKey });
-  else if (tab === 'upgrades') grwSetHash({ tab: 'upgrades', upgradeLevel: GRW.upgradeLevel });
   else if (tab === 'pets') grwSetHash({ tab: 'pets', petKey: GRW.petKey });
-  else grwSetHash({ tab: 'health' });
+  else grwSetHash({ tab: 'upgrades', upgradeLevel: GRW.upgradeLevel });
 }
 
 function grwMatchesSkill(s, q) {
@@ -507,6 +498,11 @@ function grwUpgradeIssues(level) {
     i.action && i.action.view === 'upgrade' && i.action.level === level);
 }
 
+function grwUpgradeLabel(up) {
+  const first = up.rows[0];
+  return first && first.describe ? first.describe : '档位 ' + up.level;
+}
+
 function grwRenderUpgrade() {
   const box = grwEl('grwUpgrade');
   if (!box) return;
@@ -521,11 +517,13 @@ function grwRenderUpgrade() {
   }
   const up = d.upgrades.find((u) => u.level === GRW.upgradeLevel) || d.upgrades[0];
   GRW.upgradeLevel = up.level;
+  const label = grwUpgradeLabel(up);
   const seg = '<div class="grw-seg">' + d.upgrades.map((u) =>
     '<button class="btn btn-sm' + (u.level === up.level ? ' active' : '') + '" data-grw-upgrade="' + u.level +
-    '">怪物等级 ' + u.level + (u.missing.length ? ' · 缺 ' + u.missing.join('/') : '') + '</button>').join('') + '</div>';
+    '">' + grwEsc(grwUpgradeLabel(u)) + (u.missing.length ? ' · 缺 ' + u.missing.join('/') : '') + '</button>').join('') + '</div>';
+  const note = '<div class="grw-text">Upgrade.DB 按宠物类别定义升级经验：前四档为普通宝宝按击杀怪物等级段，中间三档为变异骷髅、神兽、强化骷髅，最后两档为原生灵兽、一转灵兽。灵兽详细成长见「灵兽骑乘 → 灵兽成长」。</div>';
   const chart = grwChart([{ label: '升级经验', color: '#d8a531', values: up.rows.map((r) => r.exp) }],
-    { title: '怪物等级 ' + up.level + ' 升级经验', log: true });
+    { title: label + ' 升级经验', log: true });
   const stats = '<div class="grw-kv-grid">' +
     grwKv('档位范围', (up.stats.minUpgrade || '—') + ' – ' + (up.stats.maxUpgrade || '—')) +
     grwKv('经验范围', grwFmt(up.stats.expMin) + ' – ' + grwFmt(up.stats.expMax)) +
@@ -540,12 +538,13 @@ function grwRenderUpgrade() {
   const issues = grwUpgradeIssues(up.level);
   const issueHtml = issues.length
     ? '<div class="mon-issues">' + issues.map((i) => grwIssueRow(i)).join('') + '</div>'
-    : '<div class="grw-empty">该怪物等级未发现问题。</div>';
+    : '<div class="grw-empty">该档位未发现问题。</div>';
   const actions = '<div class="grw-actions">' +
     '<button class="btn btn-sm" data-grw-act="db" data-name="Upgrade.DB">在 DB 编辑器中打开 Upgrade.DB</button>' +
+    '<button class="btn btn-sm" data-grw-act="petwork">查看灵兽成长</button>' +
     '</div>';
-  box.innerHTML = seg +
-    grwSection('怪物等级 ' + up.level + ' 总览', '', stats) +
+  box.innerHTML = seg + note +
+    grwSection(label + ' 总览', '', stats) +
     grwSection('升级经验曲线', '', chart) +
     grwSection('逐档数据', up.rows.length + ' 档', table) +
     grwSection('体检', issues.length ? issues.length + ' 项' : '', issueHtml) +
@@ -565,13 +564,14 @@ function grwRenderPet() {
     box.innerHTML = '<div class="grw-empty">正在加载宠物数据…</div>';
     return;
   }
-  if (!d.pets.length) {
-    box.innerHTML = '<div class="grw-empty">没有可用的宠物成长数据。</div>';
+  const summons = grwSummonPets(d);
+  if (!summons.length) {
+    box.innerHTML = '<div class="grw-empty">没有可用的召唤兽成长数据。</div>';
     return;
   }
-  const pet = d.pets.find((p) => p.key === GRW.petKey) || d.pets[0];
+  const pet = summons.find((p) => p.key === GRW.petKey) || summons[0];
   GRW.petKey = pet.key;
-  const seg = '<div class="grw-seg">' + d.pets.map((p) => {
+  const seg = '<div class="grw-seg">' + summons.map((p) => {
     const cnt = grwIssueCount(p.issues);
     return '<button class="btn btn-sm' + (p.key === pet.key ? ' active' : '') + '" data-grw-pet="' + grwEsc(p.key) +
       '">' + grwEsc(p.name) + ' · ' + p.rows.length + ' 级' + (cnt ? ' · 问题 ' + cnt : '') + '</button>';
@@ -583,49 +583,36 @@ function grwRenderPet() {
     { label: '防御', color: '#6fa8ec', values: pet.rows.map((r) => r.ac) },
     { label: '防御上限', color: '#a99be8', values: pet.rows.map((r) => r.acMax) }
   ];
-  if (pet.kind === 'taoist') {
-    series.push({ label: '魔防', color: '#3aa981', values: pet.rows.map((r) => r.mac) });
-  }
+  series.push({ label: '魔防', color: '#3aa981', values: pet.rows.map((r) => r.mac) });
   const chart = grwChart(series, { title: pet.name + '成长曲线' });
-  const expChart = pet.kind === 'special'
-    ? grwSection('宠物经验曲线', '对数刻度',
-        grwChart([{ label: '经验', color: '#d8a531', values: pet.rows.map((r) => r.exp) }],
-          { title: pet.name + '经验', log: true }))
-    : '';
+  const note = '<div class="grw-text">这里只包含道士召唤兽（骷髅、神兽、尸灵）。原生灵兽、一转灵兽与特殊宠物见「灵兽骑乘 → 灵兽成长」。</div>';
   const stats = '<div class="grw-kv-grid">' +
     grwKv('等级范围', pet.stats.levelMin + ' – ' + pet.stats.levelMax + ' 级') +
     grwKv('HP', grwFmtExact(pet.stats.hpStart) + ' → ' + grwFmtExact(pet.stats.hpEnd)) +
-    (pet.kind === 'special'
-      ? grwKv('经验', grwFmt(pet.stats.expStart) + ' → ' + grwFmt(pet.stats.expEnd))
-      : grwKv('宠物类型', 'PetType ' + pet.type)) +
+    grwKv('召唤兽类型', 'PetType ' + pet.type) +
     grwKv('数据来源', pet.file) +
     '</div>';
   const rows = pet.rows.map((r) =>
-    '<tr><td>' + r.level + '</td><td>' + (r.exp == null ? '—' : grwFmtExact(r.exp)) + '</td><td>' +
+    '<tr><td>' + r.level + '</td><td>' +
     grwFmtExact(r.hp) + '</td><td>' + r.dc + '-' + r.dcMax + '</td><td>' + r.ac + '-' + r.acMax +
     '</td><td>' + (r.mac == null ? '—' : r.mac) + '</td><td>' + grwEsc(r.describe || '—') + '</td></tr>').join('');
   const table = '<div class="grw-table-wrap"><table class="grw-table"><thead><tr>' +
-    '<th>等级</th><th>经验</th><th>HP</th><th>攻击</th><th>防御</th><th>魔防</th><th>Describe</th>' +
+    '<th>等级</th><th>HP</th><th>攻击</th><th>防御</th><th>魔防</th><th>Describe</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   const issues = grwPetIssues(pet.key);
   const issueHtml = issues.length
     ? '<div class="mon-issues">' + issues.map((i) => grwIssueRow(i)).join('') + '</div>'
-    : '<div class="grw-empty">该宠物未发现问题。</div>';
+    : '<div class="grw-empty">该召唤兽未发现问题。</div>';
   const actions = '<div class="grw-actions">' +
     '<button class="btn btn-sm" data-grw-act="db" data-name="' + grwEsc(pet.file) + '">在 DB 编辑器中打开 ' +
-    grwEsc(pet.file) + '</button></div>';
-  box.innerHTML = seg +
+    grwEsc(pet.file) + '</button>' +
+    '<button class="btn btn-sm" data-grw-act="petwork">查看灵兽成长</button></div>';
+  box.innerHTML = seg + note +
     grwSection(pet.name + '总览', '', stats) +
     grwSection(pet.name + '成长曲线', '', chart) +
-    expChart +
     grwSection(pet.name + '逐级数值', pet.rows.length + ' 级', table) +
     grwSection(pet.name + '体检', issues.length ? issues.length + ' 项' : '', issueHtml) +
     actions;
-}
-
-function grwIssueGroup(issue) {
-  const view = issue.action && issue.action.view;
-  return GRW_GROUPS[view] || GRW_GROUPS.other;
 }
 
 function grwIssueRow(issue) {
@@ -641,39 +628,6 @@ function grwIssueRow(issue) {
     '<div class="mon-issue-body"><div class="mon-issue-msg">' + grwEsc(issue.message) + '</div>' +
     '<div class="mon-issue-meta">' + grwEsc(label) +
     (where ? ' · ' + grwEsc(where) : '') + '</div></div>' + jump + '</div>';
-}
-
-function grwRenderHealth() {
-  const box = grwEl('grwHealthList');
-  if (!box) return;
-  if (!GRW.data) {
-    box.innerHTML = '<div class="grw-empty">正在加载体检数据…</div>';
-    return;
-  }
-  const issues = GRW.data.issues;
-  if (!issues.length) {
-    box.innerHTML = '<div class="grw-empty">没有发现配置问题。</div>';
-    return;
-  }
-  const groups = {};
-  for (const issue of issues) {
-    const g = grwIssueGroup(issue);
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(issue);
-  }
-  const order = ['技能', '职业成长', '升级经验', '宠物成长', '总览', '其他'];
-  let html = '';
-  for (const g of order) {
-    const list = groups[g];
-    if (!list || !list.length) continue;
-    const counts = { error: 0, warn: 0, info: 0 };
-    for (const i of list) counts[i.severity] = (counts[i.severity] || 0) + 1;
-    html += '<div class="mon-issue-group"><div class="mon-issue-head"><strong>' + grwEsc(g) + '</strong>' +
-      '<span class="muted">' + list.length + ' 项 · ' + counts.error + ' 错误 / ' + counts.warn +
-      ' 警告 / ' + counts.info + ' 提示</span></div>' +
-      list.map((i) => grwIssueRow(i)).join('') + '</div>';
-  }
-  box.innerHTML = html;
 }
 
 function grwJumpIssue(issue) {
@@ -704,7 +658,11 @@ function grwJumpIssue(issue) {
     grwSetHash({ tab: 'upgrades', upgradeLevel: a.level });
   } else if (a.view === 'pet') {
     const pet = GRW.data && GRW.data.pets.find((p) => p.key === a.key);
-    if (pet) {
+    if (pet && (pet.kind === 'special' || pet.type === 8 || pet.type === 9)) {
+      if (window.openPetWorkView) window.openPetWorkView({ section: 'growth' });
+      return;
+    }
+    if (pet && grwSummonPets(GRW.data).some((p) => p.key === pet.key)) {
       GRW.tab = 'pets';
       GRW.petKey = pet.key;
       grwRenderAll();
@@ -712,9 +670,7 @@ function grwJumpIssue(issue) {
     }
   } else if (a.view === 'tab') {
     if (a.tab === 'health') {
-      GRW.tab = 'health';
-      grwRenderAll();
-      grwSetHash({ tab: 'health' });
+      if (window.openHealthWorkView) window.openHealthWorkView({ source: 'growth' });
     } else if (GRW_TAB_KEYS.indexOf(a.tab) >= 0) {
       grwSelectTab(a.tab);
     }
@@ -737,9 +693,8 @@ function grwRenderAll() {
   grwRenderList();
   if (GRW.tab === 'skills') grwRenderSkill();
   else if (GRW.tab === 'classes') grwRenderClass();
-  else if (GRW.tab === 'upgrades') grwRenderUpgrade();
   else if (GRW.tab === 'pets') grwRenderPet();
-  else grwRenderHealth();
+  else if (GRW.tab === 'upgrades') grwRenderUpgrade();
 }
 
 function grwSelectSkill(id) {
@@ -782,6 +737,8 @@ async function openGrowthView(sel) {
   const view = grwEl('growthView');
   if (view) view.classList.remove('hidden');
   if (window.showSideTab) window.showSideTab('grw');
+  const status = grwEl('statusText');
+  if (status) status.textContent = '职业与技能 · 只读汇总';
   const target = sel || grwHashState() || { tab: GRW.tab };
   if (target.tab && GRW_TAB_KEYS.indexOf(target.tab) >= 0) GRW.tab = target.tab;
   if (target.skillId != null) GRW.skillId = target.skillId;
@@ -811,7 +768,7 @@ async function openGrowthView(sel) {
   } else if (GRW.tab === 'pets') {
     grwSetHash({ tab: 'pets', petKey: GRW.petKey });
   } else {
-    grwSetHash({ tab: 'health' });
+    grwSetHash({ tab: 'skills' });
   }
 }
 
@@ -901,6 +858,8 @@ function grwBindEvents() {
         grwSetHash({ tab: 'pets', petKey: GRW.petKey });
       } else if (btn.dataset.grwAct === 'db') {
         grwGotoDb(btn.dataset.name, btn.dataset.search || '');
+      } else if (btn.dataset.grwAct === 'petwork') {
+        if (window.openPetWorkView) window.openPetWorkView({ section: 'growth' });
       } else if (btn.dataset.grwAct === 'jump') {
         const idx = Number(btn.dataset.grwIssue);
         if (GRW.data && GRW.data.issues[idx]) grwJumpIssue(GRW.data.issues[idx]);

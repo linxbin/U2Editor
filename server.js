@@ -222,7 +222,7 @@ const healthWorkbench = healthWorkData.create({
       },
       invalidate: () => { itemWorkbench.invalidate(); dropWorkbench.invalidate(); }
     },
-    { key: 'growth', label: '数值 / 成长', health: () => growthWorkbench.health(), invalidate: () => growthWorkbench.invalidate() },
+    { key: 'growth', label: '职业与技能', health: () => growthWorkbench.health(), invalidate: () => growthWorkbench.invalidate() },
     { key: 'petwork', label: '灵兽 / 骑乘', health: () => petWorkbench.health(), invalidate: () => petWorkbench.invalidate() },
     { key: 'spawnwork', label: '刷怪', health: () => spawnWorkbench.health(), invalidate: () => spawnWorkbench.invalidate() },
     { key: 'mapwork', label: '地图', health: () => mapWorkbench.health(), invalidate: () => mapWorkbench.invalidate() },

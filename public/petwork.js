@@ -144,7 +144,7 @@ function pwCapBadge(verdict) {
 
 function pwActionBtn(action, text) {
   if (!action) return '';
-  if (action.view === 'growth') return pwBtn(text, 'growth', action.petKey);
+  if (action.view === 'growth') return pwBtn(text, 'section', 'growth');
   if (action.view === 'item') return pwBtn(text, 'item', action.index);
   if (action.view === 'script') return pwBtn(text, 'script', action.name, action.line);
   if (action.view === 'npc') return pwBtn(text, 'npc', action.index);
@@ -217,7 +217,7 @@ function pwRenderGrowth(d) {
         return s.inMonster ? label : label + '（未登记）';
       }).join(' → ');
       const growthLinks = fam.stages.filter((s) => s.growthKey).map((s) =>
-        pwBtn(s.name + ' ' + s.growthLevels + ' 级', 'growth', s.growthKey)).join(' ');
+        pwBtn(s.name + ' ' + s.growthLevels + ' 级', 'section', 'growth')).join(' ');
       const status = fam.missingStages.length
         ? pwBadge('缺 ' + fam.missingStages.length + ' 个形态', 'warn')
         : pwBadge('完整', 'info');
@@ -242,7 +242,7 @@ function pwRenderGrowth(d) {
         '<td>' + pwEsc(st.levelMin + '–' + st.levelMax + '（' + st.levels + ' 级）') + '</td>' +
         '<td>' + pwEsc(st.hpStart + ' → ' + st.hpEnd) + '</td>' +
         '<td>' + pwEsc(exp) + '</td><td>' + pwEsc(issueText) + '</td>' +
-        '<td>' + pwBtn('成长曲线', 'growth', p.key) + '</td></tr>';
+        '<td>' + pwBtn('成长曲线', 'section', 'growth') + '</td></tr>';
     });
   const curveBody = pwTable(['成长表', '等级范围', 'HP', '经验', '错误/警告/提示', '操作'], curveRows);
 
@@ -267,10 +267,11 @@ function pwRenderGrowth(d) {
   const issueRows = gIssues.map((i) =>
     '<tr><td>' + pwBadge({ error: '错误', warn: '警告', info: '提示' }[i.severity] || i.severity, i.severity) + '</td>' +
     '<td>' + pwEsc(i.message) + '</td><td>' + pwEsc(i.petKey || '—') + '</td>' +
-    '<td>' + (i.petKey ? pwBtn('成长曲线', 'growth', i.petKey) : '—') + '</td></tr>');
+    '<td>' + (i.petKey ? pwBtn('成长曲线', 'section', 'growth') : '—') + '</td></tr>');
   const issueBody = pwTable(['级别', '问题', '宠物', '操作'], issueRows);
 
-  return pwSection('灵兽图鉴', 'species', d.species.length + ' 系 / ' + d.stats.stages + ' 阶段', speciesBody) +
+  const note = '<div class="side-note" style="margin:0 0 10px;">本页只包含灵兽（特殊宠物与豹/狮/麒麟系）；道士召唤兽与宠物升级经验见「职业与技能」。</div>';
+  return note + pwSection('灵兽图鉴', 'species', d.species.length + ' 系 / ' + d.stats.stages + ' 阶段', speciesBody) +
     pwSection('成长曲线', 'curves', curves.length + ' 条', curveBody) +
     pwSection('成长抽样', 'samples', '', sampleBody) +
     pwSection('成长异常', 'growth-issues', gIssues.length + ' 条', issueBody);
@@ -485,8 +486,7 @@ async function pwRunAction(action) {
     return;
   }
   if (action.view === 'growth') {
-    if (window.hidePetWorkView) window.hidePetWorkView();
-    if (window.openGrowthView) return window.openGrowthView({ tab: 'pets', petKey: action.petKey });
+    pwSelectSection('growth');
     return;
   }
   if (action.view === 'item') {
@@ -510,8 +510,8 @@ async function pwJump(btn) {
   const val = btn.dataset.pwVal || '';
   const line = btn.dataset.pwLine ? Number(btn.dataset.pwLine) : 0;
   if (!kind) return;
-  if (kind === 'section') {
-    pwSelectSection(val);
+  if (kind === 'section' || kind === 'growth') {
+    pwSelectSection(kind === 'growth' ? 'growth' : val);
     return;
   }
   if (window.hidePetWorkView) window.hidePetWorkView();
@@ -521,10 +521,6 @@ async function pwJump(btn) {
   }
   if (kind === 'script') {
     if (window.openScriptView) return window.openScriptView({ tab: 'detail', name: val, line: line || undefined });
-    return;
-  }
-  if (kind === 'growth') {
-    if (window.openGrowthView) return window.openGrowthView({ tab: 'pets', petKey: val });
     return;
   }
   if (kind === 'npc') {

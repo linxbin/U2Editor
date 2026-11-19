@@ -345,17 +345,22 @@ async function hwJump(issue) {
     return;
   }
   if (source === 'growth') {
-    let sel = { tab: 'health' };
+    if (a.view === 'pet' && /^(special|taoist-[89])$/.test(String(a.key || ''))) {
+      if (window.openPetWorkView) return window.openPetWorkView({ section: 'growth' });
+      return;
+    }
+    let sel = { tab: 'skills' };
     if (a.view === 'magic') sel = { tab: 'skills', skillId: a.id };
     else if (a.view === 'class') sel = { tab: 'classes', classKey: a.key };
-    else if (a.view === 'upgrade') sel = { tab: 'upgrades', upgradeLevel: a.level };
     else if (a.view === 'pet') sel = { tab: 'pets', petKey: a.key };
+    else if (a.view === 'upgrade') sel = { tab: 'upgrades', upgradeLevel: a.level };
+    else if (a.view === 'tab' && ['skills', 'classes', 'pets', 'upgrades'].indexOf(a.tab) >= 0) sel = { tab: a.tab };
     if (window.openGrowthView) return window.openGrowthView(sel);
     return;
   }
   if (source === 'petwork') {
-    if (a.view === 'growth' && window.openGrowthView) {
-      return window.openGrowthView({ tab: 'pets', petKey: a.petKey });
+    if (a.view === 'growth' && window.openPetWorkView) {
+      return window.openPetWorkView({ section: 'growth' });
     }
     if (a.view === 'item' && window.openItemDropView) {
       return window.openItemDropView({ tab: 'detail', itemIndex: Number(a.index) });

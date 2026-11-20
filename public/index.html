@@ -302,6 +302,12 @@
         <div id="petwListHint" class="side-note"></div>
       </div>
 
+      <div class="side-pane" data-side-pane="gmw">
+        <input id="gmwFilter" class="filter" placeholder="搜索命令 / GM 名单..." autocomplete="off">
+        <ul id="gmwNavList" class="file-list"></ul>
+        <div id="gmwListHint" class="side-note"></div>
+      </div>
+
       <div class="side-pane" data-side-pane="bkw">
         <input id="bkwFilter" class="filter" placeholder="搜索备份文件..." autocomplete="off">
         <div id="bkwFileList" class="file-list"></div>
@@ -1180,6 +1186,24 @@
         </div>
       </section>
 
+      <section id="gmworkView" class="view hidden">
+        <div class="toolbar">
+          <div class="title-block">
+            <strong>GM 工作台</strong>
+            <span id="gmwMeta" class="muted"></span>
+          </div>
+          <div class="spacer"></div>
+          <button id="btnGmwReload" class="btn">重新检查</button>
+          <button id="btnGmwSave" class="btn small" disabled>保存白名单</button>
+        </div>
+        <div class="mpw-body">
+          <div class="mpw-pane">
+            <div id="gmwSummary"></div>
+            <div id="gmwContent"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="scriptWorkView" class="view hidden">
         <div class="toolbar">
           <div class="title-block">
@@ -1323,5 +1347,6 @@
   <script src="backups.js"></script>
   <script src="yswork.js"></script>
   <script src="petwork.js"></script>
+  <script src="gmwork.js"></script>
 </body>
 </html>

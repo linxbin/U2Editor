@@ -70,6 +70,7 @@ const WORK_GROUPS = [
     name: '总览与检查',
     items: [
       { target: 'hw', name: '配置体检', desc: '汇总所有工作台的错误、警告和提示' },
+      { target: 'gmw', name: 'GM 工作台', desc: 'GM 名单、命令白名单与 GM 入口检查' },
       { target: 'bkw', name: '备份与历史', desc: '查看、对比并恢复自动备份' }
     ]
   },
@@ -119,7 +120,8 @@ const NAV_HEALTH_SOURCE = {
   cbw: 'castlework',
   txw: 'textwork',
   stw: 'starterwork',
-  petw: 'petwork'
+  petw: 'petwork',
+  gmw: 'gmwork'
 };
 function navIssueCounts(target) {
   const summary = S.configs && S.configs.healthwork;
@@ -1047,6 +1049,7 @@ const NAV_LABELS = {
   openHealthWorkView: '配置体检',
   openYswView: '元神',
   openPetWorkView: '灵兽骑乘',
+  openGmWorkView: 'GM 工作台',
   openNpcConfig: 'NPC 分布',
   openShopsConfig: '商店货品',
   openShopsByScript: '商店货品',
@@ -1129,6 +1132,7 @@ const NAV_HASH_RESTORE = {
   openStarterWorkView: /^#starter=/,
   openHealthWorkView: /^#healthwork/,
   openPetWorkView: /^#petwork/,
+  openGmWorkView: /^#gmwork/,
   openBackupView: /^#backups/,
   openDropsView: /^#drops/,
   openActivityView: /^#activity=/,
@@ -1496,6 +1500,7 @@ function applyState(st) {
   if (window.refreshStarterWorkState) window.refreshStarterWorkState(st);
   if (window.refreshHealthWorkState) window.refreshHealthWorkState(st);
   if (window.refreshYswState) window.refreshYswState(st);
+  if (window.refreshGmWorkState) window.refreshGmWorkState(st);
   document.dispatchEvent(new CustomEvent('state:refreshed', { detail: st }));
 }
 
@@ -1616,6 +1621,7 @@ async function openBasicTab(target) {
 function openSideTarget(name) {
   if (window.hideYswView) window.hideYswView();
   if (window.hidePetWorkView) window.hidePetWorkView();
+  if (window.hideGmWorkView) window.hideGmWorkView();
   if (BASIC_TABS.some((tab) => tab.target === name)) {
     openBasicTab(name);
     return;
@@ -1678,6 +1684,10 @@ function openSideTarget(name) {
   }
   if (name === 'petw' && window.openPetWorkView) {
     window.openPetWorkView();
+    return;
+  }
+  if (name === 'gmw' && window.openGmWorkView) {
+    window.openGmWorkView();
     return;
   }
   if (name === 'bkw' && window.openBackupView) {

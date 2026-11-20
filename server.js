@@ -31,6 +31,8 @@ const starterWorkData = require('./lib/starterwork');
 const healthWorkData = require('./lib/healthwork');
 const ysWorkData = require('./lib/yswork');
 const petWorkData = require('./lib/petwork');
+const gmCmdCatalog = require('./lib/gmcmdcatalog');
+const gmWorkData = require('./lib/gmwork');
 const backupsData = require('./lib/backups');
 const dbRefs = require('./lib/dbrefs');
 
@@ -196,6 +198,17 @@ const petWorkbench = petWorkData.create({
   growthWorkbench
 });
 
+const gmWorkbench = gmWorkData.create({
+  envirDir: ENVIR_DIR,
+  itemFile: path.join(DB_DIR, 'stditems.db'),
+  itemIndex,
+  itemModes,
+  npcFile: NPC_FILE,
+  scriptDir: NPC_SCRIPT_DIR,
+  mapWorkbench,
+  catalog: gmCmdCatalog
+});
+
 const healthWorkbench = healthWorkData.create({
   sources: [
     {
@@ -224,6 +237,7 @@ const healthWorkbench = healthWorkData.create({
     },
     { key: 'growth', label: '职业与技能', health: () => growthWorkbench.health(), invalidate: () => growthWorkbench.invalidate() },
     { key: 'petwork', label: '灵兽 / 骑乘', health: () => petWorkbench.health(), invalidate: () => petWorkbench.invalidate() },
+    { key: 'gmwork', label: 'GM 管理', health: () => gmWorkbench.health(), invalidate: () => gmWorkbench.invalidate() },
     { key: 'spawnwork', label: '刷怪', health: () => spawnWorkbench.health(), invalidate: () => spawnWorkbench.invalidate() },
     { key: 'mapwork', label: '地图', health: () => mapWorkbench.health(), invalidate: () => mapWorkbench.invalidate() },
     { key: 'shopwork', label: '合成 / 商城', health: () => shopWorkbench.health(), invalidate: () => shopWorkbench.invalidate() },
@@ -392,6 +406,7 @@ const STATIC = {
   '/backups.js': { file: 'backups.js', type: 'application/javascript; charset=utf-8' },
   '/yswork.js': { file: 'yswork.js', type: 'application/javascript; charset=utf-8' },
   '/petwork.js': { file: 'petwork.js', type: 'application/javascript; charset=utf-8' },
+  '/gmwork.js': { file: 'gmwork.js', type: 'application/javascript; charset=utf-8' },
   '/styles.css': { file: 'styles.css', type: 'text/css; charset=utf-8' }
 };
 
@@ -777,7 +792,7 @@ function invalidateItemConsumers() {
   const list = [
     itemWorkbench, dropWorkbench, shopWorkbench, npcWorkbench, taskWorkbench,
     starterWorkbench, castleWorkbench, textWorkbench, activityWorkbench,
-    ysWorkbench, petWorkbench, monsterWorkbench, healthWorkbench
+    ysWorkbench, petWorkbench, gmWorkbench, monsterWorkbench, healthWorkbench
   ];
   for (const wb of list) wb.invalidate();
   invalidateState();
@@ -794,7 +809,7 @@ function invalidateAll() {
     monsterWorkbench, activityWorkbench, taskWorkbench, npcWorkbench,
     growthWorkbench, dropWorkbench, spawnWorkbench, mapWorkbench,
     shopWorkbench, scriptWorkbench, castleWorkbench, textWorkbench,
-    starterWorkbench, itemWorkbench, healthWorkbench, ysWorkbench, petWorkbench
+    starterWorkbench, itemWorkbench, healthWorkbench, ysWorkbench, petWorkbench, gmWorkbench
   ];
   for (const wb of list) wb.invalidate();
   invalidateState();
@@ -1499,6 +1514,22 @@ async function handle(req, res) {
   if (req.method === 'GET' && pathname === '/api/config/petwork') {
     if (url.searchParams.get('refresh') === '1') petWorkbench.invalidate();
     json(res, 200, petWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config/gmwork') {
+    if (url.searchParams.get('refresh') === '1') gmWorkbench.invalidate();
+    json(res, 200, gmWorkbench.list());
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/config/gmwork/whitelist') {
+    try {
+      const body = await readBody(req);
+      json(res, 200, gmWorkbench.toggleWhitelist(body));
+    } catch (e) {
+      json(res, e.status || 400, { error: e.message });
+    }
     return;
   }
 

@@ -2736,3 +2736,8 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
   .pw-caps,
   .pw-cap-grid { grid-template-columns: 1fr; }
 }
+.gw-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.gw-bar .side-note { margin: 0; }
+.gw-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.gw-filters .btn.active { background: #1d2b44; border-color: #33518a; color: #fff; }
+.gw-filters .fmeta { margin-left: 6px; }

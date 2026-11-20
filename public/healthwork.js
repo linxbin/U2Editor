@@ -368,6 +368,27 @@ async function hwJump(issue) {
     if (window.openPetWorkView) return window.openPetWorkView(a.section ? { section: a.section } : undefined);
     return;
   }
+  if (source === 'gmwork') {
+    if (a.view === 'extra' && a.key) {
+      if (a.line && window.openExtraKeyAt) return window.openExtraKeyAt(a.key, { line: a.line });
+      if (window.openExtraKey) return window.openExtraKey(a.key);
+      return;
+    }
+    if (a.view === 'item' && a.index != null && window.openItemDropView) {
+      return window.openItemDropView({ tab: 'detail', itemIndex: Number(a.index) });
+    }
+    if (a.view === 'script' && a.name && window.openScriptView) {
+      return window.openScriptView({ tab: 'detail', name: a.name, line: a.line });
+    }
+    if (a.view === 'map' && a.key && window.openMapView) {
+      return window.openMapView({ tab: 'detail', key: a.key });
+    }
+    if (a.view === 'npc' && a.index != null && window.openNpcWorkView) {
+      return window.openNpcWorkView(Number(a.index));
+    }
+    if (window.openGmWorkView) return window.openGmWorkView(a.section ? { section: a.section } : undefined);
+    return;
+  }
   if (source === 'spawnwork') {
     if (a.view === 'monster' && a.name) return hwOpenMonster(a.name, 'spawn');
     if (a.view === 'map' && a.key && window.openSpawnView) return window.openSpawnView({ tab: 'maps', key: a.key });
@@ -449,6 +470,7 @@ async function openHealthWorkView(sel) {
   if (window.hideTextWorkView) window.hideTextWorkView();
   if (window.hideStarterWorkView) window.hideStarterWorkView();
   if (window.hideYswView) window.hideYswView();
+  if (window.hideGmWorkView) window.hideGmWorkView();
   const dbView = hwEl('dbView');
   const dropView = hwEl('dropView');
   if (dbView) dbView.classList.add('hidden');

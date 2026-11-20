@@ -61,6 +61,7 @@ const BASIC_TABS = [
   { target: 'db', name: '数据库', desc: '浏览并编辑物品、怪物等数据表' },
   { target: 'mon', name: '怪物', desc: '查看怪物属性、刷怪点与爆率' },
   { target: 'drop', name: '爆率', desc: '按文件编辑 MonItems 掉落规则' },
+  { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' },
   { target: 'cfg', name: '玩法', desc: '刷怪、合成、称号、商城等基础配置' }
 ];
 
@@ -79,7 +80,14 @@ const WORK_GROUPS = [
       { target: 'mpw', name: '地图', desc: '查看地图、NPC、刷怪与跳转规则' },
       { target: 'spw', name: '刷怪', desc: '按地图检查刷怪范围、数量与间隔' },
       { target: 'npcw', name: 'NPC', desc: '查看 NPC 分布、脚本与商店货品' },
-      { target: 'cbw', name: '沙城攻城', desc: '沙城归属、攻城奖励与守卫' },
+      { target: 'cbw', name: '沙城攻城', desc: '沙城归属、攻城奖励与守卫' }
+    ]
+  },
+  {
+    name: '角色与成长',
+    items: [
+      { target: 'grw', name: '职业与技能', desc: '技能、三职业成长、道士召唤兽与宠物升级经验' },
+      { target: 'petw', name: '灵兽骑乘', desc: '灵兽成长、转生材料与骑乘配置' },
       { target: 'ysw', name: '元神', desc: '查看元神参数、创建入口、物品与引用' }
     ]
   },
@@ -97,14 +105,6 @@ const WORK_GROUPS = [
       { target: 'tsk', name: '任务', desc: '查看、启用和修复任务配置' },
       { target: 'act', name: '活动', desc: '活动、榜单与开关配置' },
       { target: 'txw', name: '文案对话', desc: '对话、描述、公告与验证文案' }
-    ]
-  },
-  {
-    name: '角色与工具',
-    items: [
-      { target: 'grw', name: '职业与技能', desc: '技能、三职业成长、道士召唤兽与宠物升级经验' },
-      { target: 'petw', name: '灵兽骑乘', desc: '灵兽成长、转生材料与骑乘配置' },
-      { target: 'scw', name: '脚本', desc: '全文搜索脚本并定位引用行' }
     ]
   }
 ];
@@ -1587,6 +1587,11 @@ async function openBasicTab(target) {
     hideAllViews();
     showSideTab('drop');
     $('#dropView').classList.remove('hidden');
+    return;
+  }
+  if (target === 'scw') {
+    if (window.openScriptView) await window.openScriptView();
+    else showSideTab('scw');
     return;
   }
   if (target === 'mon') {

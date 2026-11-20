@@ -259,13 +259,13 @@ function gwRenderCommands(d) {
       return '<tr><td><input type="checkbox" data-gw-cmd="' + gwEsc(cmd.name) + '"' +
         (on ? ' checked' : '') + '></td>' +
         '<td><code>@' + gwEsc(cmd.name) + '</code></td>' +
-        '<td><div class="gw-usage"><code>' + gwEsc(cmd.usage || '@' + cmd.name) + '</code>' + badge + note + '</div></td>' +
         '<td>' + gwEsc(cmd.desc || '—') + '</td>' +
+        '<td><div class="gw-usage"><code>' + gwEsc(cmd.usage || '@' + cmd.name) + '</code>' + badge + note + '</div></td>' +
         '<td data-gw-state="' + gwEsc(cmd.name) + '">' + gwEsc(gwStateText(cmd)) + '</td></tr>';
     });
     if (!rows.length) continue;
     sections.push(gwSection(group.label, 'cmd-' + group.key, rows.length + ' 条',
-      gwTable(['启用', '命令', '用法', '说明', '状态'], rows)));
+      gwTable(['启用', '命令', '说明', '用法', '状态'], rows)));
   }
   const commandBody = sections.join('') || '<div class="mpw-empty">没有符合当前筛选条件的命令。</div>';
 

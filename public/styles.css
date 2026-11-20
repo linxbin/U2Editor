@@ -2741,3 +2741,30 @@ button.tsk-chip:hover { border-color: #3f7df0; color: #eaf1ff; }
 .gw-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
 .gw-filters .btn.active { background: #1d2b44; border-color: #33518a; color: #fff; }
 .gw-filters .fmeta { margin-left: 6px; }
+.gw-legend { margin: 0 0 12px; }
+.gw-legend code {
+  padding: 0 4px;
+  border: 1px solid #253247;
+  border-radius: 3px;
+  background: #141d2c;
+  color: #cfe3ff;
+}
+.gw-usage { min-width: 200px; }
+.gw-usage code {
+  color: #bcd2ee;
+  white-space: normal;
+  word-break: break-word;
+}
+.gw-src {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid #35537f;
+  border-radius: 3px;
+  background: #16233a;
+  color: #9fc3ff;
+  font-size: 10.5px;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+.gw-note { margin-top: 3px; color: #7f8da3; font-size: 11px; line-height: 1.55; }

@@ -240,7 +240,10 @@ function gwRenderCommands(d) {
     ['all', 'enabled', 'disabled'].map((key) =>
       '<button class="btn small' + (GW.filter === key ? ' active' : '') + '" data-gw-filter="' + key + '">' +
       ({ all: '全部', enabled: '已启用', disabled: '未启用' }[key]) + '</button>').join('') +
-    '<span class="fmeta">当前白名单 ' + d.whitelist.enabledNames.length + ' 条，目录 ' + d.catalog.total + ' 条</span></div>';
+    '<span class="fmeta">当前白名单 ' + d.whitelist.enabledNames.length + ' 条，目录 ' + d.catalog.total + ' 条</span></div>' +
+    '<div class="side-note gw-legend">游戏内聊天框输入 <code>@命令 参数</code>；' +
+    '<code>&lt;...&gt;</code> 必填、<code>[...]</code> 可选。标「引擎」的用法提取自 NewGs.exe 的参数校验，' +
+    '未标注的按命令语义整理；参数均以服务端实际校验为准。</div>';
 
   const sections = [];
   for (const group of d.catalog.categories) {
@@ -248,18 +251,21 @@ function gwRenderCommands(d) {
       const on = gwCommandOn(cmd);
       if (GW.filter === 'enabled' && !on) return false;
       if (GW.filter === 'disabled' && on) return false;
-      return gwMatches(cmd.name, '@' + cmd.name, cmd.desc, group.label);
+      return gwMatches(cmd.name, '@' + cmd.name, cmd.desc, group.label, cmd.usage, cmd.note);
     }).map((cmd) => {
       const on = gwCommandOn(cmd);
+      const badge = cmd.src === 'engine' ? '<span class="gw-src">引擎</span>' : '';
+      const note = cmd.note ? '<div class="gw-note">' + gwEsc(cmd.note) + '</div>' : '';
       return '<tr><td><input type="checkbox" data-gw-cmd="' + gwEsc(cmd.name) + '"' +
         (on ? ' checked' : '') + '></td>' +
         '<td><code>@' + gwEsc(cmd.name) + '</code></td>' +
+        '<td><div class="gw-usage"><code>' + gwEsc(cmd.usage || '@' + cmd.name) + '</code>' + badge + note + '</div></td>' +
         '<td>' + gwEsc(cmd.desc || '—') + '</td>' +
         '<td data-gw-state="' + gwEsc(cmd.name) + '">' + gwEsc(gwStateText(cmd)) + '</td></tr>';
     });
     if (!rows.length) continue;
     sections.push(gwSection(group.label, 'cmd-' + group.key, rows.length + ' 条',
-      gwTable(['启用', '命令', '说明', '状态'], rows)));
+      gwTable(['启用', '命令', '用法', '说明', '状态'], rows)));
   }
   const commandBody = sections.join('') || '<div class="mpw-empty">没有符合当前筛选条件的命令。</div>';
 

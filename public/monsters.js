@@ -1950,12 +1950,12 @@ if (window.appReady && typeof window.appReady.then === 'function') {
   window.appReady.then(() => {
     const name = monHashName();
     if (name) openMonsterWorkbench(name);
-    else monLoadList().catch(() => {});
+    else setTimeout(() => monLoadList().catch(() => {}), 1200);
   });
 } else {
   window.addEventListener('app-ready', () => {
     const name = monHashName();
     if (name) openMonsterWorkbench(name);
-    else monLoadList().catch(() => {});
+    else setTimeout(() => monLoadList().catch(() => {}), 1200);
   });
 }

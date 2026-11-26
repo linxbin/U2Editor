@@ -330,6 +330,23 @@ function readBody(req) {
   });
 }
 
+function readFileHead(file, size) {
+  const fd = fs.openSync(file, 'r');
+  try {
+    const len = Math.min(size, 2048);
+    const head = Buffer.alloc(len);
+    let off = 0;
+    while (off < len) {
+      const n = fs.readSync(fd, head, off, len - off, off);
+      if (n === 0) break;
+      off += n;
+    }
+    return head;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 function listDbs() {
   const out = [];
   for (const name of fs.readdirSync(DB_DIR)) {
@@ -344,7 +361,14 @@ function listDbs() {
     if (!st.isFile()) continue;
     let info = { name, size: st.size, mtime: st.mtimeMs, count: null, capacity: null, recSize: null, error: null };
     try {
-      const schema = dbe.parseSchema(fs.readFileSync(full));
+      // count/capacity/recSize 都在文件头,只读头即可(避免整读全部 .db 拖慢首屏)
+      const head = readFileHead(full, st.size);
+      let schema;
+      try {
+        schema = dbe.parseSchema(head, st.size);
+      } catch (e) {
+        schema = dbe.parseSchema(fs.readFileSync(full));
+      }
       info.count = schema.recordCount;
       info.capacity = schema.capacity;
       info.recSize = schema.recSize;
@@ -729,15 +753,15 @@ async function configSummary() {
       out.starterwork = { error: e.message };
     }
   });
-  steps.push(() => {
+  steps.push(async () => {
     try {
-      out.healthwork = healthWorkbench.summary();
+      out.healthwork = await healthWorkbench.summary();
     } catch (e) {
       out.healthwork = { error: e.message };
     }
   });
   for (const step of steps) {
-    step();
+    await step();
     await yieldTick();
   }
   return out;
@@ -812,6 +836,8 @@ function invalidateAll() {
     starterWorkbench, itemWorkbench, healthWorkbench, ysWorkbench, petWorkbench, gmWorkbench
   ];
   for (const wb of list) wb.invalidate();
+  configs.clearFileCache();
+  dbe.clearDbCache();
   invalidateState();
 }
 
@@ -984,7 +1010,7 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && pathname === '/api/drop') {
     const file = safePath(DROP_DIR, url.searchParams.get('file'), DROP_NAME_RE);
-    const text = gbk.decodeText(fs.readFileSync(file));
+    const text = configs.readFileLines(file).text;
     json(res, 200, { file: path.basename(file), text, size: fs.statSync(file).size });
     return;
   }
@@ -995,6 +1021,7 @@ async function handle(req, res) {
     if (typeof body.text !== 'string') throw new Error('缺少文本内容');
     const backup = dbe.backupFile(file);
     fs.writeFileSync(file, gbk.encode(body.text));
+    configs.invalidateFileCache(file);
     json(res, 200, { ok: true, file: path.basename(file), backup, size: fs.statSync(file).size });
     return;
   }
@@ -1048,6 +1075,7 @@ async function handle(req, res) {
     }
     const backup = dbe.backupFile(file);
     fs.unlinkSync(file);
+    configs.invalidateFileCache(file);
     dropWorkbench.invalidate();
     itemWorkbench.invalidate();
     monsterWorkbench.invalidate();
@@ -1496,12 +1524,16 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && pathname === '/api/config/healthwork') {
     if (url.searchParams.get('refresh') === '1') healthWorkbench.invalidate();
-    json(res, 200, healthWorkbench.list());
+    if (url.searchParams.get('summary') === '1') {
+      json(res, 200, await healthWorkbench.summary());
+    } else {
+      json(res, 200, await healthWorkbench.list());
+    }
     return;
   }
 
   if (req.method === 'GET' && pathname === '/api/config/healthwork/search') {
-    json(res, 200, healthWorkbench.search(url.searchParams.get('q') || '', url.searchParams.get('limit')));
+    json(res, 200, await healthWorkbench.search(url.searchParams.get('q') || '', url.searchParams.get('limit')));
     return;
   }
 

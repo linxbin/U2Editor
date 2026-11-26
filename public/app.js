@@ -1508,6 +1508,16 @@ async function refreshState() {
   applyState(await api('/api/state'));
 }
 
+async function fetchHealthBadges() {
+  try {
+    const summary = await api('/api/config/healthwork?summary=1');
+    S.configs = Object.assign({}, S.configs, { healthwork: summary });
+    updateWorkNavBadges();
+  } catch (e) {
+    console.warn('体检徽章加载失败', e);
+  }
+}
+
 async function init() {
   let boot;
   try {
@@ -1534,7 +1544,7 @@ async function init() {
   } else {
     toast('数据库目录中没有可解析的 .db 文件', 'err');
   }
-  refreshState().catch(() => {});
+  fetchHealthBadges().catch(() => {});
 }
 
 $('#grid tbody').addEventListener('click', (e) => {
@@ -1605,6 +1615,7 @@ async function openBasicTab(target) {
     return;
   }
   if (target === 'cfg') {
+    if (!S.configs || !S.configs.mongen) refreshState().catch(() => {});
     if (S.mode.startsWith('cfg')) {
       showSideTab('cfg');
       return;

@@ -1,6 +1,7 @@
 node_modules/
 .tmp-test/
 备份/
+dist/
 *.bak
 *.log
 Thumbs.db

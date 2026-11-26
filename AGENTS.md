@@ -7,8 +7,8 @@
 U2Editor（原名「传世 DB 编辑器」）是一个 Node.js 本地 Web 应用，用图形界面浏览、检查、编辑《传奇世界》1.9.6 服务端的 `GameServer/Envir` 配置：数据库（`DB/*.db`）、NPC 列表与脚本、刷怪、爆率、地图、商城、任务、活动等。
 
 - 纯本地、离线：只监听 `127.0.0.1`
-- 零依赖：没有 `package.json` / `node_modules`，只用 Node 内置模块
-- 无构建：前端是原生 HTML/CSS/JS，由 `server.js` 直接托管
+- 零依赖：运行时只用 Node 内置模块；仅 `build/` 构建工具带 devDependencies（javascript-obfuscator），不随产品分发
+- 无构建：前端是原生 HTML/CSS/JS，由 `server.js` 直接托管；发布给客户时可选混淆打包（`node build/build-dist.js`，产出 `dist/`）
 - 本仓库：`D:\U2Server\Tools\DBEditor`；默认数据目录：`D:\U2Server\GameServer\Envir`
 
 ## 2. 数据安全红线（必须遵守）
@@ -54,7 +54,9 @@ node server.js
 
 ```
 server.js            唯一入口：路径解析、workbench 组装、HTTP 路由分发、静态文件托管
-启动编辑器.bat        Windows 启动脚本（查找 Node>=18、启动、缺 Node 提示）
+启动编辑器.bat        Windows 启动脚本（优先用包内 node/node.exe，回退 PATH/NVM，校验 Node>=18）
+build/                发布构建工具（devDep javascript-obfuscator；`node build-dist.js [--fast]` 产出 dist/，内含绿色版 Node）
+dist/                 混淆后的可分发产物（构建生成，gitignore，不提交）
 lib/                 后端：每类配置一个模块，负责解析、校验、写入
 public/              前端：index.html + 每类配置一个视图脚本 + app.js 外壳
 ```
@@ -226,6 +228,7 @@ PORT=8903 DBEDITOR_ENVIR_DIR="D:/U2Server/Tools/DBEditor/.tmp-test/Envir" DBEDIT
 - UI 用无头 Chrome 或 CDP（Node 20 `--experimental-websocket` + `Runtime.evaluate` / `Page.captureScreenshot`）。快速截图示例（Chrome 路径按本机调整）：
   `chrome --headless=new --screenshot=D:/U2Server/Tools/DBEditor/.tmp-test/shot.png --window-size=1600,1200 http://127.0.0.1:8903/`
 - 断言重点：生成文件为 GBK + 原换行 + 末尾换行；未改动行字节不变；备份数量/位置正确；元数据回填正确；非法输入返回 400；陈旧状态返回 409。
+- 发布混淆构建（`node build/build-dist.js`）后，必须按本节流程用临时 Envir 验证 dist 版：API 读取、原值写回、启动日志与页面正常。
 - **验证结束必须**：停测试服务、`rm -rf .tmp-test`、确认 `git status` 只有预期源码改动、确认真实 Envir 未被修改。
 
 ## 9. 扩展操作手册

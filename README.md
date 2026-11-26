@@ -25,8 +25,9 @@
 
 ## 环境要求
 
-- **Node.js 18+**，且为带完整 ICU 的官方构建（需要 `TextDecoder('gbk')`）
+- 从源码运行需要 **Node.js 18+**，且为带完整 ICU 的官方构建（需要 `TextDecoder('gbk')`）
 - Windows（双击启动脚本）；其他平台可用 `node server.js` 启动
+- 发布版（`dist/`）已内置绿色版 Node，买家无需安装任何环境
 
 ## 快速开始
 
@@ -78,6 +79,20 @@ server.js             唯一入口：路由分发、静态文件托管、各工�
 lib/                  后端：每类配置一个模块，统一导出 create(options)
 public/               前端：index.html + 各视图脚本 + app.js 外壳 + styles.css
 ```
+
+## 发布打包（混淆，可选）
+
+给客户分发前可以把源码混淆，防止买家直接阅读/篡改代码：
+
+```bash
+cd build
+npm install          # 首次需要,安装构建依赖
+node build-dist.js   # 或 npm run build;--fast 出快速测试版
+```
+
+产物在 `dist/`：自带绿色版 Node（`node/node.exe`），买家解压后双击 `启动编辑器.bat` 即可使用，**无需安装 Node.js**。
+
+注意：混淆只防「读懂/篡改源码」，**不能防止复制转卖**（复制文件不需要看懂代码）。
 
 ## 开发
 

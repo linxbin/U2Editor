@@ -9,12 +9,20 @@ set "NODE_VER="
 set "CUR_EXE="
 set "CUR_VER="
 
-for /f "delims=" %%p in ('where node 2^>nul') do (
-  if not defined CUR_EXE set "CUR_EXE=%%p"
+rem 优先使用随包附带的绿色版 Node(买家无需安装)
+if exist "%~dp0node\node.exe" (
+  for /f "delims=" %%v in ('call "%~dp0node\node.exe" -p "process.versions.node" 2^>nul') do set "CUR_VER=%%v"
+  if defined CUR_VER call :accept "%~dp0node\node.exe" "!CUR_VER!"
 )
-if defined CUR_EXE (
-  for /f "delims=" %%v in ('node -p "process.versions.node" 2^>nul') do set "CUR_VER=%%v"
-  if defined CUR_VER call :accept "!CUR_EXE!" "!CUR_VER!"
+
+if not defined NODE_EXE (
+  for /f "delims=" %%p in ('where node 2^>nul') do (
+    if not defined CUR_EXE set "CUR_EXE=%%p"
+  )
+  if defined CUR_EXE (
+    for /f "delims=" %%v in ('node -p "process.versions.node" 2^>nul') do set "CUR_VER=%%v"
+    if defined CUR_VER call :accept "!CUR_EXE!" "!CUR_VER!"
+  )
 )
 
 if not defined NODE_EXE (

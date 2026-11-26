@@ -60,6 +60,26 @@ const FRONTEND_OPTS = {
   sourceMap: false
 };
 
+const LIGHT_BACKEND_OPTS = {
+  ...BACKEND_OPTS,
+  controlFlowFlattening: false,
+  numbersToExpressions: false,
+  stringArrayThreshold: 0.6,
+  stringArrayEncoding: []
+};
+
+// 数据解析热路径模块用轻量混淆:全量控制流扁平化会把 GBK 编解码、
+// DB 记录解析等循环拖慢 50%+,而这些数据解析代码的防篡改价值低。
+const LIGHT_BACKEND = new Set([
+  'activity.js', 'backups.js', 'configs.js', 'dbe.js', 'dbrefs.js',
+  'dropwork.js', 'extra.js', 'extras.js', 'gbk.js', 'gmcmdcatalog.js',
+  'gmwork.js', 'growth.js', 'healthwork.js', 'itemwork.js', 'mall.js',
+  'mapinfo.js', 'maprefs.js', 'mapwork.js', 'monster.js', 'npc.js',
+  'npccreator.js', 'npctemplates.js', 'npcwork.js', 'ops.js', 'petwork.js',
+  'pysyntax.js', 'scriptwork.js', 'shopwork.js', 'spawnwork.js',
+  'starterwork.js', 'tasks.js', 'textwork.js', 'yswork.js'
+]);
+
 function obfuscateFile(file, opts) {
   const src = fs.readFileSync(file, 'utf8');
   const t0 = Date.now();
@@ -110,7 +130,7 @@ function run(file, label, opts) {
 
 run(path.join(DIST, 'server.js'), 'server.js', BACKEND_OPTS);
 for (const f of fs.readdirSync(path.join(DIST, 'lib')).filter((x) => x.endsWith('.js')).sort()) {
-  run(path.join(DIST, 'lib', f), 'lib/' + f, BACKEND_OPTS);
+  run(path.join(DIST, 'lib', f), 'lib/' + f, LIGHT_BACKEND.has(f) ? LIGHT_BACKEND_OPTS : BACKEND_OPTS);
 }
 for (const f of fs.readdirSync(path.join(DIST, 'public')).filter((x) => x.endsWith('.js')).sort()) {
   run(path.join(DIST, 'public', f), 'public/' + f, FRONTEND_OPTS);
